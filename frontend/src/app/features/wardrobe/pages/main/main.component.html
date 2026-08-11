@@ -1,0 +1,179 @@
+<section class="page-shell">
+  <div class="search-banner">
+    <label for="free-search" class="search-label">Ricerca libera</label>
+    <input
+      id="free-search"
+      [formField]="searchForm.text"
+      placeholder="Cerca per nome, brand o nota"
+    />
+    <button type="button" class="ghost filter-toggle" (click)="toggleFilters()">Filtri</button>
+    <a class="primary" [routerLink]="['new']">Nuovo vestito</a>
+  </div>
+
+  <section class="layout-grid">
+    <div class="filters-backdrop" [class.open]="filtersOpen()" (click)="closeFilters()"></div>
+
+    <aside class="filters-sidebar" [class.open]="filtersOpen()">
+      <div class="filters-mobile-head">
+        <h2>Filtri</h2>
+        <button type="button" class="ghost" (click)="closeFilters()">Chiudi</button>
+      </div>
+
+      @if (hasActiveFilters()) {
+        <div class="filters-toolbar">
+          <div class="count-pill">{{ activeFilterCount() }} filtri attivi</div>
+          <button type="button" class="ghost" (click)="clearFilters()">Azzera</button>
+        </div>
+      }
+
+      @for (group of filterGroups(); track trackFilterGroup($index, group)) {
+        <section class="filter-group">
+          <h2>{{ group.label }}</h2>
+
+          @if (group.options.length === 0) {
+            <p class="empty-group">Nessun valore disponibile</p>
+          } @else {
+            <div class="pill-list">
+              @for (option of group.options; track trackFilterOption($index, option)) {
+                <button
+                  type="button"
+                  class="pill"
+                  [class.active]="isFilterSelected(group.key, option.id)"
+                  (click)="toggleFilter(group.key, option.id)"
+                >
+                  @if (option.colorHex) {
+                    <span
+                      class="color-dot"
+                      [style.--dot-color]="option.colorHex"
+                      aria-hidden="true"
+                    ></span>
+                  } @else if (option.emoji) {
+                    <span>{{ option.emoji }}</span>
+                  }
+                  {{ option.label }}
+                </button>
+              }
+            </div>
+          }
+        </section>
+      }
+    </aside>
+
+    <div class="results-area">
+      @if (loading()) {
+        <div class="state-card">Caricamento guardaroba...</div>
+      } @else if (error()) {
+        <div class="state-card error">{{ error() }}</div>
+      } @else if (items().length === 0) {
+        <div class="state-card">
+          @if (hasActiveFilters()) {
+            <h2>Nessun capo con questi filtri</h2>
+            <p>Prova a cambiare o azzerare i filtri per vedere piu risultati.</p>
+          } @else {
+            <h2>Il guardaroba è vuoto</h2>
+            <p>Inizia aggiungendo il tuo primo capo.</p>
+          }
+        </div>
+      } @else {
+        <section class="cards-grid">
+          @for (item of items(); track trackById($index, item)) {
+            <a
+              class="item-card"
+              [routerLink]="[item.id]"
+              [attr.aria-label]="'Apri dettaglio ' + getPreferredLabel(item)"
+            >
+              <div class="thumb">
+                @if (getPrimaryAttachment(item); as attachment) {
+                  <img
+                    [src]="getAttachmentUrl(item, attachment)"
+                    [alt]="getPreferredLabel(item)"
+                    loading="lazy"
+                  />
+                } @else {
+                  <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                }
+              </div>
+
+              <div class="card-body">
+                <div class="card-top">
+                  <div>
+                    <p class="brand">{{ item.brand?.name || 'Marchio non assegnato' }}</p>
+                    <h3>{{ getPreferredLabel(item) }}</h3>
+                  </div>
+
+                  <div class="size-pill">{{ item.size }}</div>
+                </div>
+                <div class="meta-line">
+                  <span class="meta-chip">{{ item.fit?.name || 'Fit non assegnato' }}</span>
+                  @for (color of item.colors ?? []; track color.id) {
+                    <span
+                      class="meta-chip meta-chip--color"
+                      [title]="color.name"
+                      [attr.aria-label]="'Colore ' + color.name"
+                    >
+                      <span
+                        class="meta-dot"
+                        [style.--dot-color]="resolveColorHex(color.hexCode)"
+                        aria-hidden="true"
+                      ></span>
+                    </span>
+                  }
+                  @for (season of item.seasons ?? []; track season.id) {
+                    <span
+                      class="meta-chip meta-chip--emoji"
+                      [title]="season.name"
+                      [attr.aria-label]="'Stagione ' + season.name"
+                    >
+                      {{ season.icon || '🗓️' }}
+                    </span>
+                  }
+                  @for (temperature of item.temperatures ?? []; track temperature.id) {
+                    <span
+                      class="meta-chip meta-chip--emoji"
+                      [title]="temperature.name"
+                      [attr.aria-label]="'Temperatura ' + temperature.name"
+                    >
+                      {{ temperature.icon || '🌡️' }}
+                    </span>
+                  }
+                </div>
+
+                @if (item.notes?.trim()) {
+                  <p class="notes">{{ item.notes }}</p>
+                }
+
+              </div>
+            </a>
+          }
+        </section>
+      }
+
+      @if (items().length > 0) {
+        <footer class="pager">
+          <div class="pager-status">
+            <span class="pager-label">Pagina {{ filters().page }} di {{ totalPages() }}</span>
+            <small>{{ total() }} capi</small>
+          </div>
+          <div class="pager-actions">
+            <button
+              type="button"
+              class="ghost"
+              [disabled]="filters().page <= 1"
+              (click)="setPage(filters().page - 1)"
+            >
+              Precedente
+            </button>
+            <button
+              type="button"
+              class="ghost"
+              [disabled]="filters().page >= totalPages()"
+              (click)="setPage(filters().page + 1)"
+            >
+              Successiva
+            </button>
+          </div>
+        </footer>
+      }
+    </div>
+  </section>
+</section>

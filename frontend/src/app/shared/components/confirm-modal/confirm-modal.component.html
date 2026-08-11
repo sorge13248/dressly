@@ -1,0 +1,11 @@
+<section class="modal-shell" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+  <header>
+    <h2 id="confirm-title">{{ data.title }}</h2>
+    <p>{{ data.message }}</p>
+  </header>
+
+  <footer>
+    <button type="button" class="ghost" (click)="close()">{{ data.cancelLabel || 'Annulla' }}</button>
+    <button type="button" class="danger" (click)="confirm()">{{ data.confirmLabel || 'Conferma' }}</button>
+  </footer>
+</section>

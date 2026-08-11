@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.lightbox-shell {
+  width: min(1100px, 94vw);
+  max-height: 92vh;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(14, 24, 40, 0.96);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  color: #f5f8ff;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+h2,
+figure {
+  margin: 0;
+}
+
+.close {
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+}
+
+figure {
+  display: grid;
+  place-items: center;
+  overflow: auto;
+}
+
+img {
+  max-width: 100%;
+  max-height: calc(92vh - 92px);
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+@media (max-width: 640px) {
+  .lightbox-shell {
+    width: 96vw;
+    padding: 12px;
+  }
+
+  header {
+    align-items: start;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,112 @@
+:host {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 1200;
+  pointer-events: none;
+}
+
+.toast-stack {
+  display: grid;
+  gap: 10px;
+  width: min(460px, calc(100vw - 28px));
+}
+
+.toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(53, 98, 165, 0.35);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(234, 244, 255, 0.95) 100%);
+  box-shadow: 0 12px 24px rgba(24, 44, 72, 0.22);
+  animation: toast-in 180ms ease;
+}
+
+.toast.leaving {
+  animation: toast-out 200ms ease forwards;
+  pointer-events: none;
+}
+
+.toast p {
+  margin: 0;
+  color: #1f3f66;
+  line-height: 1.35;
+  font-size: 0.9rem;
+}
+
+.toast-info {
+  border-color: rgba(45, 111, 190, 0.38);
+}
+
+.toast-success {
+  border-color: rgba(41, 131, 83, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(234, 249, 238, 0.96) 100%);
+}
+
+.toast-success p {
+  color: #1c5b3b;
+}
+
+.toast-error {
+  border-color: rgba(174, 49, 68, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 238, 242, 0.97) 100%);
+}
+
+.toast-error p {
+  color: #7f2030;
+}
+
+.toast-close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.72;
+  cursor: pointer;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 3px;
+}
+
+.toast-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+}
+
+@media (max-width: 640px) {
+  :host {
+    top: 8px;
+    right: 8px;
+  }
+
+  .toast-stack {
+    width: min(460px, calc(100vw - 16px));
+  }
+}

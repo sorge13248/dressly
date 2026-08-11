@@ -1,0 +1,20 @@
+<section class="spinner-shell" [class.fullscreen]="fullscreen">
+  <div class="bg-orb orb-a" aria-hidden="true"></div>
+  <div class="bg-orb orb-b" aria-hidden="true"></div>
+  <div class="bg-orb orb-c" aria-hidden="true"></div>
+
+  <div class="loader-card" role="status" aria-live="polite">
+    <div class="logo-wrap">
+      <img ngSrc="/assets/logo.webp" width="56" height="56" alt="Dressly" priority />
+    </div>
+
+    <div class="spinner" aria-hidden="true">
+      <span class="ring ring-1"></span>
+      <span class="ring ring-2"></span>
+      <span class="ring ring-3"></span>
+      <span class="core"></span>
+    </div>
+    <p class="title">{{ title }}</p>
+    <p class="subtitle">{{ message }}</p>
+  </div>
+</section>

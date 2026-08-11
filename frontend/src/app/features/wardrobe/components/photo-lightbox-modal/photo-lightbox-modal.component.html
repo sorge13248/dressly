@@ -1,0 +1,14 @@
+<section class="lightbox-shell" role="dialog" aria-modal="true" aria-labelledby="photo-title">
+  <header>
+    @if (data.title) {
+      <h2 id="photo-title">{{ data.title }}</h2>
+    } @else {
+      <span aria-hidden="true"></span>
+    }
+    <button type="button" class="close" (click)="close()" aria-label="Chiudi anteprima">Chiudi</button>
+  </header>
+
+  <figure>
+    <img [src]="data.src" [alt]="data.alt" />
+  </figure>
+</section>

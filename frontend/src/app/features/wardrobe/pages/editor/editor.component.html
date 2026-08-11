@@ -1,0 +1,721 @@
+<section class="wizard-shell">
+  <div class="wizard-window">
+    <header class="window-titlebar">
+      <div class="title-wrap">
+        <h1>{{ title() }}</h1>
+      </div>
+    </header>
+
+    <section class="stepper-card">
+      @for (step of steps; track step.index) {
+        <button
+          type="button"
+          class="step-node"
+          [class.active]="currentStep() === step.index"
+          [class.error]="hasStepError(step.index)"
+          (click)="selectStep(step.index)"
+        >
+          <span>{{ step.index }}</span>
+          <div>
+            <strong>{{ step.label }}</strong>
+            <small>{{ step.hint }}</small>
+          </div>
+        </button>
+      }
+    </section>
+
+    @if (error()) {
+      <div class="notice error">{{ error() }}</div>
+    }
+
+    <section class="wizard-card">
+      @switch (currentStep()) {
+        @case (1) {
+          <section class="step-grid">
+            <div class="panel">
+              <h2>Base</h2>
+              <div class="field-grid">
+                <label>
+                  <span>Nome</span>
+                  <input [formField]="wizardForm.base.name" placeholder="Camicia lino" />
+                </label>
+                <label>
+                  <span>Taglia</span>
+                  <input
+                    [formField]="wizardForm.base.size"
+                    placeholder="M"
+                    (input)="onSizeInput($event)"
+                  />
+                </label>
+                <label>
+                  <span>Fit</span>
+                  <app-select-dropdown
+                    placeholder="Seleziona"
+                    [searchable]="true"
+                    [options]="fitDropdownOptions()"
+                    [selectedId]="wizardForm.base.fit_id().value()"
+                    [invalid]="showFieldError(wizardForm.base.fit_id(), 1)"
+                    (selectedIdChange)="setSelectValue(wizardForm.base.fit_id, $event)"
+                  />
+                  @if (showFieldError(wizardForm.base.fit_id(), 1)) {
+                    <small class="field-error-text">{{
+                      fieldError(wizardForm.base.fit_id(), 'Il fit è obbligatorio')
+                    }}</small>
+                  }
+                </label>
+                <label>
+                  <span>Brand</span>
+                  <div class="inline-select-add">
+                    <app-select-dropdown
+                      placeholder="Seleziona"
+                      [searchable]="true"
+                      [options]="brandDropdownOptions()"
+                      [selectedId]="wizardForm.base.brand_id().value()"
+                      [invalid]="showFieldError(wizardForm.base.brand_id(), 1)"
+                      (selectedIdChange)="setSelectValue(wizardForm.base.brand_id, $event)"
+                    />
+                    <button
+                      type="button"
+                      class="mini-add-btn"
+                      [disabled]="quickBrandBusy()"
+                      (click)="openCreateBrandModal()"
+                    >
+                      +
+                    </button>
+                  </div>
+                  @if (showFieldError(wizardForm.base.brand_id(), 1)) {
+                    <small class="field-error-text">{{
+                      fieldError(wizardForm.base.brand_id(), 'Il brand è obbligatorio')
+                    }}</small>
+                  }
+                </label>
+                <label>
+                  <span>Tipo</span>
+                  <app-select-dropdown
+                    placeholder="Seleziona"
+                    [searchable]="true"
+                    [options]="typeDropdownOptions()"
+                    [selectedId]="wizardForm.base.type_id().value()"
+                    (selectedIdChange)="setSelectValue(wizardForm.base.type_id, $event)"
+                  />
+                </label>
+                <label class="full-width">
+                  <span>Note</span>
+                  <textarea [formField]="wizardForm.base.notes" rows="4"></textarea>
+                </label>
+              </div>
+            </div>
+          </section>
+        }
+        @case (2) {
+          <section class="step-grid">
+            <div class="panel">
+              <h2>Stile e tag</h2>
+              <div class="section-head">
+                <h3>Colori *</h3>
+                <button
+                  type="button"
+                  class="pill pill-create"
+                  [disabled]="quickColorBusy()"
+                  (click)="openCreateColorModal()"
+                >
+                  + Nuovo colore
+                </button>
+              </div>
+              <div class="pill-list">
+                @for (color of referenceStore.colors(); track color.id) {
+                  <button
+                    type="button"
+                    class="pill"
+                    [class.active]="wizardForm.style.color_ids().value().includes(color.id)"
+                    (click)="toggleArray(wizardForm.style.color_ids, color.id)"
+                  >
+                    <span
+                      class="color-dot"
+                      [style.--dot-color]="resolveColorHex(color.hexCode)"
+                      aria-hidden="true"
+                    ></span>
+                    {{ color.name }}
+                  </button>
+                }
+              </div>
+              @if (showFieldError(wizardForm.style.color_ids(), 2)) {
+                <small class="field-error-text">{{
+                  fieldError(wizardForm.style.color_ids(), 'Seleziona almeno un colore')
+                }}</small>
+              }
+
+              <div class="section-head" style="margin-top: 18px;">
+                <h3>Materiali *</h3>
+                <button
+                  type="button"
+                  class="pill pill-create"
+                  [disabled]="quickMaterialBusy()"
+                  (click)="openCreateMaterialModal()"
+                >
+                  + Nuovo materiale
+                </button>
+              </div>
+              <div class="pill-list">
+                @for (material of referenceStore.materials(); track material.id) {
+                  <button
+                    type="button"
+                    class="pill"
+                    [class.active]="wizardForm.style.material_ids().value().includes(material.id)"
+                    (click)="toggleArray(wizardForm.style.material_ids, material.id)"
+                  >
+                    <span aria-hidden="true">🧵</span>
+                    {{ material.name }}
+                  </button>
+                }
+              </div>
+              @if (showFieldError(wizardForm.style.material_ids(), 2)) {
+                <small class="field-error-text">{{
+                  fieldError(wizardForm.style.material_ids(), 'Seleziona almeno un materiale')
+                }}</small>
+              }
+
+              <h3 style="margin-top: 18px;">Tag</h3>
+              <div class="pill-list">
+                <button
+                  type="button"
+                  class="pill pill-create"
+                  [disabled]="quickTagBusy()"
+                  (click)="openCreateTagModal()"
+                >
+                  + Nuovo tag
+                </button>
+                @for (tag of referenceStore.tags(); track tag.id) {
+                  <button
+                    type="button"
+                    class="pill"
+                    [class.active]="wizardForm.style.tag_ids().value().includes(tag.id)"
+                    (click)="toggleArray(wizardForm.style.tag_ids, tag.id)"
+                  >
+                    <span aria-hidden="true">#</span>
+                    {{ tag.name }}
+                  </button>
+                }
+              </div>
+            </div>
+          </section>
+        }
+        @case (3) {
+          <section class="step-grid">
+            <div class="panel">
+              <h2>Contesto</h2>
+              <div class="section-head">
+                <h3>Stagioni *</h3>
+                <button
+                  type="button"
+                  class="pill pill-create"
+                  [disabled]="quickSeasonBusy()"
+                  (click)="openCreateSeasonModal()"
+                >
+                  + Nuova stagione
+                </button>
+              </div>
+              <div class="chip-cloud">
+                @for (season of referenceStore.seasons(); track season.id) {
+                  <button
+                    type="button"
+                    class="chip"
+                    [class.active]="wizardForm.context.season_ids().value().includes(season.id)"
+                    (click)="toggleArray(wizardForm.context.season_ids, season.id)"
+                  >
+                    {{ season.icon }} {{ season.name }}
+                  </button>
+                }
+              </div>
+              @if (showFieldError(wizardForm.context.season_ids(), 3)) {
+                <small class="field-error-text">{{
+                  fieldError(wizardForm.context.season_ids(), 'Seleziona almeno una stagione')
+                }}</small>
+              }
+
+              <div class="section-head" style="margin-top: 18px;">
+                <h3>Temperature *</h3>
+                <button
+                  type="button"
+                  class="pill pill-create"
+                  [disabled]="quickTemperatureBusy()"
+                  (click)="openCreateTemperatureModal()"
+                >
+                  + Nuova temperatura
+                </button>
+              </div>
+              <div class="chip-cloud">
+                @for (temperature of referenceStore.temperatures(); track temperature.id) {
+                  <button
+                    type="button"
+                    class="chip"
+                    [class.active]="
+                      wizardForm.context.temperature_ids().value().includes(temperature.id)
+                    "
+                    (click)="toggleArray(wizardForm.context.temperature_ids, temperature.id)"
+                  >
+                    {{ temperature.icon }} {{ temperature.name }}
+                  </button>
+                }
+              </div>
+              @if (showFieldError(wizardForm.context.temperature_ids(), 3)) {
+                <small class="field-error-text">{{
+                  fieldError(
+                    wizardForm.context.temperature_ids(),
+                    'Seleziona almeno una temperatura'
+                  )
+                }}</small>
+              }
+
+              <div class="section-head" style="margin-top: 18px;">
+                <h3>Occasioni</h3>
+                <button
+                  type="button"
+                  class="pill pill-create"
+                  [disabled]="quickUseCaseBusy()"
+                  (click)="openCreateUseCaseModal()"
+                >
+                  + Nuova occasione
+                </button>
+              </div>
+              <div class="chip-cloud">
+                @for (useCase of referenceStore.useCases(); track useCase.id) {
+                  <button
+                    type="button"
+                    class="chip"
+                    [class.active]="wizardForm.context.use_case_ids().value().includes(useCase.id)"
+                    (click)="toggleArray(wizardForm.context.use_case_ids, useCase.id)"
+                  >
+                    {{ useCase.icon }} {{ useCase.name }}
+                  </button>
+                }
+              </div>
+              @if (showFieldError(wizardForm.context.use_case_ids(), 3)) {
+                <small class="field-error-text">{{
+                  fieldError(wizardForm.context.use_case_ids(), 'Seleziona almeno una occasione')
+                }}</small>
+              }
+            </div>
+          </section>
+        }
+        @case (4) {
+          <section class="step-grid care-islands">
+            <article class="panel care-island">
+              <div class="island-head">
+                <h3>Lavaggio</h3>
+                <button
+                  type="button"
+                  class="toggle-button"
+                  [class.active]="wizardForm.care.washingEnabled().value()"
+                  (click)="toggleWashingEnabled()"
+                >
+                  {{ wizardForm.care.washingEnabled().value() ? 'Attivo' : 'Disattivo' }}
+                </button>
+              </div>
+
+              @if (wizardForm.care.washingEnabled().value()) {
+                <div class="field-grid compact">
+                  <label>
+                    <span>Lavaggio</span>
+                    <app-select-dropdown
+                      [options]="washTypeOptions"
+                      [selectedId]="wizardForm.care.washing.wash_type().value()"
+                      (selectedIdChange)="setWashType($event)"
+                    />
+                  </label>
+                </div>
+
+                @if (isWashingDetailsEnabled()) {
+                  <div class="field-grid compact">
+                    <label>
+                      <span>Sbianca</span>
+                      <app-select-dropdown
+                        [options]="bleachTypeOptions"
+                        [selectedId]="wizardForm.care.washing.bleach_type().value()"
+                        (selectedIdChange)="setSelectValue(wizardForm.care.washing.bleach_type, $event)"
+                      />
+                    </label>
+                    <label>
+                      <span>Temperatura lavaggio *</span>
+                      <input
+                        type="number"
+                        [formField]="wizardForm.care.washing.washing_temperature"
+                        [class.field-error]="
+                          (submitAttempted() || blockedStep() === 4) &&
+                          (wizardForm.care.washing.washing_temperature().value() === null ||
+                            wizardForm.care.washing.washing_temperature().invalid())
+                        "
+                      />
+                      @if (
+                        (submitAttempted() || blockedStep() === 4) &&
+                        (wizardForm.care.washing.washing_temperature().value() === null ||
+                          wizardForm.care.washing.washing_temperature().invalid())
+                      ) {
+                        <small class="field-error-text">Temperatura lavaggio obbligatoria (20-60)</small>
+                      }
+                    </label>
+                    <label>
+                      <span>Temperatura test perdita colore</span>
+                      <input
+                        type="number"
+                        [formField]="wizardForm.care.washing.color_loss_test_temperature"
+                        [class.field-error]="
+                          showFieldError(wizardForm.care.washing.color_loss_test_temperature(), 4)
+                        "
+                      />
+                      @if (showFieldError(wizardForm.care.washing.color_loss_test_temperature(), 4)) {
+                        <small class="field-error-text">{{
+                          fieldError(
+                            wizardForm.care.washing.color_loss_test_temperature(),
+                            'Temperatura non valida'
+                          )
+                        }}</small>
+                      }
+                    </label>
+                  </div>
+
+                  <div class="chip-cloud compact">
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.stretch().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.stretch)"
+                    >
+                      Stretch
+                    </button>
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.reverse_washing().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.reverse_washing)"
+                    >
+                      Rovescio
+                    </button>
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.closed_zips().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.closed_zips)"
+                    >
+                      Cerniere chiuse
+                    </button>
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.similar_colors().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.similar_colors)"
+                    >
+                      Colori simili
+                    </button>
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.use_color_catcher().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.use_color_catcher)"
+                    >
+                      Acchiappacolore
+                    </button>
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.color_loss().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.color_loss)"
+                    >
+                      Perde colore
+                    </button>
+                  </div>
+                }
+              }
+            </article>
+
+            <article class="panel care-island">
+              <div class="island-head">
+                <h3>Asciugatura</h3>
+                <button
+                  type="button"
+                  class="toggle-button"
+                  [class.active]="wizardForm.care.dryingEnabled().value()"
+                  (click)="toggleDryingEnabled()"
+                >
+                  {{ wizardForm.care.dryingEnabled().value() ? 'Attivo' : 'Disattivo' }}
+                </button>
+              </div>
+
+              @if (wizardForm.care.dryingEnabled().value()) {
+                <div class="field-grid compact">
+                  <div class="full-width toggle-row">
+                    <span>Usa asciugatrice (tumble dry)</span>
+                    <button
+                      type="button"
+                      class="toggle-button"
+                      [class.active]="wizardForm.care.drying.tumble_dry().value()"
+                      (click)="toggleTumbleDry()"
+                    >
+                      {{ wizardForm.care.drying.tumble_dry().value() ? 'Sì' : 'No' }}
+                    </button>
+                  </div>
+
+                  @if (isDryingTemperatureEnabled()) {
+                    <label class="full-width">
+                      <span>Temperatura tumble dry *</span>
+                      <app-select-dropdown
+                        [options]="dryingTemperatureOptions"
+                        [selectedId]="wizardForm.care.drying.tumble_dry_temperature().value()"
+                        (selectedIdChange)="
+                          setSelectValue(wizardForm.care.drying.tumble_dry_temperature, $event)
+                        "
+                      />
+                      @if (
+                        (submitAttempted() || blockedStep() === 4) &&
+                        !wizardForm.care.drying.tumble_dry_temperature().value()
+                      ) {
+                        <small class="field-error-text"
+                          >Seleziona la temperatura tumble dry</small
+                        >
+                      }
+                    </label>
+                  }
+                </div>
+              }
+            </article>
+
+            <article class="panel care-island">
+              <div class="island-head">
+                <h3>Stiraggio</h3>
+                <button
+                  type="button"
+                  class="toggle-button"
+                  [class.active]="wizardForm.care.ironingEnabled().value()"
+                  (click)="toggleIroningEnabled()"
+                >
+                  {{ wizardForm.care.ironingEnabled().value() ? 'Attivo' : 'Disattivo' }}
+                </button>
+              </div>
+
+              @if (wizardForm.care.ironingEnabled().value()) {
+                <div class="field-grid compact">
+                  <label>
+                    <span>Tipo</span>
+                    <app-select-dropdown
+                      [options]="ironingTypeOptions"
+                      [selectedId]="wizardForm.care.ironing.iron_type().value()"
+                      (selectedIdChange)="onIronTypeChange($event)"
+                    />
+                  </label>
+
+                  @if (isIroningDetailsEnabled()) {
+                    <label>
+                      <span>Temperatura stiraggio *</span>
+                      <input
+                        type="number"
+                        [formField]="wizardForm.care.ironing.ironing_temperature"
+                        [class.field-error]="
+                          (submitAttempted() || blockedStep() === 4) &&
+                          (wizardForm.care.ironing.ironing_temperature().value() === null ||
+                            wizardForm.care.ironing.ironing_temperature().invalid())
+                        "
+                      />
+                      @if (
+                        (submitAttempted() || blockedStep() === 4) &&
+                        (wizardForm.care.ironing.ironing_temperature().value() === null ||
+                          wizardForm.care.ironing.ironing_temperature().invalid())
+                      ) {
+                        <small class="field-error-text"
+                          >Temperatura stiraggio obbligatoria (0-230)</small
+                        >
+                      }
+                    </label>
+                    <div class="full-width toggle-row">
+                      <span>Stirare al rovescio</span>
+                      <button
+                        type="button"
+                        class="toggle-button"
+                        [class.active]="wizardForm.care.ironing.inside_out().value()"
+                        (click)="toggleIronInsideOut()"
+                      >
+                        {{ wizardForm.care.ironing.inside_out().value() ? 'Sì' : 'No' }}
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+          </section>
+        }
+        @case (5) {
+          <section class="step-grid">
+            <div class="panel">
+              <div class="field-grid">
+                <label>
+                  <span>Negozio</span>
+                  <input [formField]="wizardForm.buy.detail.shop_name" placeholder="Zara" />
+                </label>
+                <label>
+                  <span>URL negozio</span>
+                  <input
+                    [formField]="wizardForm.buy.detail.shop_url"
+                    type="url"
+                    placeholder="https://example.com"
+                    [class.field-error]="showFieldError(wizardForm.buy.detail.shop_url(), 5)"
+                  />
+                  @if (showFieldError(wizardForm.buy.detail.shop_url(), 5)) {
+                    <small class="field-error-text">{{
+                      fieldError(wizardForm.buy.detail.shop_url(), 'URL non valido')
+                    }}</small>
+                  }
+                </label>
+                <label>
+                  <span>Data acquisto</span>
+                  <input [formField]="wizardForm.buy.detail.purchase_date" type="date" />
+                </label>
+              </div>
+            </div>
+          </section>
+        }
+        @case (6) {
+          <section class="step-grid">
+            <div class="panel">
+              <input
+                #fileInput
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                (change)="onFilesSelected($event)"
+              />
+              <div class="photo-actions">
+                <button type="button" class="primary" (click)="openFilePicker()">
+                  Aggiungi foto
+                </button>
+                <span class="muted"
+                  >Puoi anche incollare immagini con Ctrl+V</span
+                >
+              </div>
+
+              @if (pendingAttachments().length > 0) {
+                <p class="muted reorder-help">Riordina le foto caricate trascinandole o con Su/Giu.</p>
+                <div class="attachments-grid">
+                  @for (attachment of pendingAttachments(); track attachment.id) {
+                    <article
+                      class="attachment-card"
+                      draggable="true"
+                      (dragstart)="onPendingDragStart($event, attachment.id)"
+                      (dragover)="onPendingDragOver($event)"
+                      (drop)="onPendingDrop($event, attachment.id)"
+                      (dragend)="onPendingDragEnd()"
+                    >
+                      <img [src]="attachment.previewUrl" [alt]="attachmentLabel(attachment) || 'Foto allegata'" />
+                      <div class="attachment-footer">
+                        @if (attachmentLabel(attachment); as label) {
+                          <span>{{ label }}</span>
+                        }
+                        <div class="attachment-actions">
+                          <button
+                            type="button"
+                            class="ghost"
+                            [disabled]="!canMovePending(attachment.id, -1)"
+                            (click)="movePending(attachment.id, -1)"
+                          >
+                            Su
+                          </button>
+                          <button
+                            type="button"
+                            class="ghost"
+                            [disabled]="!canMovePending(attachment.id, 1)"
+                            (click)="movePending(attachment.id, 1)"
+                          >
+                            Giu
+                          </button>
+                          <button type="button" class="ghost" (click)="removePending(attachment.id)">
+                            Rimuovi
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  }
+                </div>
+              }
+
+              @if (existingAttachments()?.length) {
+                <p class="muted reorder-help">Riordina anche le foto salvate con drag and drop o Su/Giu.</p>
+                <div class="attachments-grid">
+                  @for (attachment of existingAttachments() ?? []; track attachment.id) {
+                    <article
+                      class="attachment-card"
+                      draggable="true"
+                      (dragstart)="onExistingDragStart($event, attachment.id)"
+                      (dragover)="onExistingDragOver($event)"
+                      (drop)="onExistingDrop($event, attachment.id)"
+                      (dragend)="onExistingDragEnd()"
+                    >
+                      @if (isImageAttachment(attachment.mimeType)) {
+                        <img
+                          [src]="getExistingAttachmentUrl(attachment.id)"
+                          [alt]="attachment.originalName || 'Foto allegata'"
+                          loading="lazy"
+                        />
+                      } @else {
+                        <div class="saved-preview">{{ attachment.originalName || 'Allegato' }}</div>
+                      }
+                      <div class="attachment-footer">
+                        @if (attachment.kind && attachment.kind !== 'photo') {
+                          <span>{{ attachment.kind }}</span>
+                        }
+                        <div class="attachment-actions">
+                          <button
+                            type="button"
+                            class="ghost"
+                            [disabled]="!canMoveExisting(attachment.id, -1)"
+                            (click)="moveExisting(attachment.id, -1)"
+                          >
+                            Su
+                          </button>
+                          <button
+                            type="button"
+                            class="ghost"
+                            [disabled]="!canMoveExisting(attachment.id, 1)"
+                            (click)="moveExisting(attachment.id, 1)"
+                          >
+                            Giu
+                          </button>
+                          <button type="button" class="ghost" (click)="removeExisting(attachment.id)">
+                            Elimina
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+        }
+      }
+    </section>
+
+    <footer class="wizard-footer">
+      <a class="dialog-btn" routerLink="..">Chiudi</a>
+      <button
+        type="button"
+        class="dialog-btn"
+        [disabled]="currentStep() === 1"
+        (click)="previousStep()"
+      >
+        Indietro
+      </button>
+      @if (currentStep() < 6) {
+        <button type="button" class="dialog-btn dialog-btn-primary" (click)="nextStep()">
+          Avanti
+        </button>
+      }
+      <button
+        type="button"
+        class="dialog-btn dialog-btn-primary"
+        [disabled]="saving()"
+        (click)="save()"
+      >
+        {{ saveLabel() }}
+      </button>
+    </footer>
+  </div>
+</section>

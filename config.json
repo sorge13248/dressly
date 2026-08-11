@@ -1,0 +1,8 @@
+{
+  "apiBaseUrl": "/api",
+  "oidc": {
+    "issuerUrl": "",
+    "clientId": "",
+    "redirectUri": "/auth/callback"
+  }
+}

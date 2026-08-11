@@ -1,0 +1,143 @@
+:host {
+  display: block;
+}
+
+.dropdown-shell {
+  position: relative;
+}
+
+.trigger {
+  width: 100%;
+  min-height: 24px;
+  border-radius: 3px;
+  border: 1px solid rgba(100, 140, 210, 0.45);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+.trigger.open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(30, 109, 207, 0.2);
+  outline: none;
+}
+
+.trigger-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 109, 207, 0.12);
+  border: 1px solid rgba(30, 109, 207, 0.25);
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.trigger-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.trigger-arrow {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.panel {
+  width: min(360px, calc(100vw - 20px));
+  max-width: calc(100vw - 20px);
+  border-radius: 4px;
+  border: 1px solid rgba(100, 140, 215, 0.55);
+  background: rgba(240, 248, 255, 0.98);
+  box-shadow: 0 4px 18px rgba(10, 30, 90, 0.28);
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(100, 140, 215, 0.3);
+  background: linear-gradient(180deg,
+    rgba(100, 160, 240, 0.35) 0%,
+    rgba(60, 110, 200, 0.15) 100%);
+}
+
+.clear {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.88rem;
+  text-decoration: underline;
+}
+
+.panel-list {
+  max-height: 260px;
+  overflow: auto;
+  padding: 4px;
+  display: grid;
+  gap: 2px;
+}
+
+.option-row {
+  min-height: 26px;
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 16px auto auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.option-row:hover {
+  background: rgba(30, 109, 207, 0.1);
+}
+
+.option-row input {
+  margin: 0;
+}
+
+.emoji {
+  font-size: 0.92rem;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.text {
+  min-width: 0;
+}

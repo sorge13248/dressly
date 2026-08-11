@@ -1,0 +1,54 @@
+<section class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+  <header>
+    <h2 id="editor-title">
+      {{ data.tabEmoji }}
+      {{ data.mode === 'create' ? 'Nuovo valore' : 'Modifica valore' }}
+    </h2>
+    <p>{{ data.tabLabel }}</p>
+  </header>
+
+  <div class="form-grid">
+    <label>
+      <span>Nome</span>
+      <input [formField]="modalForm.name" [class.field-error]="showError(modalForm.name())" />
+      @if (showError(modalForm.name())) {
+        <small class="field-error-text">{{ firstError(modalForm.name()) }}</small>
+      }
+    </label>
+
+    @if (data.showSortOrder) {
+      <label>
+        <span>Ordine</span>
+        <input [formField]="modalForm.sortOrder" inputmode="numeric" [class.field-error]="showError(modalForm.sortOrder())" />
+        @if (showError(modalForm.sortOrder())) {
+          <small class="field-error-text">{{ firstError(modalForm.sortOrder()) }}</small>
+        }
+      </label>
+    }
+
+    <label>
+      <span>{{ data.extraLabel }}</span>
+      @if (data.usesColorPicker) {
+        <div class="color-input-row">
+          <input
+            type="color"
+            class="color-picker"
+            [value]="colorPickerValue()"
+            (input)="onColorPicked($event)"
+            aria-label="Seleziona colore"
+          />
+          <input [formField]="modalForm.extra" class="hex-input" placeholder="#5a9de8" />
+        </div>
+      } @else {
+        <input [formField]="modalForm.extra" />
+      }
+    </label>
+  </div>
+
+  <footer>
+    <button type="button" class="ghost" (click)="close()">Annulla</button>
+    <button type="button" class="primary" (click)="confirm()">
+      {{ data.mode === 'create' ? 'Crea' : 'Aggiorna' }}
+    </button>
+  </footer>
+</section>

@@ -1,0 +1,87 @@
+<section class="window-shell">
+  <section class="window-frame">
+    <header class="window-titlebar">
+      <div class="title-wrap">
+        <h1>Gestione domini</h1>
+      </div>
+    </header>
+
+    <section class="hero-row window-card">
+      <p class="lede">Modifica i domini e usa i filtri rapidi per applicarli subito al guardaroba.</p>
+
+      <div class="chip-bar">
+        @for (tab of tabs; track tab.key) {
+          <button
+            type="button"
+            class="chip"
+            [class.active]="selectedKind() === tab.key"
+            [class.tone-blue]="chipTone(tab.key) === 'blue'"
+            [class.tone-green]="chipTone(tab.key) === 'green'"
+            [class.tone-amber]="chipTone(tab.key) === 'amber'"
+            [class.tone-rose]="chipTone(tab.key) === 'rose'"
+            [class.tone-teal]="chipTone(tab.key) === 'teal'"
+            [class.tone-violet]="chipTone(tab.key) === 'violet'"
+            (click)="select(tab.key)"
+          >
+            <span class="chip-emoji" aria-hidden="true">{{ tab.emoji }}</span>
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="window-card editor-card">
+      <div class="editor-actions">
+        <button type="button" class="primary" (click)="openCreateModal()" [disabled]="busy()">Nuovo valore</button>
+        <span class="message">Crea e modifica un valore di dominio</span>
+      </div>
+    </section>
+
+    <section class="window-card table-card">
+      @if (showSortOrder()) {
+        <p class="drag-guide">Trascina le righe per riordinare i valori del dominio.</p>
+      }
+      <div class="table-head" [class.no-sort]="!showSortOrder()">
+        <span>Nome</span>
+        @if (showSortOrder()) {
+        <span>Ordine</span>
+        }
+        <span>Azioni</span>
+      </div>
+
+      <div class="table-body" cdkDropList [cdkDropListData]="rows()" (cdkDropListDropped)="dropRow($event)">
+        @for (row of rows(); track row.id) {
+          <div
+            class="table-row"
+            cdkDrag
+            [cdkDragDisabled]="busy() || !showSortOrder()"
+            [class.drag-source]="draggedRowId() === row.id"
+            [class.no-sort]="!showSortOrder()"
+            (cdkDragStarted)="onDragStarted(row.id)"
+            (cdkDragEnded)="onDragEnded()"
+          >
+            <strong class="row-name">
+              @if (showSortOrder()) {
+                <button type="button" class="drag-handle" cdkDragHandle aria-label="Trascina per riordinare">⋮⋮</button>
+              }
+              @if (rowColorHex(row); as color) {
+                <span class="color-dot" [style.--dot-color]="color" aria-hidden="true"></span>
+              } @else if (rowEmoji(row)) {
+                <span class="row-emoji" aria-hidden="true">{{ rowEmoji(row) }}</span>
+              }
+              {{ row.name }}
+            </strong>
+            @if (showSortOrder()) {
+            <span>{{ row.sortOrder }}</span>
+            }
+            <div class="actions">
+              <button type="button" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
+              <button type="button" class="ghost" (click)="edit(row)">Modifica</button>
+              <button type="button" class="danger" (click)="remove(row)">Elimina</button>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  </section>
+</section>

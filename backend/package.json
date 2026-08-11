@@ -1,0 +1,33 @@
+{
+  "name": "dressly-backend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "nest build",
+    "start:dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "seed:run": "tsx src/database/seed.ts",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "echo \"No backend tests yet\""
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "better-sqlite3": "^12.0.0",
+    "dotenv": "^17.0.0",
+    "jose": "^6.2.8",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.25"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/node": "^22.15.30",
+    "eslint": "^9.0.0",
+    "tsx": "^4.23.12",
+    "typeorm-extension": "^3.9.0",
+    "typescript": "^6.0.0"
+  }
+}

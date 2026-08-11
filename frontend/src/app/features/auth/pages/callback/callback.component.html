@@ -1,0 +1,14 @@
+<section class="callback-shell">
+  <div class="status-card">
+    <p class="eyebrow">Accesso</p>
+    <h1>{{ statusLabel() }}</h1>
+    <p class="lede">
+      Stiamo completando l'accesso sicuro al tuo account.
+    </p>
+
+    @if (status() === 'error') {
+      <div class="error-box">{{ errorMessage() }}</div>
+      <button type="button" class="primary" (click)="retry()">Torna al login</button>
+    }
+  </div>
+</section>

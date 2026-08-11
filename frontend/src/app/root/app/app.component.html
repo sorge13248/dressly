@@ -1,0 +1,5 @@
+@if (authService.loading()) {
+	<app-aero-spinner [fullscreen]="true" message="Connessione OIDC in corso..." />
+} @else {
+	<router-outlet />
+}

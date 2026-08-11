@@ -1,0 +1,82 @@
+<div class="dropdown-shell" cdkOverlayOrigin #trigger="cdkOverlayOrigin">
+  <button
+    type="button"
+    class="trigger"
+    [class.open]="open()"
+    [class.invalid]="invalid()"
+    [attr.aria-expanded]="open()"
+    (click)="togglePanel()"
+    (keydown)="onTriggerKeydown($event)"
+    cdkOverlayOrigin
+  >
+    @if (label()) {
+      <span class="trigger-label">{{ label() }}</span>
+    }
+    <span class="trigger-value">{{ selectedLabel() }}</span>
+    <span class="trigger-arrow">▾</span>
+  </button>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOpen]="open()"
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    [cdkConnectedOverlayPush]="true"
+    [cdkConnectedOverlayMinWidth]="trigger.elementRef.nativeElement.getBoundingClientRect().width"
+    (backdropClick)="closePanel()"
+    (detach)="closePanel()"
+  >
+    <section
+      class="panel"
+      role="listbox"
+      [attr.aria-label]="label() || placeholder() || 'Selezione'"
+      tabindex="0"
+      (keydown)="onPanelKeydown($event)"
+    >
+      @if (label()) {
+        <header class="panel-head">
+          <strong>{{ label() }}</strong>
+        </header>
+      }
+
+      @if (searchable()) {
+        <div class="search-wrap">
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            placeholder="Cerca..."
+            [value]="searchTerm()"
+            (input)="onSearchInput($any($event.target).value)"
+          />
+        </div>
+      }
+
+      <div class="panel-list">
+        @for (option of filteredOptions(); track option.id; let i = $index) {
+          <button
+            #optionButton
+            type="button"
+            class="option-row"
+            [class.active]="selectedId() === option.id"
+            [class.keyboard-active]="activeIndex() === i"
+            (click)="selectOption(option.id)"
+          >
+            @if (option.swatch) {
+              <span class="swatch" [style.background]="option.swatch"></span>
+            }
+            @if (option.emoji) {
+              <span class="emoji">{{ option.emoji }}</span>
+            }
+            <span class="text">{{ option.label }}</span>
+          </button>
+        }
+
+        @if (filteredOptions().length === 0) {
+          <p class="empty-state">Nessun risultato</p>
+        }
+      </div>
+    </section>
+  </ng-template>
+</div>

@@ -1,0 +1,250 @@
+<section class="detail-shell">
+  @if (loading()) {
+    <div class="state-card">Caricamento capo...</div>
+  } @else if (error()) {
+    <div class="state-card error">{{ error() }}</div>
+  } @else if (item(); as current) {
+    <header class="hero-row">
+      @if (primaryPhoto(); as heroPhoto) {
+        <button
+          type="button"
+          class="hero-photo"
+          (click)="openPhoto(heroPhoto)"
+          [attr.aria-label]="'Apri foto ' + attachmentLabel(heroPhoto)"
+        >
+          <img [src]="getAttachmentUrl(current.id, heroPhoto)" [alt]="attachmentLabel(heroPhoto)" loading="lazy" />
+        </button>
+      }
+
+      <div class="hero-main">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <h1>{{ title() }}</h1>
+            <div class="hero-detail-list">
+              @if (current.size) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Taglia</span>
+                  <div class="hero-meta">
+                    <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('size', current.size)">
+                      {{ current.size }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (current.brand?.name) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Brand</span>
+                  <div class="hero-meta">
+                    <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('brand_id', current.brand?.id)">
+                      {{ current.brand?.name }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (current.type?.name) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Tipo</span>
+                  <div class="hero-meta">
+                    <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('type_id', current.type?.id)">
+                      {{ current.type?.name }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (current.fit?.name) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Fit</span>
+                  <div class="hero-meta">
+                    <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('fit_id', current.fit?.id)">
+                      {{ current.fit?.name }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (hasItems(current.seasons)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Stagioni</span>
+                  <div class="hero-meta">
+                    @for (season of current.seasons ?? []; track season.id) {
+                      <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('season_ids', season.id)">
+                        {{ season.icon ? season.icon + ' ' : '' }}{{ season.name }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (hasItems(current.temperatures)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Temperature</span>
+                  <div class="hero-meta">
+                    @for (temperature of current.temperatures ?? []; track temperature.id) {
+                      <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('temperature_ids', temperature.id)">
+                        {{ temperature.icon ? temperature.icon + ' ' : '' }}{{ temperature.name }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (hasItems(current.useCases)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Occasioni</span>
+                  <div class="hero-meta">
+                    @for (useCase of current.useCases ?? []; track useCase.id) {
+                      <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('use_case_ids', useCase.id)">
+                        {{ useCase.icon ? useCase.icon + ' ' : '' }}{{ useCase.name }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (hasItems(current.colors)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Colori</span>
+                  <div class="hero-meta hero-meta--secondary">
+                    @for (color of current.colors ?? []; track color.id) {
+                      <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('color_ids', color.id)">
+                        <span
+                          class="hero-color-dot"
+                          [style.--dot-color]="resolveColorHex(color.hexCode)"
+                          [attr.aria-label]="'Colore ' + color.name"
+                          aria-hidden="true"
+                        ></span>
+                        {{ color.name }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (hasItems(current.materials)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Materiali</span>
+                  <div class="hero-meta hero-meta--secondary">
+                    @for (material of current.materials ?? []; track material.id) {
+                      <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('material_ids', material.id)">
+                        {{ material.name }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (hasItems(current.tags)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Tag</span>
+                  <div class="hero-meta hero-meta--secondary">
+                    @for (tag of current.tags ?? []; track tag.id) {
+                      <button type="button" class="hero-chip-btn" (click)="goToMainWithFilter('tag_ids', tag.id)">
+                        # {{ tag.name }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <button class="ghost" type="button" (click)="edit()">Modifica</button>
+            <button class="danger" type="button" (click)="remove()">Elimina</button>
+          </div>
+        </div>
+
+        @if (current.notes) {
+          <p class="hero-notes">{{ current.notes }}</p>
+        }
+
+      </div>
+    </header>
+
+    <section class="content-halves">
+      <div class="content-column">
+        @if (careSections().length > 0) {
+          <article class="panel panel--stacked">
+            <h2>Cura</h2>
+            <div class="care-grid care-grid--stacked">
+              @for (section of careSections(); track section.title) {
+                <div class="care-card">
+                  <h3>{{ section.title }}</h3>
+                  <dl class="detail-table">
+                    @for (row of section.rows; track row.label) {
+                      <div>
+                        <dt>{{ row.label }}</dt>
+                        <dd>{{ row.value }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </div>
+              }
+            </div>
+          </article>
+        }
+      </div>
+
+      <div class="content-column content-column--stacked">
+        @if (buyDetailView(); as buy) {
+          <article class="panel panel--stacked">
+            <h2>Acquisto</h2>
+            <dl class="detail-table detail-table--single">
+              @if (buy.store) {
+                <div>
+                  <dt>Negozio</dt>
+                  <dd>{{ buy.store }}</dd>
+                </div>
+              }
+              @if (buy.purchaseDate) {
+                <div>
+                  <dt>Data acquisto</dt>
+                  <dd>{{ buy.purchaseDate }}</dd>
+                </div>
+              }
+              @if (buy.price) {
+                <div>
+                  <dt>Prezzo</dt>
+                  <dd>{{ buy.price }}</dd>
+                </div>
+              }
+              @if (buy.url) {
+                <div>
+                  <dt>Link</dt>
+                  <dd>
+                    <a class="purchase-link" [href]="buy.url" target="_blank" rel="noreferrer noopener">{{ buy.url }}</a>
+                  </dd>
+                </div>
+              }
+            </dl>
+          </article>
+        }
+
+        @if (secondaryPhotos().length > 0) {
+          <article class="panel panel--stacked gallery-panel">
+            <div class="section-head">
+              <h2>Altre foto</h2>
+              <span>{{ secondaryPhotos().length }}</span>
+            </div>
+
+            <div class="photo-strip">
+              @for (attachment of secondaryPhotos(); track attachment.id) {
+                <button
+                  type="button"
+                  class="photo-thumb"
+                  (click)="openPhoto(attachment)"
+                  [attr.aria-label]="'Apri foto ' + attachmentLabel(attachment)"
+                >
+                  <img [src]="getAttachmentUrl(current.id, attachment)" [alt]="attachmentLabel(attachment)" loading="lazy" />
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</section>

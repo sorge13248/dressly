@@ -1,0 +1,19 @@
+<section class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="create-name-title">
+  <header>
+    <h2 id="create-name-title">{{ data.title }}</h2>
+    <p>{{ data.description }}</p>
+  </header>
+
+  <label>
+    <span>{{ data.label }}</span>
+    <input [formField]="modalForm.name" [class.field-error]="showError()" [placeholder]="data.placeholder" />
+    @if (showError()) {
+      <small class="field-error-text">{{ errorMessage() }}</small>
+    }
+  </label>
+
+  <footer>
+    <button type="button" class="ghost" (click)="close()">{{ data.cancelLabel || 'Annulla' }}</button>
+    <button type="button" class="primary" (click)="confirm()">{{ data.confirmLabel || 'Crea' }}</button>
+  </footer>
+</section>

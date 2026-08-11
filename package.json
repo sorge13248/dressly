@@ -1,0 +1,16 @@
+{
+  "name": "dressly",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "start:frontend": "npm run start --workspace frontend",
+    "start:backend": "npm run start:dev --workspace backend",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspace backend --if-present"
+  }
+}

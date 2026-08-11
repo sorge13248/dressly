@@ -1,0 +1,188 @@
+:host {
+  display: block;
+}
+
+.spinner-shell {
+  position: relative;
+  min-height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  background:
+    radial-gradient(1100px 500px at -10% -30%, rgba(73, 149, 236, 0.22), transparent 60%),
+    radial-gradient(900px 520px at 120% 120%, rgba(240, 130, 86, 0.18), transparent 58%),
+    linear-gradient(160deg, #f5fbff 0%, #eef4ff 45%, #f4efec 100%);
+}
+
+.spinner-shell.fullscreen {
+  min-height: 100dvh;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(6px);
+  opacity: 0.65;
+  z-index: -1;
+}
+
+.orb-a {
+  width: 360px;
+  height: 360px;
+  left: -100px;
+  top: -90px;
+  background: radial-gradient(circle at 30% 30%, rgba(0, 193, 255, 0.6), rgba(65, 116, 226, 0.15));
+  animation: driftA 11s ease-in-out infinite alternate;
+}
+
+.orb-b {
+  width: 300px;
+  height: 300px;
+  right: -80px;
+  bottom: -80px;
+  background: radial-gradient(circle at 40% 40%, rgba(255, 153, 89, 0.55), rgba(250, 104, 151, 0.15));
+  animation: driftB 13s ease-in-out infinite alternate;
+}
+
+.orb-c {
+  width: 220px;
+  height: 220px;
+  right: 22%;
+  top: 12%;
+  background: radial-gradient(circle at 30% 30%, rgba(181, 136, 255, 0.45), rgba(118, 198, 255, 0.08));
+  animation: driftC 9s ease-in-out infinite alternate;
+}
+
+.loader-card {
+  width: min(460px, calc(100% - 28px));
+  padding: 30px 24px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(240, 248, 255, 0.62));
+  backdrop-filter: blur(12px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 28px 60px rgba(49, 77, 125, 0.2);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+
+.logo-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 0;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.logo-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.spinner {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  display: grid;
+  place-items: center;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  filter: drop-shadow(0 0 8px rgba(111, 153, 255, 0.35));
+}
+
+.ring-1 {
+  inset: 0;
+  border-top-color: rgba(74, 151, 255, 0.9);
+  border-left-color: rgba(74, 151, 255, 0.55);
+  animation: spin 1.1s linear infinite;
+}
+
+.ring-2 {
+  inset: 12px;
+  border-top-color: rgba(124, 195, 255, 0.9);
+  border-right-color: rgba(124, 195, 255, 0.48);
+  animation: spinReverse 1.8s linear infinite;
+}
+
+.ring-3 {
+  inset: 24px;
+  border-top-color: rgba(138, 123, 255, 0.8);
+  border-left-color: rgba(138, 123, 255, 0.42);
+  animation: spin 2.4s linear infinite;
+}
+
+.core {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #8bc1ff 70%, #5f88f1 100%);
+  box-shadow: 0 0 20px rgba(117, 171, 255, 0.7);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.97rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinReverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes driftA {
+  to {
+    transform: translate(16px, 22px) scale(1.04);
+  }
+}
+
+@keyframes driftB {
+  to {
+    transform: translate(-20px, -16px) scale(1.06);
+  }
+}
+
+@keyframes driftC {
+  to {
+    transform: translate(12px, -14px) scale(0.96);
+  }
+}
+
+@media (max-width: 720px) {
+  .loader-card {
+    padding: 24px 18px;
+    border-radius: 22px;
+  }
+
+  .spinner {
+    width: 94px;
+    height: 94px;
+  }
+}

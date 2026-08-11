@@ -1,0 +1,62 @@
+<div class="shell">
+  <app-toast-stack />
+
+  <header class="main-topbar">
+    <div class="left-cluster">
+      <div class="brand-block">
+        <div class="brand-mark">
+          <img ngSrc="/assets/logo.webp" width="48" height="48" alt="Dressly" priority />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="nav-toggle"
+        [attr.aria-expanded]="mobileNavOpen()"
+        aria-controls="main-shell-menu"
+        (click)="toggleNavMenu()"
+      >
+        {{ mobileNavOpen() ? 'Chiudi menu' : 'Menu' }}
+      </button>
+    </div>
+
+    <div id="main-shell-menu" class="menu-expanded" [class.open]="mobileNavOpen()">
+      <div class="user-area">
+        <div class="user-block">
+          <div class="avatar">
+            @if (pictureUrl()) {
+              <img [src]="pictureUrl()!" [alt]="displayName()" loading="lazy" />
+            } @else {
+              {{ initials() }}
+            }
+          </div>
+
+          <div class="identity">
+            <p class="welcome">Benvenuto</p>
+            <p class="name-line">{{ firstName() }} {{ lastName() }}</p>
+            <p class="email-line">{{ email() || loginMode() }}</p>
+          </div>
+
+          <button class="logout-btn" type="button" (click)="logout()">Logout</button>
+        </div>
+      </div>
+
+      <nav class="main-nav">
+        @for (item of navItems; track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: item.exact }"
+            (click)="closeNavMenu()"
+          >
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+    </div>
+  </header>
+
+  <main class="content-card">
+    <router-outlet />
+  </main>
+</div>

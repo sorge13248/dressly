@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.angular
+.cache
+.DS_Store
+*.log
+.env
+backend/*.sqlite
+backend/*.sqlite-journal
+backend/dist
+backend/uploads
+frontend/dist
+frontend/.angular
+frontend/.vite
+dressly.sqlite
