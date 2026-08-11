@@ -268,4 +268,6 @@ In sviluppo il frontend usa proxy verso `http://localhost:3000`. Verifica che il
 
 ## Licenza
 
-Nessuna licenza esplicita è inclusa in questo repository. Se il progetto deve essere distribuito, conviene aggiungerne una in modo esplicito.
+Questo progetto è distribuito con licenza GNU Affero General Public License v3.0 o successiva (AGPL-3.0-or-later).
+
+Il testo completo è disponibile nel file `LICENSE` alla root del repository.
