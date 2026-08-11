@@ -47,7 +47,7 @@ COPY --from=backend-build /app/backend/dist /app/backend/dist
 COPY --from=backend-prod-deps /app/node_modules /app/node_modules
 COPY backend/package*.json /app/backend/
 
-COPY --from=frontend-build /app/frontend/dist/frontend /usr/share/nginx/html
+COPY --from=frontend-build /app/frontend/dist/frontend/browser/ /usr/share/nginx/html/
 
 COPY deploy/nginx.unified.conf /etc/nginx/http.d/default.conf
 COPY deploy/supervisord.conf /etc/supervisord.conf
