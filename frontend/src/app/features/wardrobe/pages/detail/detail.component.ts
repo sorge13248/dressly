@@ -37,7 +37,7 @@ export class WardrobeDetailPageComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
 
-  readonly title = computed(() => this.item()?.fullTitle || this.item()?.name || this.item()?.brand?.name || 'Capo');
+  readonly title = computed(() => this.item()?.name || this.item()?.fullTitle || this.item()?.brand?.name || 'Capo');
   readonly photoAttachments = computed(() =>
     (this.item()?.attachments ?? []).filter((attachment) => attachment.mimeType?.startsWith('image/')),
   );

@@ -1,10 +1,9 @@
 .page-shell {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
   gap: 0;
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 .search-banner,
@@ -121,9 +120,8 @@
   grid-template-columns: 290px minmax(0, 1fr);
   gap: 14px;
   margin: 14px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  align-items: start;
+  overflow: visible;
 }
 
 .filters-sidebar {
@@ -219,9 +217,9 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
+  min-height: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .state-card {
@@ -239,9 +237,7 @@
   gap: 16px;
   justify-content: start;
   align-content: start;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  overflow: visible;
   padding-bottom: 6px;
 }
 
@@ -384,8 +380,9 @@
 }
 
 .pager {
-  position: relative;
-  z-index: 2;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
   display: flex;
   justify-content: space-between;
   align-items: center;
