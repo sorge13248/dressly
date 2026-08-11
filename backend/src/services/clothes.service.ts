@@ -48,6 +48,10 @@ function trimToNull(value: unknown) {
   return normalized ? normalized : null;
 }
 
+function normalizeStoredAttachmentPath(storedPath: string) {
+  return storedPath.replace(/\\/g, '/');
+}
+
 @Injectable()
 export class ClothesService {
   constructor(
@@ -202,13 +206,13 @@ export class ClothesService {
   ) {
     if (!file) throw new BadRequestException('file is required');
     const clothes = await this.getOne(user, clothesId);
-    const uploadsDir = path.resolve(process.cwd(), 'uploads', 'clothes', user.id, clothes.id);
+    const uploadsDir = path.join(this.getUploadsRootDir(), 'clothes', user.id, clothes.id);
     await fs.mkdir(uploadsDir, { recursive: true });
     const id = randomUUID();
     const extension = path.extname(file.originalname);
     const fileName = `${id}${extension}`;
     const absoluteFilePath = path.join(uploadsDir, fileName);
-    const relativeFilePath = path.posix.join('uploads', 'clothes', user.id, clothes.id, fileName);
+    const relativeFilePath = path.posix.join('clothes', user.id, clothes.id, fileName);
     await fs.writeFile(absoluteFilePath, file.buffer);
 
     const parsedSortOrder = Number(body.sortOrder);
@@ -688,7 +692,24 @@ export class ClothesService {
       return storedPath;
     }
 
-    return path.resolve(process.cwd(), storedPath);
+    const uploadsRootDir = this.getUploadsRootDir();
+    const normalizedStoredPath = normalizeStoredAttachmentPath(storedPath);
+
+    // Backward compatibility for older rows saved as "uploads/...".
+    if (normalizedStoredPath.startsWith('uploads/')) {
+      return path.join(uploadsRootDir, normalizedStoredPath.slice('uploads/'.length));
+    }
+
+    return path.join(uploadsRootDir, normalizedStoredPath);
+  }
+
+  private getUploadsRootDir() {
+    const configuredRoot = process.env.UPLOADS_DIR?.trim();
+    if (configuredRoot) {
+      return path.resolve(configuredRoot);
+    }
+
+    return path.resolve(process.cwd(), 'uploads');
   }
 
   private decorateResponse(item: Clothes) {

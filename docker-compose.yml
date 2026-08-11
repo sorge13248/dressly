@@ -1,14 +1,16 @@
 services:
-  app:
+  dressly:
     build:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/sorge13248/dressly
+    container_name: dressly
     env_file:
       - .env
     environment:
       APP_PORT: 8080
       DB_PATH: /app/data/dressly.sqlite
+      UPLOADS_DIR: /app/data/uploads
     ports:
       - "8080:8080"
     volumes:
