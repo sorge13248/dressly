@@ -49,7 +49,7 @@ COPY backend/package*.json /app/backend/
 
 COPY --from=frontend-build /app/frontend/dist/frontend /usr/share/nginx/html
 
-COPY deploy/nginx.unified.conf /etc/nginx/nginx.conf
+COPY deploy/nginx.unified.conf /etc/nginx/http.d/default.conf
 COPY deploy/supervisord.conf /etc/supervisord.conf
 
 EXPOSE 8080

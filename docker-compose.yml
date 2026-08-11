@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/sorge13248/dressly-app
+    image: ghcr.io/sorge13248/dressly
     env_file:
       - .env
     environment:
