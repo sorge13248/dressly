@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Component, computed, inject, signal } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormField, form, pattern, required } from '@angular/forms/signals';
@@ -28,7 +29,7 @@ export type ReferenceEditorDialogResult = {
 @Component({
   selector: 'app-reference-editor-modal',
   standalone: true,
-  imports: [CommonModule, FormField],
+  imports: [CommonModule, FormsModule, FormField],
   templateUrl: './reference-editor-modal.component.html',
   styleUrl: './reference-editor-modal.component.scss',
 })
