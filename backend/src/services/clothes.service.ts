@@ -394,6 +394,7 @@ export class ClothesService {
           washingBody.colorLossTestTemperature ?? washingBody.color_loss_test_temperature,
           'washingInstruction.color_loss_test_temperature',
         );
+        const normalizedWashingTemperature = washType === 'washer_ok' ? washingTemperature : null;
 
         const next = this.dataSource
           .getRepository(WashingInstruction)
@@ -402,7 +403,7 @@ export class ClothesService {
             washType: washType as WashingInstruction['washType'],
             bleachType: bleachType as WashingInstruction['bleachType'],
             stretch,
-            temperature: washingTemperature === null ? null : String(washingTemperature),
+            temperature: normalizedWashingTemperature === null ? null : String(normalizedWashingTemperature),
             reverseWashing,
             closedZips,
             similarColors,
@@ -519,11 +520,11 @@ export class ClothesService {
         'washingInstruction.washing_temperature',
       );
 
-      if (washType !== 'do_not_wash' && washingTemperature === null) {
+      if (washType === 'washer_ok' && washingTemperature === null) {
         throw new BadRequestException('Temperatura lavaggio obbligatoria (20-60)');
       }
 
-      if (washingTemperature !== null && (washingTemperature < 20 || washingTemperature > 60)) {
+      if (washType === 'washer_ok' && washingTemperature !== null && (washingTemperature < 20 || washingTemperature > 60)) {
         throw new BadRequestException('Temperatura lavaggio obbligatoria (20-60)');
       }
 

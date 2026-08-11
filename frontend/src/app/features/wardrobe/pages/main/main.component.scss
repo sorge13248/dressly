@@ -351,6 +351,15 @@
   background: rgba(224, 239, 255, 0.72);
 }
 
+.meta-chip--group {
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.meta-chip--emoji-group {
+  gap: 2px;
+}
+
 .meta-chip--color {
   min-width: 30px;
   justify-content: center;
@@ -371,6 +380,7 @@
   background-color: var(--dot-color, #9aa8ba);
   border: 1px solid rgba(17, 36, 64, 0.28);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  flex: 0 0 auto;
 }
 
 .pager {

@@ -260,6 +260,9 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly isWashingDetailsEnabled = computed(
     () => this.wizardForm.care.washingEnabled().value() && this.wizardForm.care.washing.wash_type().value() !== 'do_not_wash',
   );
+  readonly isWashingTemperatureRequired = computed(
+    () => this.wizardForm.care.washingEnabled().value() && this.wizardForm.care.washing.wash_type().value() === 'washer_ok',
+  );
   readonly isDryingTemperatureEnabled = computed(
     () => this.wizardForm.care.dryingEnabled().value() && this.wizardForm.care.drying.tumble_dry().value(),
   );
@@ -841,6 +844,10 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.wizardForm.care.washing.use_color_catcher().value.set(false);
       this.wizardForm.care.washing.color_loss().value.set(false);
     }
+
+    if (id === 'hand_wash_only') {
+      this.wizardForm.care.washing.washing_temperature().value.set(null);
+    }
   }
 
   onWashingEnabledChange(enabled: boolean) {
@@ -963,12 +970,14 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   }
 
   private isCareStepValid() {
-    if (this.isWashingDetailsEnabled()) {
+    if (this.isWashingTemperatureRequired()) {
       const washingTemperature = this.wizardForm.care.washing.washing_temperature().value();
       if (washingTemperature === null || this.wizardForm.care.washing.washing_temperature().invalid()) {
         return false;
       }
+    }
 
+    if (this.isWashingDetailsEnabled()) {
       if (this.wizardForm.care.washing.color_loss_test_temperature().invalid()) {
         return false;
       }

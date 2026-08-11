@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormField, form } from '@angular/forms/signals';
-import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { AttachmentItem, ClothesFilters, ClothesItem } from '../../../../core/models';
@@ -21,7 +21,32 @@ interface FilterGroup {
   options: FilterPillOption[];
 }
 
+interface NamedMetaItem {
+  name?: string | null;
+}
+
 type FilterKey = 'brand_ids' | 'fit_ids' | 'type_ids' | 'tag_ids' | 'color_ids' | 'material_ids' | 'season_ids' | 'temperature_ids' | 'use_case_ids';
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_PER_PAGE = 12;
+
+const QUERY_PARAM_KEYS = [
+  'search',
+  'size',
+  'brand_id',
+  'fit_id',
+  'type_ids',
+  'tag_ids',
+  'color_ids',
+  'material_ids',
+  'season_ids',
+  'temperature_ids',
+  'use_case_ids',
+  'page',
+  'per_page',
+] as const;
+
+type KnownQueryParamKey = (typeof QUERY_PARAM_KEYS)[number];
 
 const initialFilters = (query: Record<string, string>) => ({
   size: query['size'] ?? '',
@@ -34,8 +59,8 @@ const initialFilters = (query: Record<string, string>) => ({
   season_ids: query['season_ids'] ? query['season_ids'].split(',').filter(Boolean) : [],
   temperature_ids: query['temperature_ids'] ? query['temperature_ids'].split(',').filter(Boolean) : [],
   use_case_ids: query['use_case_ids'] ? query['use_case_ids'].split(',').filter(Boolean) : [],
-  page: Number(query['page'] ?? 1) || 1,
-  per_page: Number(query['per_page'] ?? 12) || 12,
+  page: Number(query['page'] ?? DEFAULT_PAGE) || DEFAULT_PAGE,
+  per_page: Number(query['per_page'] ?? DEFAULT_PER_PAGE) || DEFAULT_PER_PAGE,
 });
 
 @Component({
@@ -47,7 +72,11 @@ const initialFilters = (query: Record<string, string>) => ({
 export class WardrobePageComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly referenceStore = inject(ReferenceStoreService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private debounceHandle: ReturnType<typeof setTimeout> | null = null;
+  private routeSubscription: Subscription | null = null;
+  private isHydratingFromUrl = false;
 
   readonly searchModel = signal({
     text: '',
@@ -175,6 +204,15 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       }, 250);
     });
 
+      effect(() => {
+        const query = this.query();
+        if (this.isHydratingFromUrl) {
+          return;
+        }
+
+        void this.syncUrlFromState(query);
+      });
+
     effect(() => {
       const query = this.query();
       void this.load(query);
@@ -182,16 +220,25 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    if (!this.searchForm.text().value()) {
-      this.searchForm.text().value.set(this.query().search);
-      this.debouncedSearch.set(this.query().search);
-    }
+      this.routeSubscription = this.route.queryParamMap.subscribe((queryParamMap) => {
+        const query = Object.fromEntries(queryParamMap.keys.map((key) => [key, queryParamMap.get(key) ?? '']));
+        const nextFilters = initialFilters(query);
+        const nextSearch = query['search'] ?? '';
+
+        this.isHydratingFromUrl = true;
+        this.filters.set(nextFilters);
+        this.searchForm.text().value.set(nextSearch);
+        this.debouncedSearch.set(nextSearch);
+        this.isHydratingFromUrl = false;
+      });
   }
 
   ngOnDestroy() {
     if (this.debounceHandle) {
       clearTimeout(this.debounceHandle);
     }
+
+      this.routeSubscription?.unsubscribe();
   }
 
   trackById = (_: number, item: ClothesItem) => item.id;
@@ -263,8 +310,8 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       season_ids: [],
       temperature_ids: [],
       use_case_ids: [],
-      page: 1,
-      per_page: 12,
+      page: DEFAULT_PAGE,
+      per_page: DEFAULT_PER_PAGE,
     });
 
     this.closeFiltersOnMobile();
@@ -280,6 +327,14 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
 
   resolveColorHex(hexCode: string | null) {
     return normalizeHexColor(hexCode);
+  }
+
+  hasItems<T>(items: T[] | null | undefined) {
+    return (items?.length ?? 0) > 0;
+  }
+
+  listItemNames(items: NamedMetaItem[] | null | undefined) {
+    return this.extractItemNames(items).join(', ');
   }
 
   async load(query: ClothesFilters) {
@@ -301,5 +356,63 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     if (window.matchMedia('(max-width: 900px)').matches) {
       this.closeFilters();
     }
+  }
+
+  private extractItemNames(items: NamedMetaItem[] | null | undefined) {
+    if (!items || items.length === 0) {
+      return [];
+    }
+
+    return items
+      .map((item) => item.name?.trim() ?? '')
+      .filter((name): name is string => Boolean(name));
+  }
+
+  private async syncUrlFromState(query: ClothesFilters) {
+    const nextParams = this.toQueryParams(query);
+    if (this.hasSameQueryParams(nextParams)) {
+      return;
+    }
+
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: nextParams,
+    });
+  }
+
+  private toQueryParams(query: ClothesFilters): Partial<Record<KnownQueryParamKey, string>> {
+    const search = query.search.trim();
+    const size = query.size.trim();
+
+    const params: Partial<Record<KnownQueryParamKey, string>> = {};
+    if (search) params.search = search;
+    if (size) params.size = size;
+    if (query.brand_id) params.brand_id = query.brand_id;
+    if (query.fit_id) params.fit_id = query.fit_id;
+    if (query.type_ids.length > 0) params.type_ids = query.type_ids.join(',');
+    if (query.tag_ids.length > 0) params.tag_ids = query.tag_ids.join(',');
+    if (query.color_ids.length > 0) params.color_ids = query.color_ids.join(',');
+    if (query.material_ids.length > 0) params.material_ids = query.material_ids.join(',');
+    if (query.season_ids.length > 0) params.season_ids = query.season_ids.join(',');
+    if (query.temperature_ids.length > 0) params.temperature_ids = query.temperature_ids.join(',');
+    if (query.use_case_ids.length > 0) params.use_case_ids = query.use_case_ids.join(',');
+    if (query.page > DEFAULT_PAGE) params.page = String(query.page);
+    if (query.per_page !== DEFAULT_PER_PAGE) params.per_page = String(query.per_page);
+
+    return params;
+  }
+
+  private hasSameQueryParams(nextParams: Partial<Record<KnownQueryParamKey, string>>) {
+    const current = this.route.snapshot.queryParamMap;
+
+    for (const key of QUERY_PARAM_KEYS) {
+      const nextValue = nextParams[key] ?? null;
+      const currentValue = current.get(key);
+      if (nextValue !== currentValue) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

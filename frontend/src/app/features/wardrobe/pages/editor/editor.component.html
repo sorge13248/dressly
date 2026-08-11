@@ -330,25 +330,27 @@
                         (selectedIdChange)="setSelectValue(wizardForm.care.washing.bleach_type, $event)"
                       />
                     </label>
-                    <label>
-                      <span>Temperatura lavaggio *</span>
-                      <input
-                        type="number"
-                        [formField]="wizardForm.care.washing.washing_temperature"
-                        [class.field-error]="
+                    @if (isWashingTemperatureRequired()) {
+                      <label>
+                        <span>Temperatura lavaggio *</span>
+                        <input
+                          type="number"
+                          [formField]="wizardForm.care.washing.washing_temperature"
+                          [class.field-error]="
+                            (submitAttempted() || blockedStep() === 4) &&
+                            (wizardForm.care.washing.washing_temperature().value() === null ||
+                              wizardForm.care.washing.washing_temperature().invalid())
+                          "
+                        />
+                        @if (
                           (submitAttempted() || blockedStep() === 4) &&
                           (wizardForm.care.washing.washing_temperature().value() === null ||
                             wizardForm.care.washing.washing_temperature().invalid())
-                        "
-                      />
-                      @if (
-                        (submitAttempted() || blockedStep() === 4) &&
-                        (wizardForm.care.washing.washing_temperature().value() === null ||
-                          wizardForm.care.washing.washing_temperature().invalid())
-                      ) {
-                        <small class="field-error-text">Temperatura lavaggio obbligatoria (20-60)</small>
-                      }
-                    </label>
+                        ) {
+                          <small class="field-error-text">Temperatura lavaggio obbligatoria (20-60)</small>
+                        }
+                      </label>
+                    }
                     <label>
                       <span>Temperatura test perdita colore</span>
                       <input

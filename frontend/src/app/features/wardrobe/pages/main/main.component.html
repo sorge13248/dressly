@@ -109,35 +109,43 @@
                   @if (item.fit?.name) {
                     <span class="meta-chip">{{ item.fit?.name }}</span>
                   }
-                  @for (color of item.colors ?? []; track color.id) {
+                  @if (hasItems(item.colors)) {
                     <span
-                      class="meta-chip meta-chip--color"
-                      [title]="color.name"
-                      [attr.aria-label]="'Colore ' + color.name"
+                      class="meta-chip meta-chip--group"
+                      [title]="'Colori: ' + listItemNames(item.colors)"
+                      [attr.aria-label]="'Colori: ' + listItemNames(item.colors)"
                     >
-                      <span
-                        class="meta-dot"
-                        [style.--dot-color]="resolveColorHex(color.hexCode)"
-                        aria-hidden="true"
-                      ></span>
+                      @for (color of item.colors ?? []; track color.id) {
+                        <span
+                          class="meta-dot"
+                          [style.--dot-color]="resolveColorHex(color.hexCode)"
+                          [title]="color.name"
+                          [attr.aria-label]="'Colore ' + color.name"
+                          aria-hidden="true"
+                        ></span>
+                      }
                     </span>
                   }
-                  @for (season of item.seasons ?? []; track season.id) {
+                  @if (hasItems(item.seasons)) {
                     <span
-                      class="meta-chip meta-chip--emoji"
-                      [title]="season.name"
-                      [attr.aria-label]="'Stagione ' + season.name"
+                      class="meta-chip meta-chip--group meta-chip--emoji-group"
+                      [title]="'Stagioni: ' + listItemNames(item.seasons)"
+                      [attr.aria-label]="'Stagioni: ' + listItemNames(item.seasons)"
                     >
-                      {{ season.icon || '🗓️' }}
+                      @for (season of item.seasons ?? []; track season.id) {
+                        <span aria-hidden="true">{{ season.icon || '🗓️' }}</span>
+                      }
                     </span>
                   }
-                  @for (temperature of item.temperatures ?? []; track temperature.id) {
+                  @if (hasItems(item.temperatures)) {
                     <span
-                      class="meta-chip meta-chip--emoji"
-                      [title]="temperature.name"
-                      [attr.aria-label]="'Temperatura ' + temperature.name"
+                      class="meta-chip meta-chip--group meta-chip--emoji-group"
+                      [title]="'Temperature: ' + listItemNames(item.temperatures)"
+                      [attr.aria-label]="'Temperature: ' + listItemNames(item.temperatures)"
                     >
-                      {{ temperature.icon || '🌡️' }}
+                      @for (temperature of item.temperatures ?? []; track temperature.id) {
+                        <span aria-hidden="true">{{ temperature.icon || '🌡️' }}</span>
+                      }
                     </span>
                   }
                 </div>
