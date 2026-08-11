@@ -33,6 +33,7 @@ type WizardWashingForm = {
   reverse_washing: boolean;
   closed_zips: boolean;
   similar_colors: boolean;
+  wash_separately: boolean;
   use_color_catcher: boolean;
   color_loss: boolean;
   color_loss_test_temperature: number | null;
@@ -117,6 +118,7 @@ const createInitialWizardModel = (): WizardFormModel => ({
       reverse_washing: false,
       closed_zips: false,
       similar_colors: false,
+      wash_separately: false,
       use_color_catcher: false,
       color_loss: false,
       color_loss_test_temperature: null,
@@ -220,7 +222,6 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly wizardModel = signal<WizardFormModel>(createInitialWizardModel());
   readonly wizardForm = form(this.wizardModel, (schema) => {
     minLength(schema.style.color_ids, 1, { message: 'Seleziona almeno un colore' });
-    minLength(schema.style.material_ids, 1, { message: 'Seleziona almeno un materiale' });
 
     minLength(schema.context.season_ids, 1, { message: 'Seleziona almeno una stagione' });
     minLength(schema.context.temperature_ids, 1, { message: 'Seleziona almeno una temperatura' });
@@ -836,6 +837,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.wizardForm.care.washing.reverse_washing().value.set(false);
       this.wizardForm.care.washing.closed_zips().value.set(false);
       this.wizardForm.care.washing.similar_colors().value.set(false);
+      this.wizardForm.care.washing.wash_separately().value.set(false);
       this.wizardForm.care.washing.use_color_catcher().value.set(false);
       this.wizardForm.care.washing.color_loss().value.set(false);
     }
@@ -851,6 +853,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.wizardForm.care.washing.reverse_washing().value.set(false);
       this.wizardForm.care.washing.closed_zips().value.set(false);
       this.wizardForm.care.washing.similar_colors().value.set(false);
+      this.wizardForm.care.washing.wash_separately().value.set(false);
       this.wizardForm.care.washing.use_color_catcher().value.set(false);
       this.wizardForm.care.washing.color_loss().value.set(false);
     }
@@ -936,7 +939,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       case 1:
         return !this.wizardForm.base.size().invalid();
       case 2:
-        return !this.wizardForm.style.color_ids().invalid() && !this.wizardForm.style.material_ids().invalid();
+        return !this.wizardForm.style.color_ids().invalid();
       case 3:
         return !this.wizardForm.context.season_ids().invalid() && !this.wizardForm.context.temperature_ids().invalid();
       case 4:
@@ -1037,6 +1040,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
           reverse_washing: Boolean(item.washingInstruction?.reverseWashing),
           closed_zips: Boolean(item.washingInstruction?.closedZips),
           similar_colors: Boolean(item.washingInstruction?.similarColors),
+          wash_separately: Boolean(item.washingInstruction?.washSeparately),
           use_color_catcher: Boolean(item.washingInstruction?.useColorCatcher),
           color_loss: Boolean(item.washingInstruction?.colorLossRisk),
           color_loss_test_temperature: item.washingInstruction?.colorLossTestTemperature ?? null,
@@ -1109,6 +1113,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
             reverseWashing: washing.reverse_washing,
             closedZips: washing.closed_zips,
             similarColors: washing.similar_colors,
+            washSeparately: washing.wash_separately,
             temperature: washing.washing_temperature !== null ? String(washing.washing_temperature) : null,
             useColorCatcher: washing.use_color_catcher,
             colorLossRisk: washing.color_loss,

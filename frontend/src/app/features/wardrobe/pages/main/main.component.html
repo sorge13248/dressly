@@ -101,10 +101,14 @@
                     <h3>{{ getPreferredLabel(item) }}</h3>
                   </div>
 
-                  <div class="size-pill">{{ item.size }}</div>
+                  @if (item.size) {
+                    <div class="size-pill">{{ item.size }}</div>
+                  }
                 </div>
                 <div class="meta-line">
-                  <span class="meta-chip">{{ item.fit?.name || 'Fit non assegnato' }}</span>
+                  @if (item.fit?.name) {
+                    <span class="meta-chip">{{ item.fit?.name }}</span>
+                  }
                   @for (color of item.colors ?? []; track color.id) {
                     <span
                       class="meta-chip meta-chip--color"

@@ -146,7 +146,7 @@
               }
 
               <div class="section-head" style="margin-top: 18px;">
-                <h3>Materiali *</h3>
+                <h3>Materiali</h3>
                 <button
                   type="button"
                   class="pill pill-create"
@@ -169,11 +169,6 @@
                   </button>
                 }
               </div>
-              @if (showFieldError(wizardForm.style.material_ids(), 2)) {
-                <small class="field-error-text">{{
-                  fieldError(wizardForm.style.material_ids(), 'Seleziona almeno un materiale')
-                }}</small>
-              }
 
               <h3 style="margin-top: 18px;">Tag</h3>
               <div class="pill-list">
@@ -406,6 +401,14 @@
                       (click)="toggleBoolean(wizardForm.care.washing.similar_colors)"
                     >
                       Colori simili
+                    </button>
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="wizardForm.care.washing.wash_separately().value()"
+                      (click)="toggleBoolean(wizardForm.care.washing.wash_separately)"
+                    >
+                      Lavare separatamente
                     </button>
                     <button
                       type="button"

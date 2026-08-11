@@ -76,6 +76,7 @@ export interface WashingInstructionItem {
   reverseWashing?: boolean;
   closedZips?: boolean;
   similarColors?: boolean;
+  washSeparately?: boolean;
   colorLossTestTemperature?: number | null;
   useColorCatcher?: boolean;
   colorLossRisk?: boolean;
@@ -85,6 +86,7 @@ export interface WashingInstructionItem {
   reverse_washing?: boolean;
   closed_zips?: boolean;
   similar_colors?: boolean;
+  wash_separately?: boolean;
   use_color_catcher?: boolean;
   color_loss?: boolean;
   color_loss_test_temperature?: number | null;

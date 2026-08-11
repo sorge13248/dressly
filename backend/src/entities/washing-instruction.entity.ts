@@ -35,6 +35,9 @@ export class WashingInstruction {
   @Column({ type: 'boolean', default: false })
   similarColors!: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  washSeparately!: boolean;
+
   @Column({ type: 'integer', nullable: true })
   colorLossTestTemperature!: number | null;
 

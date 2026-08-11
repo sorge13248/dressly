@@ -381,6 +381,10 @@ export class ClothesService {
         const reverseWashing = this.toBooleanWithDefault(washingBody.reverseWashing ?? washingBody.reverse_washing, false);
         const closedZips = this.toBooleanWithDefault(washingBody.closedZips ?? washingBody.closed_zips, false);
         const similarColors = this.toBooleanWithDefault(washingBody.similarColors ?? washingBody.similar_colors, false);
+        const washSeparately = this.toBooleanWithDefault(
+          washingBody.washSeparately ?? washingBody.wash_separately,
+          false,
+        );
         const useColorCatcher = this.toBooleanWithDefault(
           washingBody.useColorCatcher ?? washingBody.use_color_catcher,
           false,
@@ -402,6 +406,7 @@ export class ClothesService {
             reverseWashing,
             closedZips,
             similarColors,
+            washSeparately,
             useColorCatcher,
             colorLossRisk,
             colorLossTestTemperature,
@@ -497,9 +502,6 @@ export class ClothesService {
 
     if (requireSelections || 'color_ids' in body) {
       this.validateRequiredSelection(body.color_ids, 'color_ids', 'Seleziona almeno un colore');
-    }
-    if (requireSelections || 'material_ids' in body) {
-      this.validateRequiredSelection(body.material_ids, 'material_ids', 'Seleziona almeno un materiale');
     }
     if (requireSelections || 'season_ids' in body) {
       this.validateRequiredSelection(body.season_ids, 'season_ids', 'Seleziona almeno una stagione');

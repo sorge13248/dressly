@@ -61,6 +61,7 @@ export class WardrobeDetailPageComponent implements OnInit {
           this.booleanRow('Lava al rovescio', current.washingInstruction?.reverseWashing),
           this.booleanRow('Cerniere chiuse', current.washingInstruction?.closedZips),
           this.booleanRow('Colori simili', current.washingInstruction?.similarColors),
+          this.booleanRow('Lavare separatamente', current.washingInstruction?.washSeparately),
           this.booleanRow('Acchiappacolore', current.washingInstruction?.useColorCatcher),
           this.booleanRow('Perde colore', current.washingInstruction?.colorLossRisk),
           this.row(

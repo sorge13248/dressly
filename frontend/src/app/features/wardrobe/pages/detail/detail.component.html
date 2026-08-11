@@ -14,6 +14,11 @@
         >
           <img [src]="getAttachmentUrl(current.id, heroPhoto)" [alt]="attachmentLabel(heroPhoto)" loading="lazy" />
         </button>
+      } @else {
+        <div class="hero-photo hero-photo--empty" aria-hidden="true">
+          <strong>Nessuna foto</strong>
+          <span>Puoi aggiungerla in modifica capo.</span>
+        </div>
       }
 
       <div class="hero-main">
