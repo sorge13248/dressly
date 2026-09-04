@@ -9,7 +9,7 @@ RUN npm ci --prefix frontend --no-audit --no-fund
 COPY frontend/ ./frontend/
 RUN npm --prefix frontend run build -- --configuration production
 
-FROM node:alpine AS backend-build
+FROM node:slim AS backend-build
 WORKDIR /app/backend
 
 COPY backend/package*.json ./
