@@ -43,7 +43,13 @@ export class ClothesController {
   }
 
   @Post(':id/attachments')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // Smartphone camera photos can easily exceed a few MB; keep this in
+      // sync with the client_max_body_size configured in nginx.
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
   uploadAttachment(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
