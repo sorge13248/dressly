@@ -95,10 +95,11 @@ Dressly nasce come reimplementazione moderna di un'app guardaroba con questi obi
 
 ### 1. Installa le dipendenze
 
-Dalla root del progetto:
+Dalla root del progetto, installa le dipendenze nei due progetti:
 
 ```bash
-npm install
+npm --prefix frontend install
+npm --prefix backend install
 ```
 
 ### 2. Crea il file `.env` nella root
@@ -128,7 +129,7 @@ SEED_USER_DISPLAY_NAME=Local Dev User
 
 Note importanti:
 
-- `DB_PATH=../dressly.sqlite` è il valore consigliato in locale con gli script workspace attuali;
+- `DB_PATH=../dressly.sqlite` è il valore consigliato in locale con gli script attuali;
 - `OIDC_CLIENT_SECRET` è obbligatorio per il flow configurato nel backend;
 - `OIDC_REDIRECT_URI` deve puntare al callback backend, non al frontend;
 - `CORS_ALLOWED_ORIGINS` deve includere l'origine del frontend Angular.
@@ -136,7 +137,7 @@ Note importanti:
 ### 3. Esegui il seed iniziale
 
 ```bash
-npm run seed:run --workspace backend
+npm --prefix backend run seed:run
 ```
 
 Il seed richiede almeno `SEED_USER_SUBJECT`. Se l'utente non esiste ancora, viene creato e popolato con i reference data di default.
@@ -165,22 +166,22 @@ Poi apri:
 - `npm run start:frontend` avvia Angular in sviluppo;
 - `npm run start:backend` avvia NestJS in watch mode;
 - `npm run build` esegue build di frontend e backend;
-- `npm run test` esegue i test disponibili nei workspace;
+- `npm run test` esegue i test disponibili nei due progetti;
 - `npm run lint` esegue il lint del backend.
 
 ### Backend
 
-- `npm run build --workspace backend`
-- `npm run start:dev --workspace backend`
-- `npm run start --workspace backend`
-- `npm run seed:run --workspace backend`
-- `npm run lint --workspace backend`
+- `npm --prefix backend run build`
+- `npm --prefix backend run start:dev`
+- `npm --prefix backend run start`
+- `npm --prefix backend run seed:run`
+- `npm --prefix backend run lint`
 
 ### Frontend
 
-- `npm run start --workspace frontend`
-- `npm run build --workspace frontend`
-- `npm run test --workspace frontend`
+- `npm --prefix frontend run start`
+- `npm --prefix frontend run build`
+- `npm --prefix frontend run test`
 
 ## Esecuzione con Docker
 

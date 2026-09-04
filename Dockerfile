@@ -3,53 +3,42 @@
 FROM node:alpine AS frontend-build
 WORKDIR /app
 
-COPY package*.json ./
-COPY frontend/package.json frontend/package.json
-RUN npm ci --workspace frontend --no-audit --no-fund
+COPY frontend/package*.json frontend/
+RUN npm ci --prefix frontend --no-audit --no-fund
 
 COPY frontend/ ./frontend/
-RUN npm run build --workspace frontend -- --configuration production
+RUN npm --prefix frontend run build -- --configuration production
 
 FROM node:alpine AS backend-build
+WORKDIR /app/backend
+
+COPY backend/package*.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+
 WORKDIR /app
-
-RUN apk add --no-cache --virtual .build-deps python3 make g++
-
-COPY package*.json ./
-COPY backend/package.json backend/package.json
-RUN npm ci --workspace backend --include=dev --no-audit --no-fund --ignore-scripts
-
 COPY tsconfig.base.json ./
 COPY backend/nest-cli.json backend/tsconfig*.json backend/
 COPY backend/src backend/src
-RUN npm run build --workspace backend
+WORKDIR /app/backend
+RUN npm run build
+RUN npm prune --omit=dev --ignore-scripts
 
-FROM node:alpine AS backend-prod-deps
-WORKDIR /app
-
-RUN apk add --no-cache --virtual .build-deps python3 make g++
-
-COPY package*.json ./
-COPY backend/package.json backend/package.json
-RUN npm ci --workspace backend --omit=dev --no-audit --no-fund --ignore-scripts \
-    && npm rebuild better-sqlite3 --workspace backend --build-from-source --no-audit --no-fund \
-    && npm cache clean --force \
-    && apk del .build-deps
-
-FROM node:alpine AS runtime
+FROM node:slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-RUN apk add --no-cache nginx supervisor poppler-utils \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nginx supervisor poppler-utils \
+    && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/backend /app/data /run/nginx /var/log/nginx /usr/share/nginx/html
 
 COPY --from=backend-build /app/backend/dist /app/backend/dist
-COPY --from=backend-prod-deps /app/node_modules /app/node_modules
+COPY --from=backend-build /app/backend/node_modules /app/backend/node_modules
 COPY backend/package*.json /app/backend/
 
 COPY --from=frontend-build /app/frontend/dist/frontend/browser/ /usr/share/nginx/html/
 
-COPY deploy/nginx.unified.conf /etc/nginx/http.d/default.conf
+COPY deploy/nginx.unified.conf /etc/nginx/conf.d/default.conf
 COPY deploy/supervisord.conf /etc/supervisord.conf
 
 EXPOSE 8080
