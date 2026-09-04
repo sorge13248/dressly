@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { DataSource } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
 import { Attachment } from '../entities/attachment.entity';
@@ -52,12 +53,20 @@ function normalizeStoredAttachmentPath(storedPath: string) {
   return storedPath.replace(/\\/g, '/');
 }
 
+const MAX_PREVIEW_SIZE = 500 * 1024;
+
 @Injectable()
-export class ClothesService {
+export class ClothesService implements OnModuleInit {
+  private readonly logger = new Logger(ClothesService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly referenceDataService: ReferenceDataService,
   ) {}
+
+  async onModuleInit() {
+    await this.generateMissingPreviews();
+  }
 
   async list(user: AuthUser, query: Record<string, string | undefined>) {
     const page = Math.max(1, Number(query.page ?? 1));
@@ -215,6 +224,15 @@ export class ClothesService {
     const relativeFilePath = path.posix.join('clothes', user.id, clothes.id, fileName);
     await fs.writeFile(absoluteFilePath, file.buffer);
 
+    let previewPath: string | null = null;
+    if (file.mimetype.startsWith('image/')) {
+      const previewFileName = `${id}.preview.webp`;
+      const absolutePreviewPath = path.join(uploadsDir, previewFileName);
+      const previewBuffer = await this.createPreview(file.buffer);
+      await fs.writeFile(absolutePreviewPath, previewBuffer);
+      previewPath = path.posix.join('clothes', user.id, clothes.id, previewFileName);
+    }
+
     const parsedSortOrder = Number(body.sortOrder);
     const hasValidSortOrder = Number.isFinite(parsedSortOrder) && parsedSortOrder >= 0;
     const sortOrder = hasValidSortOrder ? Math.floor(parsedSortOrder) : await this.nextAttachmentSortOrder(clothes.id, user.id);
@@ -232,6 +250,7 @@ export class ClothesService {
       size: file.size,
       sortOrder,
       path: relativeFilePath,
+      previewPath,
     });
 
     return this.dataSource.getRepository(Attachment).save(attachment);
@@ -259,6 +278,14 @@ export class ClothesService {
       await fs.unlink(absolutePath);
     } catch {
       // Keep delete idempotent even if file is already missing.
+    }
+
+    if (attachment.previewPath) {
+      try {
+        await fs.unlink(this.resolveAttachmentAbsolutePath(attachment.previewPath));
+      } catch {
+        // Keep delete idempotent even if the preview is already missing.
+      }
     }
 
     await repository.remove(attachment);
@@ -306,7 +333,7 @@ export class ClothesService {
     return updated;
   }
 
-  async getAttachmentFile(user: AuthUser, clothesId: string, attachmentId: string) {
+  async getAttachmentFile(user: AuthUser, clothesId: string, attachmentId: string, variant?: string) {
     const attachment = await this.dataSource.getRepository(Attachment).findOne({
       where: { id: attachmentId, clothesId, userId: user.id } as never,
     });
@@ -316,10 +343,13 @@ export class ClothesService {
     }
 
     try {
-      const content = await fs.readFile(this.resolveAttachmentAbsolutePath(attachment.path));
+      const previewFilePath = variant === 'preview' ? attachment.previewPath : null;
+      const usePreview = Boolean(previewFilePath);
+      const storedFilePath = previewFilePath ?? attachment.path;
+      const content = await fs.readFile(this.resolveAttachmentAbsolutePath(storedFilePath));
       return {
         content,
-        mimeType: attachment.mimeType || 'application/octet-stream',
+        mimeType: usePreview ? 'image/webp' : attachment.mimeType || 'application/octet-stream',
         fileName: attachment.originalName || attachment.fileName,
       };
     } catch {
@@ -688,6 +718,69 @@ export class ClothesService {
 
     const parsed = Number(maxSortOrder);
     return Number.isFinite(parsed) ? parsed + 1 : 0;
+  }
+
+  private async createPreview(buffer: Buffer) {
+    const widths = [1600, 1200, 1000, 800, 640, 480, 320, 240, 160];
+    const qualities = [75, 60, 50, 40, 30, 20];
+    let smallestBuffer: Buffer | undefined;
+
+    for (const width of widths) {
+      for (const quality of qualities) {
+        const preview = await sharp(buffer)
+          .rotate()
+          .resize({ width, height: width, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality })
+          .toBuffer();
+        smallestBuffer = preview;
+        if (preview.length <= MAX_PREVIEW_SIZE) {
+          return preview;
+        }
+      }
+    }
+
+    return smallestBuffer as Buffer;
+  }
+
+  private async generateMissingPreviews() {
+    const repository = this.dataSource.getRepository(Attachment);
+    const attachments = await repository.find();
+    let generated = 0;
+
+    for (const attachment of attachments) {
+      if (!attachment.mimeType?.startsWith('image/')) {
+        continue;
+      }
+
+      const originalPath = this.resolveAttachmentAbsolutePath(attachment.path);
+      const previewPath = attachment.previewPath ?? path.posix.join(
+        path.posix.dirname(normalizeStoredAttachmentPath(attachment.path)),
+        `${attachment.id}.preview.webp`,
+      );
+      const absolutePreviewPath = this.resolveAttachmentAbsolutePath(previewPath);
+
+      try {
+        await fs.access(absolutePreviewPath);
+      } catch {
+        try {
+          const originalBuffer = await fs.readFile(originalPath);
+          const previewBuffer = await this.createPreview(originalBuffer);
+          await fs.writeFile(absolutePreviewPath, previewBuffer);
+        } catch (error) {
+          this.logger.warn(`Impossibile generare la preview per l'allegato ${attachment.id}: ${String(error)}`);
+          continue;
+        }
+      }
+
+      if (attachment.previewPath !== previewPath) {
+        await repository.update(attachment.id, { previewPath });
+      }
+      generated += 1;
+    }
+
+    if (generated > 0) {
+      this.logger.log(`Preview immagini verificate: ${generated}`);
+    }
   }
 
   private resolveAttachmentAbsolutePath(storedPath: string) {

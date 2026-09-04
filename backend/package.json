@@ -21,6 +21,7 @@
     "jose": "^6.2.8",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "^0.35.4",
     "typeorm": "^0.3.25"
   },
   "devDependencies": {

@@ -12,7 +12,7 @@
           (click)="openPhoto(heroPhoto)"
           [attr.aria-label]="'Apri foto ' + attachmentLabel(heroPhoto)"
         >
-          <img [src]="getAttachmentUrl(current.id, heroPhoto)" [alt]="attachmentLabel(heroPhoto)" loading="lazy" />
+          <img [src]="getPreviewAttachmentUrl(current.id, heroPhoto)" [alt]="attachmentLabel(heroPhoto)" loading="lazy" />
         </button>
       } @else {
         <div class="hero-photo hero-photo--empty" aria-hidden="true">
@@ -243,7 +243,7 @@
                   (click)="openPhoto(attachment)"
                   [attr.aria-label]="'Apri foto ' + attachmentLabel(attachment)"
                 >
-                  <img [src]="getAttachmentUrl(current.id, attachment)" [alt]="attachmentLabel(attachment)" loading="lazy" />
+                  <img [src]="getPreviewAttachmentUrl(current.id, attachment)" [alt]="attachmentLabel(attachment)" loading="lazy" />
                 </button>
               }
             </div>

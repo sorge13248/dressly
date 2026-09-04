@@ -76,9 +76,10 @@ export class ClothesController {
     @CurrentUser() user: AuthUser,
     @Param('clothesId') clothesId: string,
     @Param('attachmentId') attachmentId: string,
+    @Query('variant') variant: string | undefined,
     @Res({ passthrough: true }) response: { setHeader: (name: string, value: string) => void },
   ) {
-    const file = await this.clothesService.getAttachmentFile(user, clothesId, attachmentId);
+    const file = await this.clothesService.getAttachmentFile(user, clothesId, attachmentId, variant);
     response.setHeader('Content-Type', file.mimeType);
     response.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
     return new StreamableFile(file.content);

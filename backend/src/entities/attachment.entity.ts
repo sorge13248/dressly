@@ -37,6 +37,9 @@ export class Attachment {
   @Column({ type: 'varchar' })
   path!: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  previewPath!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

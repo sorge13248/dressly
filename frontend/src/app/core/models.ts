@@ -62,6 +62,7 @@ export interface AttachmentItem {
   size: number;
   sortOrder: number;
   path: string;
+  previewPath: string | null;
   createdAt: string;
   updatedAt: string;
 }

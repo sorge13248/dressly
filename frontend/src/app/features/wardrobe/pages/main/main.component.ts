@@ -269,7 +269,8 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   }
 
   getAttachmentUrl(item: ClothesItem, attachment: AttachmentItem) {
-    return `/api/clothes/${item.id}/attachments/${attachment.id}/file`;
+    const variant = attachment.previewPath ? '?variant=preview' : '';
+    return `/api/clothes/${item.id}/attachments/${attachment.id}/file${variant}`;
   }
 
   getPreferredLabel(item: ClothesItem) {

@@ -198,6 +198,11 @@ export class WardrobeDetailPageComponent implements OnInit {
     return `/api/clothes/${clothesId}/attachments/${attachment.id}/file`;
   }
 
+  getPreviewAttachmentUrl(clothesId: string, attachment: AttachmentItem) {
+    const variant = attachment.previewPath ? '?variant=preview' : '';
+    return `${this.getAttachmentUrl(clothesId, attachment)}${variant}`;
+  }
+
   hasItems<T>(items: T[] | null | undefined) {
     return (items?.length ?? 0) > 0;
   }
