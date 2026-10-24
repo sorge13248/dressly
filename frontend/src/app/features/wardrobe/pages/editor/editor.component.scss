@@ -1,29 +1,30 @@
-.wizard-shell {
-  height: 100%;
-  min-height: 100%;
+:host {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+.wizard-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  align-items: center;
   padding: 26px 16px 16px;
-  overflow: auto;
   background: #f6f9fc;
 }
 
 .wizard-window {
   width: min(1120px, 100%);
-  max-height: 100%;
-  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   margin: 0;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 14px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   padding: 0;
   border: 1px solid #8aa4bf;
   border-radius: 12px;
-  background: #ffffff;
   box-shadow: 0 10px 26px rgba(38, 63, 92, 0.25);
   background: #f6f9fc;
 }
@@ -252,8 +253,8 @@ h1 {
 }
 
 .wizard-card {
+  flex: 1;
   padding: 12px 14px;
-  min-height: 0;
   overflow: visible;
 }
 
@@ -559,7 +560,6 @@ textarea {
 
   .wizard-window {
     width: 100%;
-    max-height: 100%;
   }
 
   .stepper-card,
@@ -578,11 +578,9 @@ textarea {
 @media (max-height: 760px) {
   .wizard-shell {
     padding: 14px 8px 8px;
-    align-items: flex-start;
   }
 
   .wizard-window {
-    max-height: 100%;
     gap: 10px;
   }
 

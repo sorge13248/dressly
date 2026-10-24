@@ -26,17 +26,17 @@
 html,
 body {
   margin: 0;
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-x: clip;
   background: #f6f9fc;
   color: var(--text);
 }
 
 app-root {
-  display: block;
-  height: 100%;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 * {

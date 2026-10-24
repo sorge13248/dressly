@@ -1,7 +1,15 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
 .page-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  flex: 1;
+  width: 100%;
   gap: 0;
   overflow: visible;
 }
@@ -122,6 +130,7 @@
   margin: 14px;
   align-items: start;
   overflow: visible;
+  flex: 1;
 }
 
 .filters-sidebar {
@@ -129,8 +138,6 @@
   display: grid;
   gap: 14px;
   align-content: start;
-  min-height: 0;
-  overflow: auto;
 }
 
 .filters-mobile-head {
@@ -215,10 +222,9 @@
 .results-area {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 14px;
   min-width: 0;
-  min-height: auto;
-  height: auto;
   overflow: visible;
 }
 
@@ -479,7 +485,8 @@
 @media (max-width: 900px) {
   .page-shell {
     height: auto;
-    min-height: 100%;
+    min-height: initial;
+    flex: 1;
     overflow: visible;
   }
 
@@ -535,7 +542,7 @@
     opacity: 0;
     visibility: hidden;
     transition: opacity 160ms ease;
-    z-index: 35;
+    z-index: 110;
     pointer-events: none;
   }
 
@@ -553,11 +560,12 @@
     width: min(360px, 88vw);
     border-radius: 0;
     border-right: 1px solid rgba(83, 123, 189, 0.28);
-    z-index: 40;
+    z-index: 120;
     transform: translateX(-105%);
     transition: transform 180ms ease;
     box-shadow: 0 12px 34px rgba(9, 30, 66, 0.32);
     overscroll-behavior: contain;
+    overflow-y: auto;
   }
 
   .filters-sidebar.open {

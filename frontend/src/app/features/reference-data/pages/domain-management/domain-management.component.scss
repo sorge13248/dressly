@@ -1,31 +1,32 @@
 :host {
-  display: block;
-  height: 100%;
-  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
 }
 
 .window-shell {
-  height: 100%;
-  min-height: 0;
+  flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
   padding: 16px;
   background: #f6f9fc;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .window-frame {
   width: min(1120px, 100%);
-  display: grid;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   border: 1px solid #8aa4bf;
   border-radius: 12px;
   background: #f6f9fc;
   box-shadow: 0 10px 26px rgba(38, 63, 92, 0.25);
   padding: 0;
-  margin: 0 0 18px;
+  margin: 0;
   overflow: hidden;
 }
 
@@ -212,6 +213,7 @@ h1 {
 }
 
 .table-card {
+  flex: 1;
   overflow: hidden;
 }
 
