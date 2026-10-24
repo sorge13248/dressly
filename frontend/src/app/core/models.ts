@@ -205,3 +205,28 @@ export interface ClothesWizardFormValue {
   buy_enabled: boolean;
   buy: BuyDetailItem;
 }
+
+export interface IroningClothesItem {
+  id: string;
+  name: string | null;
+  fullTitle?: string | null;
+  brand: { id: string; name: string } | null;
+  type: { id: string; name: string } | null;
+  colors: Array<{ id: string; name: string; hexCode: string | null }>;
+  ironingInstruction: {
+    id?: string;
+    temperature: string | null;
+    ironType: 'yes' | 'without_steam' | 'no' | null;
+    ironInsideOut: boolean;
+  } | null;
+  primaryAttachment: {
+    id: string;
+    fileName: string;
+    previewPath: string | null;
+    mimeType: string;
+  } | null;
+}
+
+export interface IroningClothesResponse {
+  items: IroningClothesItem[];
+}

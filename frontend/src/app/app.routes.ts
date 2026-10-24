@@ -8,6 +8,7 @@ import { NotFoundPageComponent } from './features/errors/pages/not-found/not-fou
 import { WardrobeDetailPageComponent } from './features/wardrobe/pages/detail/detail.component';
 import { WardrobePageComponent } from './features/wardrobe/pages/main/main.component';
 import { WardrobeWizardPageComponent } from './features/wardrobe/pages/editor/editor.component';
+import { IroningPageComponent } from './features/wardrobe/pages/ironing/ironing.component';
 
 export const routes: Routes = [
 	{ path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -20,6 +21,7 @@ export const routes: Routes = [
 		children: [
 			{ path: 'wardrobe', component: WardrobePageComponent },
 			{ path: 'wardrobe/new', component: WardrobeWizardPageComponent },
+			{ path: 'wardrobe/ironing', component: IroningPageComponent },
 			{ path: 'wardrobe/:id', component: WardrobeDetailPageComponent },
 			{ path: 'wardrobe/:id/edit', component: WardrobeWizardPageComponent },
 			{ path: 'categories', component: DomainManagementPageComponent },

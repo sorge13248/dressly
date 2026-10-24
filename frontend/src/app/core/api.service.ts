@@ -22,6 +22,7 @@ import {
   UseCaseItem,
   WashingInstructionItem,
   BuyDetailItem,
+  IroningClothesResponse,
 } from './models';
 
 type OidcMetadata = {
@@ -49,6 +50,12 @@ export class ApiService {
 
   listClothes(filters: Partial<ClothesFilters>) {
     return this.http.get<ClothesPageResponse>('/api/clothes', { params: this.toParams(filters) });
+  }
+
+  getClothesForIroning(ids: string[]) {
+    return this.http.get<IroningClothesResponse>('/api/clothes/ironing', {
+      params: { ids: ids.join(',') },
+    });
   }
 
   getClothes(id: string) {

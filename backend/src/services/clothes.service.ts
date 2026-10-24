@@ -141,6 +141,62 @@ export class ClothesService implements OnModuleInit {
     return { items: items.map((item) => this.decorateResponse(item)), total, page, perPage };
   }
 
+  async getIroningList(user: AuthUser, rawIds?: string) {
+    const ids = parseCsv(rawIds);
+    if (ids.length === 0) {
+      return { items: [] };
+    }
+
+    const qb = this.dataSource
+      .getRepository(Clothes)
+      .createQueryBuilder('clothes')
+      .leftJoinAndSelect('clothes.brand', 'brand')
+      .leftJoinAndSelect('clothes.type', 'type')
+      .leftJoinAndSelect('clothes.colors', 'colors')
+      .leftJoinAndSelect('clothes.ironingInstruction', 'ironingInstruction')
+      .leftJoinAndSelect('clothes.attachments', 'attachments')
+      .where('clothes.userId = :userId', { userId: user.id })
+      .andWhere('clothes.id IN (:...ids)', { ids });
+
+    const items = await qb.getMany();
+    for (const item of items) {
+      this.sortAttachments(item);
+    }
+
+    return {
+      items: items.map((item) => {
+        const primaryAttachment =
+          (item.attachments ?? []).find((att) => att.mimeType?.startsWith('image/')) ??
+          item.attachments?.[0] ??
+          null;
+        return {
+          id: item.id,
+          name: item.name,
+          fullTitle: item.fullTitle,
+          brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
+          type: item.type ? { id: item.type.id, name: item.type.name } : null,
+          colors: (item.colors ?? []).map((c) => ({ id: c.id, name: c.name, hexCode: c.hexCode })),
+          ironingInstruction: item.ironingInstruction
+            ? {
+                id: item.ironingInstruction.id,
+                temperature: item.ironingInstruction.temperature,
+                ironType: item.ironingInstruction.ironType,
+                ironInsideOut: item.ironingInstruction.ironInsideOut,
+              }
+            : null,
+          primaryAttachment: primaryAttachment
+            ? {
+                id: primaryAttachment.id,
+                fileName: primaryAttachment.fileName,
+                previewPath: primaryAttachment.previewPath,
+                mimeType: primaryAttachment.mimeType,
+              }
+            : null,
+        };
+      }),
+    };
+  }
+
   async getOne(user: AuthUser, id: string) {
     const item = await this.dataSource.getRepository(Clothes).findOne({
       where: { id, userId: user.id } as never,

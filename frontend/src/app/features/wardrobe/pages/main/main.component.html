@@ -7,8 +7,58 @@
       placeholder="Cerca per nome, brand o nota"
     />
     <button type="button" class="ghost filter-toggle" (click)="toggleFilters()">Filtri</button>
+    <span class="banner-separator" aria-hidden="true"></span>
     <a class="primary" [routerLink]="['new']">Nuovo vestito</a>
   </div>
+
+  @if (selectionService.hasSelection()) {
+    <aside class="selection-toolbar" role="region" aria-label="Operazioni vestiti selezionati">
+      <div class="toolbar-cluster">
+        <div class="selection-pill">
+          <span class="selection-badge">{{ selectionService.count() }}</span>
+          <span class="selection-label">
+            {{ selectionService.count() === 1 ? 'vestito selezionato' : 'vestiti selezionati' }}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="ghost toolbar-btn"
+          (click)="clearSelection()"
+          title="Deseleziona tutti i vestiti selezionati"
+        >
+          Deseleziona tutto
+        </button>
+
+        <span class="toolbar-separator" aria-hidden="true"></span>
+
+        <div class="toolbar-actions">
+          <button
+            type="button"
+            class="toolbar-action-btn primary-action"
+            (click)="onIron()"
+            title="Stira i capi selezionati"
+          >
+            <svg
+              class="action-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+              <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+              <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+            </svg>
+            <span>Stira</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  }
 
   <section class="layout-grid">
     <div class="filters-backdrop" [class.open]="filtersOpen()" (click)="closeFilters()"></div>
@@ -79,10 +129,36 @@
           @for (item of items(); track trackById($index, item)) {
             <a
               class="item-card"
+              [class.selected]="selectionService.isSelected(item.id)"
               [routerLink]="[item.id]"
               [attr.aria-label]="'Apri dettaglio ' + getPreferredLabel(item)"
             >
               <div class="thumb">
+                <label
+                  class="card-select-label"
+                  (click)="$event.stopPropagation()"
+                  [attr.aria-label]="'Seleziona ' + getPreferredLabel(item)"
+                >
+                  <input
+                    type="checkbox"
+                    class="aero-checkbox-input"
+                    [checked]="selectionService.isSelected(item.id)"
+                    (change)="toggleSelection(item.id, $event)"
+                    (click)="$event.stopPropagation()"
+                  />
+                  <span class="aero-checkbox" aria-hidden="true">
+                    <svg class="aero-check-icon" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M3.5 8.5L6.5 11.5L12.5 4.5"
+                        stroke="currentColor"
+                        stroke-width="2.3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </label>
+
                 @if (getPrimaryAttachment(item); as attachment) {
                   <img
                     [src]="getAttachmentUrl(item, attachment)"

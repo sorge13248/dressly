@@ -1,0 +1,209 @@
+<section class="ironing-shell">
+  <header class="ironing-header">
+    <div class="header-left">
+      <button type="button" class="ghost back-btn" (click)="returnToWardrobe()">
+        <span aria-hidden="true">←</span> Torna al guardaroba
+      </button>
+      <div class="title-cluster">
+        <h1>Stiratura</h1>
+        @if (!loading() && items().length > 0) {
+          <span class="count-pill">{{ totalCount() }} {{ totalCount() === 1 ? 'capo' : 'capi' }} da stirare</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="ironing-content">
+    @if (loading()) {
+      <div class="state-card">Caricamento sessione di stiratura...</div>
+    } @else if (error()) {
+      <div class="state-card error">{{ error() }}</div>
+    } @else if (items().length === 0) {
+      <div class="state-card empty-card">
+        <h2>Nessun capo selezionato</h2>
+        <p>Seleziona uno o più vestiti dal guardaroba per organizzare la stiratura.</p>
+        <button type="button" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
+      </div>
+    } @else {
+      <div class="cards-layout" [class.grid-2x2]="missingInfoItems().length > 0">
+        <!-- 1. Manca informazione (arancione leggero) -->
+        @if (missingInfoItems().length > 0) {
+          <section class="ironing-card card-warning" aria-labelledby="card-missing-heading">
+            <header class="card-head">
+              <div class="head-title">
+                <span class="warn-badge" aria-hidden="true">⚠️</span>
+                <div>
+                  <h2 id="card-missing-heading">Manca informazione</h2>
+                  <p class="head-subtitle">Questi capi non hanno una temperatura di stiratura definita.</p>
+                </div>
+              </div>
+              <span class="count-badge count-badge--warning">
+                {{ missingInfoItems().length }} {{ missingInfoItems().length === 1 ? 'capo' : 'capi' }}
+              </span>
+            </header>
+
+            <div class="clothes-grid">
+              @for (item of missingInfoItems(); track trackById($index, item)) {
+                <a
+                  class="cloth-card cloth-card--link"
+                  [routerLink]="['/wardrobe', item.id, 'edit']"
+                  [queryParams]="{ step: 4, callbackUrl: currentUrl() }"
+                  [attr.aria-label]="'Imposta stiratura per ' + getPreferredLabel(item)"
+                  title="Clicca per impostare la stiratura nella scheda Cura"
+                >
+                  <div class="cloth-thumb">
+                    @if (getAttachmentUrl(item); as photoUrl) {
+                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                    } @else {
+                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                    }
+                  </div>
+                  <div class="cloth-body">
+                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                    <span class="action-cta">Imposta stiratura →</span>
+                  </div>
+                </a>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- 2. Un pallino (Temperatura bassa) -->
+        <section class="ironing-card card-dot" aria-labelledby="card-dot-1-heading">
+          <header class="card-head">
+            <div class="head-title">
+              <span class="dots-pill" aria-label="1 pallino">●</span>
+              <div>
+                <h2 id="card-dot-1-heading">Temperatura bassa (1 pallino)</h2>
+                <p class="head-subtitle">Max 110°C &bull; Seta, sintetici, nylon, acrilico</p>
+              </div>
+            </div>
+            <span class="count-badge">
+              {{ oneDotItems().length }} {{ oneDotItems().length === 1 ? 'capo' : 'capi' }}
+            </span>
+          </header>
+
+          @if (oneDotItems().length === 0) {
+            <p class="empty-state">Nessun vestito selezionato per questa temperatura.</p>
+          } @else {
+            <div class="clothes-grid">
+              @for (item of oneDotItems(); track trackById($index, item)) {
+                <a
+                  class="cloth-card cloth-card--interactive"
+                  [routerLink]="['/wardrobe', item.id]"
+                  [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                  title="Clicca per visualizzare il capo"
+                >
+                  <div class="cloth-thumb">
+                    @if (getAttachmentUrl(item); as photoUrl) {
+                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                    } @else {
+                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                    }
+                  </div>
+                  <div class="cloth-body">
+                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                    @if (item.ironingInstruction?.ironInsideOut) {
+                      <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
+                    }
+                  </div>
+                </a>
+              }
+            </div>
+          }
+        </section>
+
+        <!-- 3. Due pallini (Temperatura media) -->
+        <section class="ironing-card card-dot" aria-labelledby="card-dot-2-heading">
+          <header class="card-head">
+            <div class="head-title">
+              <span class="dots-pill" aria-label="2 pallini">● ●</span>
+              <div>
+                <h2 id="card-dot-2-heading">Temperatura media (2 pallini)</h2>
+                <p class="head-subtitle">Max 150°C &bull; Lana, poliestere, misti</p>
+              </div>
+            </div>
+            <span class="count-badge">
+              {{ twoDotsItems().length }} {{ twoDotsItems().length === 1 ? 'capo' : 'capi' }}
+            </span>
+          </header>
+
+          @if (twoDotsItems().length === 0) {
+            <p class="empty-state">Nessun vestito selezionato per questa temperatura.</p>
+          } @else {
+            <div class="clothes-grid">
+              @for (item of twoDotsItems(); track trackById($index, item)) {
+                <a
+                  class="cloth-card cloth-card--interactive"
+                  [routerLink]="['/wardrobe', item.id]"
+                  [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                  title="Clicca per visualizzare il capo"
+                >
+                  <div class="cloth-thumb">
+                    @if (getAttachmentUrl(item); as photoUrl) {
+                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                    } @else {
+                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                    }
+                  </div>
+                  <div class="cloth-body">
+                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                    @if (item.ironingInstruction?.ironInsideOut) {
+                      <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
+                    }
+                  </div>
+                </a>
+              }
+            </div>
+          }
+        </section>
+
+        <!-- 4. Tre pallini (Temperatura alta) -->
+        <section class="ironing-card card-dot" aria-labelledby="card-dot-3-heading">
+          <header class="card-head">
+            <div class="head-title">
+              <span class="dots-pill" aria-label="3 pallini">● ● ●</span>
+              <div>
+                <h2 id="card-dot-3-heading">Temperatura alta (3 pallini)</h2>
+                <p class="head-subtitle">Max 200°C &bull; Cotone, lino</p>
+              </div>
+            </div>
+            <span class="count-badge">
+              {{ threeDotsItems().length }} {{ threeDotsItems().length === 1 ? 'capo' : 'capi' }}
+            </span>
+          </header>
+
+          @if (threeDotsItems().length === 0) {
+            <p class="empty-state">Nessun vestito selezionato per questa temperatura.</p>
+          } @else {
+            <div class="clothes-grid">
+              @for (item of threeDotsItems(); track trackById($index, item)) {
+                <a
+                  class="cloth-card cloth-card--interactive"
+                  [routerLink]="['/wardrobe', item.id]"
+                  [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                  title="Clicca per visualizzare il capo"
+                >
+                  <div class="cloth-thumb">
+                    @if (getAttachmentUrl(item); as photoUrl) {
+                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                    } @else {
+                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                    }
+                  </div>
+                  <div class="cloth-body">
+                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                    @if (item.ironingInstruction?.ironInsideOut) {
+                      <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
+                    }
+                  </div>
+                </a>
+              }
+            </div>
+          }
+        </section>
+      </div>
+    }
+  </main>
+</section>
+

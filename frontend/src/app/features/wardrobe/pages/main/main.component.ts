@@ -5,6 +5,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
+import { ToastService } from '../../../../core/toast.service';
+import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
 import { AttachmentItem, ClothesFilters, ClothesItem } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 
@@ -77,6 +79,8 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   private readonly referenceStore = inject(ReferenceStoreService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly toast = inject(ToastService);
+  readonly selectionService = inject(WardrobeSelectionService);
   private debounceHandle: ReturnType<typeof setTimeout> | null = null;
   private routeSubscription: Subscription | null = null;
   private isHydratingFromUrl = false;
@@ -359,6 +363,27 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
 
   closeFilters() {
     this.filtersOpen.set(false);
+  }
+
+  toggleSelection(id: string, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.selectionService.toggle(id);
+  }
+
+  clearSelection() {
+    this.selectionService.clear();
+  }
+
+  onIron() {
+    const ids = this.selectionService.selectedIds();
+    if (ids.length === 0) {
+      return;
+    }
+    void this.router.navigate(['/wardrobe/ironing'], {
+      queryParams: { ids: ids.join(',') },
+    });
   }
 
   resolveColorHex(hexCode: string | null) {

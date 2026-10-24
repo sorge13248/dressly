@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { FormField, form, max, min, minLength, pattern } from '@angular/forms/signals';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { ClothesItem, WizardAttachmentDraft } from '../../../../core/models';
@@ -191,7 +191,7 @@ const ironingTemperatureOptions: SelectDropdownOption[] = [
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormField, RouterLink, SelectDropdownComponent],
+  imports: [CommonModule, FormField, SelectDropdownComponent],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.scss',
 })
@@ -293,6 +293,14 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.editingId.set(id);
       void this.loadClothes(id);
     }
+
+    const stepParam = this.route.snapshot.queryParamMap.get('step');
+    if (stepParam) {
+      const stepNum = Number(stepParam);
+      if (stepNum >= 1 && stepNum <= 6) {
+        this.currentStep.set(stepNum as StepIndex);
+      }
+    }
   }
 
   ngOnDestroy() {
@@ -387,11 +395,25 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         await firstValueFrom(this.api.reorderAttachments(clothesId, orderedAttachmentIds));
       }
 
-      void this.router.navigate(['/wardrobe', clothesId]);
+      const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
+      if (callbackUrl) {
+        void this.router.navigateByUrl(callbackUrl);
+      } else {
+        void this.router.navigate(['/wardrobe', clothesId]);
+      }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Errore durante il salvataggio del capo');
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  cancelOrClose() {
+    const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
+    if (callbackUrl) {
+      void this.router.navigateByUrl(callbackUrl);
+    } else {
+      void this.router.navigate(['..'], { relativeTo: this.route });
     }
   }
 

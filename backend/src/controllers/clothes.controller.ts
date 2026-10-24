@@ -27,6 +27,11 @@ export class ClothesController {
     return this.clothesService.create(user, body);
   }
 
+  @Get('ironing')
+  getIroningList(@CurrentUser() user: AuthUser, @Query('ids') ids: string | undefined) {
+    return this.clothesService.getIroningList(user, ids);
+  }
+
   @Get(':id')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.clothesService.getOne(user, id);

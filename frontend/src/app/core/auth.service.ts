@@ -138,6 +138,13 @@ export class AuthService {
   logout() {
     void firstValueFrom(this.http.post('/api/auth/logout', {}).pipe(catchError(() => of(null)))).finally(() => {
       this.profile.set(null);
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem('dressly_wardrobe_selected_ids');
+        }
+      } catch {
+        // Ignored
+      }
       void this.router.navigateByUrl('/login');
     });
   }
