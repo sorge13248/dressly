@@ -166,6 +166,22 @@
             <span class="pager-label">Pagina {{ filters().page }} di {{ totalPages() }}</span>
             <small>{{ total() }} capi</small>
           </div>
+
+          <div class="pager-size">
+            <label for="per-page-select" class="pager-size-label">Elementi per pagina:</label>
+            <select
+              id="per-page-select"
+              class="pager-size-select"
+              [value]="filters().per_page"
+              (change)="onPerPageChange($event)"
+              aria-label="Elementi per pagina"
+            >
+              @for (size of pageSizeOptions(); track size) {
+                <option [value]="size" [selected]="size === filters().per_page">{{ size }}</option>
+              }
+            </select>
+          </div>
+
           <div class="pager-actions">
             <button
               type="button"

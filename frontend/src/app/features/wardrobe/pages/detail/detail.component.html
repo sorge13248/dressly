@@ -174,18 +174,46 @@
         @if (careSections().length > 0) {
           <article class="panel panel--stacked">
             <h2>Cura</h2>
-            <div class="care-grid care-grid--stacked">
+            <div class="care-grid">
               @for (section of careSections(); track section.title) {
                 <div class="care-card">
                   <h3>{{ section.title }}</h3>
-                  <dl class="detail-table">
-                    @for (row of section.rows; track row.label) {
-                      <div>
-                        <dt>{{ row.label }}</dt>
-                        <dd>{{ row.value }}</dd>
-                      </div>
-                    }
-                  </dl>
+                  @if (section.specs.length > 0) {
+                    <div class="care-specs">
+                      @for (spec of section.specs; track spec.label) {
+                        <div class="care-spec-item">
+                          <span class="care-spec-label">{{ spec.label }}</span>
+                          @if (spec.dotsArray && spec.dotsArray.length > 0) {
+                            <span
+                              class="care-dots"
+                              [attr.aria-label]="'Livello ' + spec.dotsArray.length"
+                              [title]="'Livello ' + spec.dotsArray.length"
+                            >
+                              @for (dot of spec.dotsArray; track dot) {
+                                <span class="care-dot"></span>
+                              }
+                            </span>
+                          } @else {
+                            <span class="care-spec-value">{{ spec.value }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (section.tags.length > 0) {
+                    <div class="care-tags">
+                      @for (tag of section.tags; track tag.label) {
+                        <span class="care-tag" [class.care-tag--warn]="tag.warn">
+                          @if (tag.warn) {
+                            <span class="care-tag-icon" aria-hidden="true">⚠️</span>
+                          } @else {
+                            <span class="care-tag-icon" aria-hidden="true">✓</span>
+                          }
+                          <span>{{ tag.label }}</span>
+                        </span>
+                      }
+                    </div>
+                  }
                 </div>
               }
             </div>

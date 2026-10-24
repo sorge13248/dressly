@@ -9,10 +9,22 @@ import { ConfirmModalComponent } from '../../../../shared/components/confirm-mod
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { WardrobePhotoLightboxModalComponent } from '../../components/photo-lightbox-modal/photo-lightbox-modal.component';
 
-type DetailRow = {
+interface CareSpec {
   label: string;
   value: string;
-};
+  dotsArray?: number[];
+}
+
+interface CareTag {
+  label: string;
+  warn?: boolean;
+}
+
+interface CareSectionView {
+  title: string;
+  specs: CareSpec[];
+  tags: CareTag[];
+}
 
 type BuyDetailView = {
   store: string | null;
@@ -44,49 +56,126 @@ export class WardrobeDetailPageComponent implements OnInit {
   readonly primaryPhoto = computed(() => this.photoAttachments()[0] ?? null);
   readonly secondaryPhotos = computed(() => this.photoAttachments().slice(1));
   readonly photoCount = computed(() => this.photoAttachments().length);
-  readonly careSections = computed(() => {
+  readonly careSections = computed<CareSectionView[]>(() => {
     const current = this.item();
     if (!current) {
       return [];
     }
 
-    return [
+    const wash = current.washingInstruction;
+    const washSpecs: CareSpec[] = [];
+    const washType = this.labelWashType(wash?.washType ?? wash?.wash_type);
+    if (washType) {
+      washSpecs.push({ label: 'Tipo', value: washType });
+    }
+    const washTemp = this.appendDegrees(wash?.temperature ?? wash?.washing_temperature);
+    if (washTemp) {
+      washSpecs.push({ label: 'Temperatura', value: washTemp });
+    }
+    const bleach = this.labelBleachType(wash?.bleachType ?? wash?.bleach_type);
+    if (bleach) {
+      washSpecs.push({ label: 'Sbianca', value: bleach });
+    }
+
+    const washTags: CareTag[] = [];
+    if (wash?.reverseWashing ?? wash?.reverse_washing) {
+      washTags.push({ label: 'Lava al rovescio' });
+    }
+    if (wash?.closedZips ?? wash?.closed_zips) {
+      washTags.push({ label: 'Cerniere chiuse' });
+    }
+    if (wash?.similarColors ?? wash?.similar_colors) {
+      washTags.push({ label: 'Colori simili' });
+    }
+    if (wash?.washSeparately ?? wash?.wash_separately) {
+      washTags.push({ label: 'Lavare separatamente' });
+    }
+    if (wash?.useColorCatcher ?? wash?.use_color_catcher) {
+      washTags.push({ label: 'Acchiappacolore' });
+    }
+    if (wash?.stretch) {
+      washTags.push({ label: 'Stretch' });
+    }
+
+    const colorLoss = wash?.colorLossRisk ?? wash?.color_loss;
+    const colorTestTemp = wash?.colorLossTestTemperature ?? wash?.color_loss_test_temperature;
+    if (colorLoss) {
+      const testTempStr = this.appendDegrees(colorTestTemp);
+      washTags.push({
+        label: testTempStr ? `Perde colore (test: ${testTempStr})` : 'Perde colore',
+        warn: true,
+      });
+    } else if (colorTestTemp) {
+      washSpecs.push({
+        label: 'Test colore',
+        value: this.appendDegrees(colorTestTemp)!,
+      });
+    }
+
+    const dry = current.dryingInstruction;
+    const drySpecs: CareSpec[] = [];
+    const tumbleDry = dry?.tumbleDry ?? dry?.tumble_dry;
+    const tumbleDryTemp = dry?.tumbleDryTemperature ?? dry?.tumble_dry_temperature;
+    if (tumbleDry === true) {
+      const tempLabel = this.labelDryingTemperature(tumbleDryTemp);
+      drySpecs.push({
+        label: 'Asciugatrice',
+        value: tempLabel ? `✅ (${tempLabel})` : '✅',
+      });
+    } else if (tumbleDry === false) {
+      drySpecs.push({ label: 'Asciugatrice', value: '❌' });
+    }
+
+    const rawMethod = dry?.method;
+    if (rawMethod && !rawMethod.startsWith('tumble_dry')) {
+      const dryMethod = this.labelDryingMethod(rawMethod);
+      if (dryMethod) {
+        drySpecs.push({ label: 'Metodo', value: dryMethod });
+      }
+    }
+
+    const iron = current.ironingInstruction;
+    const ironSpecs: CareSpec[] = [];
+    const ironType = this.labelIronType(iron?.ironType ?? iron?.iron_type);
+    if (ironType) {
+      ironSpecs.push({ label: 'Tipo', value: ironType });
+    }
+    const ironTemp = this.normalizeText(
+      iron?.temperature ?? (iron?.ironing_temperature != null ? String(iron.ironing_temperature) : null),
+    );
+    if (ironTemp) {
+      const dotsArray = this.parseIroningDots(ironTemp);
+      ironSpecs.push({
+        label: 'Temperatura',
+        value: ironTemp,
+        dotsArray: dotsArray ?? undefined,
+      });
+    }
+
+    const ironTags: CareTag[] = [];
+    if (iron?.ironInsideOut ?? iron?.inside_out) {
+      ironTags.push({ label: 'Stira al rovescio' });
+    }
+
+    const sections: CareSectionView[] = [
       {
         title: 'Lavaggio',
-        rows: [
-          this.row('Tipo lavaggio', this.labelWashType(current.washingInstruction?.washType)),
-          this.row('Sbianca', this.labelBleachType(current.washingInstruction?.bleachType)),
-          this.row('Temperatura', this.appendDegrees(current.washingInstruction?.temperature)),
-          this.booleanRow('Stretch', current.washingInstruction?.stretch),
-          this.booleanRow('Lava al rovescio', current.washingInstruction?.reverseWashing),
-          this.booleanRow('Cerniere chiuse', current.washingInstruction?.closedZips),
-          this.booleanRow('Colori simili', current.washingInstruction?.similarColors),
-          this.booleanRow('Lavare separatamente', current.washingInstruction?.washSeparately),
-          this.booleanRow('Acchiappacolore', current.washingInstruction?.useColorCatcher),
-          this.booleanRow('Perde colore', current.washingInstruction?.colorLossRisk),
-          this.row(
-            'Temperatura test perdita colore',
-            this.appendDegrees(current.washingInstruction?.colorLossTestTemperature),
-          ),
-        ].filter((row): row is DetailRow => row !== null),
+        specs: washSpecs,
+        tags: washTags,
       },
       {
         title: 'Asciugatura',
-        rows: [
-          this.booleanRow('Asciugatrice', current.dryingInstruction?.tumbleDry),
-          this.row('Temperatura tumble dry', this.labelDryingTemperature(current.dryingInstruction?.tumbleDryTemperature)),
-          this.row('Metodo', this.labelDryingMethod(current.dryingInstruction?.method)),
-        ].filter((row): row is DetailRow => row !== null),
+        specs: drySpecs,
+        tags: [],
       },
       {
         title: 'Stiratura',
-        rows: [
-          this.row('Tipo', this.labelIronType(current.ironingInstruction?.ironType)),
-          this.booleanRow('Rovescio', current.ironingInstruction?.ironInsideOut),
-          this.row('Temperatura', current.ironingInstruction?.temperature),
-        ].filter((row): row is DetailRow => row !== null),
+        specs: ironSpecs,
+        tags: ironTags,
       },
-    ].filter((section) => section.rows.length > 0);
+    ];
+
+    return sections.filter((section) => section.specs.length > 0 || section.tags.length > 0);
   });
   readonly buyDetailView = computed<BuyDetailView | null>(() => {
     const buyDetail = this.item()?.buyDetail;
@@ -207,36 +296,6 @@ export class WardrobeDetailPageComponent implements OnInit {
     return (items?.length ?? 0) > 0;
   }
 
-  private row(label: string, value: string | null | undefined): DetailRow | null {
-    const normalized = this.normalizeText(value);
-    if (!normalized) {
-      return null;
-    }
-
-    return { label, value: normalized };
-  }
-
-  private booleanRow(label: string, value: boolean | null | undefined): DetailRow | null {
-    const emoji = this.booleanEmoji(value);
-    if (!emoji) {
-      return null;
-    }
-
-    return { label, value: emoji };
-  }
-
-  private booleanEmoji(value: boolean | null | undefined) {
-    if (value === true) {
-      return '✅';
-    }
-
-    if (value === false) {
-      return '❌';
-    }
-
-    return null;
-  }
-
   private labelWashType(value: string | null | undefined) {
     switch (value) {
       case 'do_not_wash':
@@ -306,6 +365,35 @@ export class WardrobeDetailPageComponent implements OnInit {
       default:
         return null;
     }
+  }
+
+  private parseIroningDots(value: string | number | null | undefined): number[] | null {
+    const normalized = this.normalizeText(value === null || value === undefined ? null : String(value));
+    if (!normalized) {
+      return null;
+    }
+
+    const num = Number(normalized);
+    if (Number.isNaN(num) || num <= 0) {
+      return null;
+    }
+
+    let count: number;
+    if (num <= 1) {
+      count = 1;
+    } else if (num === 2) {
+      count = 2;
+    } else if (num === 3) {
+      count = 3;
+    } else if (num <= 110) {
+      count = 1;
+    } else if (num <= 150) {
+      count = 2;
+    } else {
+      count = 3;
+    }
+
+    return Array.from({ length: count }, (_, i) => i + 1);
   }
 
   private appendDegrees(value: string | number | null | undefined) {

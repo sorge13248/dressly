@@ -183,6 +183,12 @@ const ironingTypeOptions: SelectDropdownOption[] = [
   { id: 'no', label: 'No' },
 ];
 
+const ironingTemperatureOptions: SelectDropdownOption[] = [
+  { id: '1', label: '● (1 - Bassa, max 110°C)' },
+  { id: '2', label: '● ● (2 - Media, max 150°C)' },
+  { id: '3', label: '● ● ● (3 - Alta, max 200°C)' },
+];
+
 @Component({
   standalone: true,
   imports: [CommonModule, FormField, RouterLink, SelectDropdownComponent],
@@ -231,8 +237,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     min(schema.care.washing.color_loss_test_temperature, 0, { message: 'Temperatura minima 0' });
     max(schema.care.washing.color_loss_test_temperature, 95, { message: 'Temperatura massima 95' });
 
-    min(schema.care.ironing.ironing_temperature, 0, { message: 'Temperatura minima 0' });
-    max(schema.care.ironing.ironing_temperature, 230, { message: 'Temperatura massima 230' });
+    min(schema.care.ironing.ironing_temperature, 1, { message: 'Seleziona la temperatura di stiraggio' });
+    max(schema.care.ironing.ironing_temperature, 3, { message: 'Seleziona la temperatura di stiraggio' });
 
     pattern(schema.buy.detail.shop_url, /^$|^https?:\/\/.+/, {
       message: 'Inserisci un URL valido (http:// o https://)',
@@ -256,6 +262,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly bleachTypeOptions = bleachTypeOptions;
   readonly dryingTemperatureOptions = dryingTemperatureOptions;
   readonly ironingTypeOptions = ironingTypeOptions;
+  readonly ironingTemperatureOptions = ironingTemperatureOptions;
 
   readonly isWashingDetailsEnabled = computed(
     () => this.wizardForm.care.washingEnabled().value() && this.wizardForm.care.washing.wash_type().value() !== 'do_not_wash',
@@ -898,6 +905,35 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  getIroningTemperatureId(): string {
+    const val = this.wizardForm.care.ironing.ironing_temperature().value();
+    if (val === null || val === undefined) {
+      return '';
+    }
+    return String(this.mapExistingIroningTemperature(val) ?? '');
+  }
+
+  onIroningTemperatureChange(id: string) {
+    const num = id ? Number(id) : null;
+    this.wizardForm.care.ironing.ironing_temperature().value.set(num);
+  }
+
+  private mapExistingIroningTemperature(value: string | number | null | undefined): number | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const num = Number(value);
+    if (Number.isNaN(num) || num <= 0) {
+      return null;
+    }
+    if (num <= 1) return 1;
+    if (num === 2) return 2;
+    if (num === 3) return 3;
+    if (num <= 110) return 1;
+    if (num <= 150) return 2;
+    return 3;
+  }
+
   onSizeInput(event: Event) {
     const input = event.target as HTMLInputElement;
     const uppercaseValue = input.value.toUpperCase();
@@ -1069,7 +1105,9 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         ironingEnabled: Boolean(item.ironingInstruction),
         ironing: {
           iron_type: item.ironingInstruction?.ironType ?? 'without_steam',
-          ironing_temperature: item.ironingInstruction?.temperature ? Number(item.ironingInstruction.temperature) : null,
+          ironing_temperature: this.mapExistingIroningTemperature(
+            item.ironingInstruction?.temperature ?? item.ironingInstruction?.ironing_temperature,
+          ),
           inside_out: Boolean(item.ironingInstruction?.ironInsideOut),
         },
       },

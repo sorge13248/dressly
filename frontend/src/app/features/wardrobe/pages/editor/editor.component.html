@@ -511,10 +511,12 @@
                   @if (isIroningDetailsEnabled()) {
                     <label>
                       <span>Temperatura stiraggio *</span>
-                      <input
-                        type="number"
-                        [formField]="wizardForm.care.ironing.ironing_temperature"
-                        [class.field-error]="
+                      <app-select-dropdown
+                        [options]="ironingTemperatureOptions"
+                        [selectedId]="getIroningTemperatureId()"
+                        (selectedIdChange)="onIroningTemperatureChange($event)"
+                        placeholder="Seleziona potenza"
+                        [invalid]="
                           (submitAttempted() || blockedStep() === 4) &&
                           (wizardForm.care.ironing.ironing_temperature().value() === null ||
                             wizardForm.care.ironing.ironing_temperature().invalid())
@@ -526,7 +528,7 @@
                           wizardForm.care.ironing.ironing_temperature().invalid())
                       ) {
                         <small class="field-error-text"
-                          >Temperatura stiraggio obbligatoria (0-230)</small
+                          >Seleziona la temperatura di stiraggio</small
                         >
                       }
                     </label>

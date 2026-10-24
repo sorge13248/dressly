@@ -28,7 +28,7 @@ interface NamedMetaItem {
 type FilterKey = 'brand_ids' | 'fit_ids' | 'type_ids' | 'tag_ids' | 'color_ids' | 'material_ids' | 'season_ids' | 'temperature_ids' | 'use_case_ids';
 
 const DEFAULT_PAGE = 1;
-const DEFAULT_PER_PAGE = 12;
+const DEFAULT_PER_PAGE = 50;
 
 const QUERY_PARAM_KEYS = [
   'search',
@@ -48,20 +48,23 @@ const QUERY_PARAM_KEYS = [
 
 type KnownQueryParamKey = (typeof QUERY_PARAM_KEYS)[number];
 
-const initialFilters = (query: Record<string, string>) => ({
-  size: query['size'] ?? '',
-  brand_ids: query['brand_id'] ? query['brand_id'].split(',').filter(Boolean) : [],
-  fit_ids: query['fit_id'] ? query['fit_id'].split(',').filter(Boolean) : [],
-  type_ids: (query['type_ids'] || query['type_id'] || '').split(',').filter(Boolean),
-  tag_ids: query['tag_ids'] ? query['tag_ids'].split(',').filter(Boolean) : [],
-  color_ids: query['color_ids'] ? query['color_ids'].split(',').filter(Boolean) : [],
-  material_ids: query['material_ids'] ? query['material_ids'].split(',').filter(Boolean) : [],
-  season_ids: query['season_ids'] ? query['season_ids'].split(',').filter(Boolean) : [],
-  temperature_ids: query['temperature_ids'] ? query['temperature_ids'].split(',').filter(Boolean) : [],
-  use_case_ids: query['use_case_ids'] ? query['use_case_ids'].split(',').filter(Boolean) : [],
-  page: Number(query['page'] ?? DEFAULT_PAGE) || DEFAULT_PAGE,
-  per_page: Number(query['per_page'] ?? DEFAULT_PER_PAGE) || DEFAULT_PER_PAGE,
-});
+const initialFilters = (query: Record<string, string>) => {
+  const parsedPerPage = Number(query['per_page'] ?? DEFAULT_PER_PAGE);
+  return {
+    size: query['size'] ?? '',
+    brand_ids: query['brand_id'] ? query['brand_id'].split(',').filter(Boolean) : [],
+    fit_ids: query['fit_id'] ? query['fit_id'].split(',').filter(Boolean) : [],
+    type_ids: (query['type_ids'] || query['type_id'] || '').split(',').filter(Boolean),
+    tag_ids: query['tag_ids'] ? query['tag_ids'].split(',').filter(Boolean) : [],
+    color_ids: query['color_ids'] ? query['color_ids'].split(',').filter(Boolean) : [],
+    material_ids: query['material_ids'] ? query['material_ids'].split(',').filter(Boolean) : [],
+    season_ids: query['season_ids'] ? query['season_ids'].split(',').filter(Boolean) : [],
+    temperature_ids: query['temperature_ids'] ? query['temperature_ids'].split(',').filter(Boolean) : [],
+    use_case_ids: query['use_case_ids'] ? query['use_case_ids'].split(',').filter(Boolean) : [],
+    page: Number(query['page'] ?? DEFAULT_PAGE) || DEFAULT_PAGE,
+    per_page: parsedPerPage > 0 ? Math.min(100, parsedPerPage) : DEFAULT_PER_PAGE,
+  };
+};
 
 @Component({
   standalone: true,
@@ -192,6 +195,16 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
 
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.filters().per_page)));
 
+  readonly defaultPageSizeOptions = [12, 25, 50, 100];
+
+  readonly pageSizeOptions = computed(() => {
+    const current = this.filters().per_page;
+    if (!this.defaultPageSizeOptions.includes(current)) {
+      return [...this.defaultPageSizeOptions, current].sort((a, b) => a - b);
+    }
+    return this.defaultPageSizeOptions;
+  });
+
   constructor() {
     effect(() => {
       const searchTerm = this.searchForm.text().value();
@@ -297,6 +310,28 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     this.filters.update((current) => ({ ...current, page }));
   }
 
+  setPerPage(perPage: number) {
+    if (perPage === this.filters().per_page) {
+      return;
+    }
+    this.filters.update((current) => ({
+      ...current,
+      per_page: perPage,
+      page: 1,
+    }));
+  }
+
+  onPerPageChange(event: Event) {
+    const target = event.target as HTMLSelectElement | null;
+    if (!target) {
+      return;
+    }
+    const value = Number(target.value);
+    if (value > 0) {
+      this.setPerPage(value);
+    }
+  }
+
   clearFilters() {
     this.searchForm.text().value.set('');
     this.debouncedSearch.set('');
@@ -312,7 +347,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       temperature_ids: [],
       use_case_ids: [],
       page: DEFAULT_PAGE,
-      per_page: DEFAULT_PER_PAGE,
+      per_page: this.filters().per_page,
     });
 
     this.closeFiltersOnMobile();
