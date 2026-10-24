@@ -6,7 +6,9 @@ export type ConfirmModalData = {
   title: string;
   message: string;
   confirmLabel?: string;
-  cancelLabel?: string;
+  cancelLabel?: string | null;
+  confirmVariant?: 'danger' | 'primary';
+  showCancel?: boolean;
 };
 
 @Component({

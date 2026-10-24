@@ -1,3 +1,5 @@
+@import '@angular/cdk/overlay-prebuilt.css';
+
 :root {
   color-scheme: light;
   --bg: #1a3d7a;
@@ -54,3 +56,10 @@ select,
 textarea {
   font: inherit;
 }
+
+.cdk-overlay-dark-backdrop {
+  background: rgba(10, 30, 70, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+

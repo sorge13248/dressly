@@ -1,7 +1,9 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { DestroyRef, Injectable, NgZone, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
+import { Dialog } from '@angular/cdk/dialog';
 import { catchError, firstValueFrom, of } from 'rxjs';
+import { ConfirmModalComponent } from '../shared/components/confirm-modal/confirm-modal.component';
 import { ApiService } from './api.service';
 import { AuthUser, OidcConfig } from './models';
 
@@ -17,6 +19,9 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
+  private readonly dialog = inject(Dialog);
+  private readonly ngZone = inject(NgZone);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly oidcConfig = signal<OidcConfig | null>(null);
   readonly oidcMetadata = signal<OidcMetadata | null>(null);
@@ -24,6 +29,10 @@ export class AuthService {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   private metadataRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private sessionPingTimer: ReturnType<typeof setTimeout> | null = null;
+  private sessionExpiredModalOpen = false;
+
+  sessionPingIntervalMs = 30_000;
 
   readonly isAuthenticated = computed(() => Boolean(this.profile()));
   readonly displayName = computed(() => this.profile()?.displayName ?? 'Ospite');
@@ -42,9 +51,19 @@ export class AuthService {
 
   constructor() {
     effect(() => {
-      if (!this.isAuthenticated()) {
-        this.profile.set(null);
-      }
+      const authenticated = this.isAuthenticated();
+      untracked(() => {
+        if (authenticated) {
+          this.startSessionPing();
+        } else {
+          this.stopSessionPing();
+        }
+      });
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.stopSessionPing();
+      this.clearMetadataRetry();
     });
 
     void this.initialize();
@@ -129,6 +148,7 @@ export class AuthService {
         throw new Error('Sessione non disponibile dopo il callback OIDC');
       }
 
+      this.startSessionPing();
       return true;
     } finally {
       this.loading.set(false);
@@ -136,6 +156,7 @@ export class AuthService {
   }
 
   logout() {
+    this.stopSessionPing();
     void firstValueFrom(this.http.post('/api/auth/logout', {}).pipe(catchError(() => of(null)))).finally(() => {
       this.profile.set(null);
       try {
@@ -147,6 +168,104 @@ export class AuthService {
       }
       void this.router.navigateByUrl('/login');
     });
+  }
+
+  startSessionPing(): void {
+    this.stopSessionPing();
+
+    if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+      return;
+    }
+
+    this.ngZone.runOutsideAngular(() => {
+      this.sessionPingTimer = setTimeout(async () => {
+        this.sessionPingTimer = null;
+        await this.checkSession();
+        if (this.isAuthenticated() && !this.sessionExpiredModalOpen) {
+          this.startSessionPing();
+        }
+      }, this.sessionPingIntervalMs);
+    });
+  }
+
+  stopSessionPing(): void {
+    if (this.sessionPingTimer) {
+      clearTimeout(this.sessionPingTimer);
+      this.sessionPingTimer = null;
+    }
+  }
+
+  async checkSession(): Promise<boolean> {
+    if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+      return false;
+    }
+
+    try {
+      const profile = await firstValueFrom(this.http.get<AuthUser>('/api/me'));
+      if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+        return false;
+      }
+
+      if (profile) {
+        this.ngZone.run(() => {
+          this.profile.set(profile);
+        });
+        return true;
+      }
+
+      this.handleSessionExpired();
+      return false;
+    } catch (err: unknown) {
+      if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+        return false;
+      }
+
+      if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) {
+        this.handleSessionExpired();
+        return false;
+      }
+
+      return true;
+    }
+  }
+
+  handleSessionExpired(): void {
+    this.stopSessionPing();
+
+    this.ngZone.run(() => {
+      this.profile.set(null);
+
+      if (this.sessionExpiredModalOpen) {
+        return;
+      }
+      this.sessionExpiredModalOpen = true;
+
+      const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
+        disableClose: true,
+        data: {
+          title: 'Sessione scaduta',
+          message: 'La sessione di autenticazione è scaduta. Ricarica la pagina per rinnovare la sessione e continuare a usare Dressly.',
+          confirmLabel: 'Ricarica pagina',
+          showCancel: false,
+          confirmVariant: 'primary',
+        },
+      });
+
+      dialogRef.closed.subscribe(() => {
+        this.sessionExpiredModalOpen = false;
+        this.reloadPage();
+      });
+    });
+  }
+
+  reloadPage(): void {
+    if (typeof window !== 'undefined' && window.location) {
+      try {
+        window.location.reload();
+      } catch {
+        // Ignored in non-browser or test environments
+      }
+    }
   }
 
   private async loadProfile() {
