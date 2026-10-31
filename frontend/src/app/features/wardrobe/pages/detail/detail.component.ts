@@ -229,11 +229,15 @@ export class WardrobeDetailPageComponent implements OnInit {
     const current = this.item();
     if (!current?.id) return;
 
+    const action = current.isInWashing ? 'remove' : 'add';
+    const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
+    void this.laundryService.animateFlyToNav(heroImg, 'washing', action);
+
     if (current.isInWashing) {
       try {
         await firstValueFrom(this.api.removeFromWashing(current.id));
         this.item.update((prev) => (prev ? { ...prev, isInWashing: false } : prev));
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('washing', 'remove');
         this.toast.success('Capo rimosso dalla lavatrice');
       } catch {
         this.toast.error('Errore durante la rimozione dalla lavatrice');
@@ -242,7 +246,7 @@ export class WardrobeDetailPageComponent implements OnInit {
       try {
         const res = await firstValueFrom(this.api.addToWashing([current.id]));
         this.item.update((prev) => (prev ? { ...prev, isInWashing: true } : prev));
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('washing', 'add');
         if (res.added > 0) {
           this.toast.success('Capo aggiunto alla lavatrice');
         } else {
@@ -258,11 +262,15 @@ export class WardrobeDetailPageComponent implements OnInit {
     const current = this.item();
     if (!current?.id) return;
 
+    const action = current.isInIroning ? 'remove' : 'add';
+    const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
+    void this.laundryService.animateFlyToNav(heroImg, 'ironing', action);
+
     if (current.isInIroning) {
       try {
         await firstValueFrom(this.api.removeFromIroning(current.id));
         this.item.update((prev) => (prev ? { ...prev, isInIroning: false } : prev));
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('ironing', 'remove');
         this.toast.success('Capo rimosso dalla stiratura');
       } catch {
         this.toast.error('Errore durante la rimozione dalla stiratura');
@@ -271,7 +279,7 @@ export class WardrobeDetailPageComponent implements OnInit {
       try {
         const res = await firstValueFrom(this.api.addToIroning([current.id]));
         this.item.update((prev) => (prev ? { ...prev, isInIroning: true } : prev));
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('ironing', 'add');
         if (res.added > 0) {
           this.toast.success('Capo aggiunto alla stiratura');
         } else {

@@ -2,28 +2,87 @@
   <app-toast-stack />
 
   <header class="main-topbar">
-    <div class="left-cluster">
+    <!-- Logo dell'app allineato a sinistra -->
+    <div class="topbar-left">
       <a class="brand-block" routerLink="/wardrobe" (click)="closeNavMenu()" aria-label="Vai alla home page">
         <div class="brand-mark">
           <img ngSrc="/assets/logo.webp" width="48" height="48" alt="Dressly" priority />
         </div>
       </a>
-
-      <button
-        type="button"
-        class="nav-toggle"
-        [attr.aria-expanded]="mobileNavOpen()"
-        aria-controls="main-shell-menu"
-        (click)="toggleNavMenu()"
-      >
-        {{ mobileNavOpen() ? 'Chiudi menu' : 'Menu' }}
-      </button>
     </div>
 
-    <div id="main-shell-menu" class="menu-expanded" [class.open]="mobileNavOpen()">
+    <!-- Bottoni delle pagine principali con icone in una pill unica allineata al centro -->
+    <div class="topbar-center">
+      <nav class="main-nav nav-pill" aria-label="Navigazione principale">
+        @for (item of navItems(); track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: item.exact }"
+            (click)="closeNavMenu()"
+            class="nav-pill-item"
+            [attr.data-nav-path]="item.path"
+          >
+            @if (item.path === 'wardrobe') {
+              <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+                <path d="M2 18h20" />
+              </svg>
+            } @else if (item.path === 'wardrobe/washing') {
+              <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="12" cy="13" r="5" />
+                <path d="M12 10a3 3 0 0 1 3 3" />
+                <circle cx="7" cy="6" r=".5" fill="currentColor" />
+                <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
+              </svg>
+            } @else if (item.path === 'wardrobe/ironing') {
+              <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+              </svg>
+            } @else if (item.path === 'categories') {
+              <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            }
+            <span>{{ item.label }}</span>
+            @if (item.badgeState; as badge) {
+              @if (badge.displayedCount > 0 || badge.animating === 'slide-down' || badge.animating === 'slide-out-zero') {
+                <span
+                  class="nav-badge"
+                  [class.badge-slide-down]="badge.animating === 'slide-down'"
+                  [class.badge-slide-out-zero]="badge.animating === 'slide-out-zero'"
+                  [class.badge-pop-up]="badge.animating === 'pop-up'"
+                >
+                  <span class="badge-number">{{ badge.displayedCount }}</span>
+                </span>
+              }
+            } @else if (item.badge !== null && item.badge > 0) {
+              <span class="nav-badge">
+                <span class="badge-number">{{ item.badge }}</span>
+              </span>
+            }
+          </a>
+        }
+      </nav>
+    </div>
+
+    <!-- Icona utente a destra con foto profilo arrotondata e pulsante logout discreto a sola icona -->
+    <div class="topbar-right">
       <div class="user-area">
         <div class="user-block">
-          <div class="avatar">
+          <div class="identity">
+            <p class="welcome">Benvenuto</p>
+            <p class="name-line">{{ firstName() }} {{ lastName() }}</p>
+            <p class="email-line">{{ email() || loginMode() }}</p>
+          </div>
+
+          <div class="avatar" [title]="displayName()">
             @if (pictureUrl()) {
               <img [src]="pictureUrl()!" [alt]="displayName()" loading="lazy" />
             } @else {
@@ -31,31 +90,115 @@
             }
           </div>
 
-          <div class="identity">
-            <p class="welcome">Benvenuto</p>
-            <p class="name-line">{{ firstName() }} {{ lastName() }}</p>
-            <p class="email-line">{{ email() || loginMode() }}</p>
-          </div>
-
-          <button class="logout-btn" type="button" (click)="logout()">Logout</button>
+          <button
+            class="logout-btn"
+            type="button"
+            (click)="logout()"
+            title="Disconnettiti"
+            aria-label="Logout"
+          >
+            <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <nav class="main-nav">
+      <button
+        type="button"
+        class="nav-toggle"
+        [attr.aria-expanded]="mobileNavOpen()"
+        aria-controls="main-mobile-menu"
+        (click)="toggleNavMenu()"
+        aria-label="Toggle navigation menu"
+      >
+        {{ mobileNavOpen() ? 'Chiudi' : 'Menu' }}
+      </button>
+    </div>
+
+    <!-- Pannello menu per dispositivi mobili -->
+    <div id="main-mobile-menu" class="mobile-menu" [class.open]="mobileNavOpen()">
+      <nav class="mobile-nav-pill" aria-label="Navigazione mobile">
         @for (item of navItems(); track item.path) {
           <a
             [routerLink]="item.path"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: item.exact }"
             (click)="closeNavMenu()"
+            class="mobile-nav-item"
+            [attr.data-nav-path]="item.path"
           >
-            <span>{{ item.label }}</span>
-            @if (item.badge !== null && item.badge > 0) {
-              <span class="nav-badge">{{ item.badge }}</span>
+            <div class="mobile-nav-item-left">
+              @if (item.path === 'wardrobe') {
+                <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+                  <path d="M2 18h20" />
+                </svg>
+              } @else if (item.path === 'wardrobe/washing') {
+                <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="12" cy="13" r="5" />
+                  <path d="M12 10a3 3 0 0 1 3 3" />
+                  <circle cx="7" cy="6" r=".5" fill="currentColor" />
+                  <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
+                </svg>
+              } @else if (item.path === 'wardrobe/ironing') {
+                <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                  <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                  <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+                </svg>
+              } @else if (item.path === 'categories') {
+                <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              }
+              <span>{{ item.label }}</span>
+            </div>
+            @if (item.badgeState; as badge) {
+              @if (badge.displayedCount > 0 || badge.animating === 'slide-down' || badge.animating === 'slide-out-zero') {
+                <span
+                  class="nav-badge"
+                  [class.badge-slide-down]="badge.animating === 'slide-down'"
+                  [class.badge-slide-out-zero]="badge.animating === 'slide-out-zero'"
+                  [class.badge-pop-up]="badge.animating === 'pop-up'"
+                >
+                  <span class="badge-number">{{ badge.displayedCount }}</span>
+                </span>
+              }
+            } @else if (item.badge !== null && item.badge > 0) {
+              <span class="nav-badge">
+                <span class="badge-number">{{ item.badge }}</span>
+              </span>
             }
           </a>
         }
       </nav>
+
+      <div class="mobile-user-row">
+        <div class="mobile-identity">
+          <p class="name-line">{{ firstName() }} {{ lastName() }}</p>
+          <p class="email-line">{{ email() || loginMode() }}</p>
+        </div>
+        <button
+          class="logout-btn mobile-logout"
+          type="button"
+          (click)="logout()"
+          title="Disconnettiti"
+          aria-label="Logout"
+        >
+          <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 

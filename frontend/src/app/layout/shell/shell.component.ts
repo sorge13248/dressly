@@ -18,12 +18,17 @@ export class AppShellComponent implements OnInit {
   private readonly referenceStore = inject(ReferenceStoreService);
   readonly laundryService = inject(LaundryService);
 
-  readonly navItems = computed(() => [
-    { label: 'Il mio guardaroba', path: 'wardrobe', exact: true, badge: null },
-    { label: 'Lavatrice', path: 'wardrobe/washing', exact: true, badge: this.laundryService.washingCount() },
-    { label: 'Stiratura', path: 'wardrobe/ironing', exact: true, badge: this.laundryService.ironingCount() },
-    { label: 'Domini', path: 'categories', exact: false, badge: null },
-  ]);
+  readonly navItems = computed(() => {
+    const washingState = this.laundryService.washingState ? this.laundryService.washingState() : { count: this.laundryService.washingCount(), displayedCount: this.laundryService.washingCount(), animating: 'idle' as const };
+    const ironingState = this.laundryService.ironingState ? this.laundryService.ironingState() : { count: this.laundryService.ironingCount(), displayedCount: this.laundryService.ironingCount(), animating: 'idle' as const };
+
+    return [
+      { label: 'Il mio guardaroba', path: 'wardrobe', exact: true, badge: null, badgeState: null },
+      { label: 'Lavatrice', path: 'wardrobe/washing', exact: true, badge: washingState.count, badgeState: washingState },
+      { label: 'Stiratura', path: 'wardrobe/ironing', exact: true, badge: ironingState.count, badgeState: ironingState },
+      { label: 'Domini', path: 'categories', exact: false, badge: null, badgeState: null },
+    ];
+  });
 
   readonly displayName = computed(() => this.authService.displayName());
   readonly email = computed(() => this.authService.email());

@@ -1,16 +1,5 @@
 <section class="ironing-shell">
   <header class="ironing-header">
-    <div class="header-left">
-      <button type="button" class="ghost back-btn" (click)="returnToWardrobe()">
-        <span aria-hidden="true">←</span> Torna al guardaroba
-      </button>
-      <div class="title-cluster">
-        <h1>Stiratura</h1>
-        @if (!loading() && items().length > 0) {
-          <span class="count-pill">{{ totalCount() }} {{ totalCount() === 1 ? 'capo' : 'capi' }} da stirare</span>
-        }
-      </div>
-    </div>
     @if (!loading() && items().length > 0) {
       <div class="header-right">
         <button type="button" class="danger clear-btn" (click)="onClearList()">
@@ -53,6 +42,7 @@
               @for (item of missingInfoItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--link"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id, 'edit']"
                   [queryParams]="{ step: 4, callbackUrl: currentUrl() }"
                   [attr.aria-label]="'Imposta stiratura per ' + getPreferredLabel(item)"
@@ -110,6 +100,7 @@
               @for (item of oneDotItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--interactive"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id]"
                   [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
                   title="Clicca per visualizzare il capo"
@@ -168,6 +159,7 @@
               @for (item of twoDotsItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--interactive"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id]"
                   [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
                   title="Clicca per visualizzare il capo"
@@ -226,6 +218,7 @@
               @for (item of threeDotsItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--interactive"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id]"
                   [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
                   title="Clicca per visualizzare il capo"

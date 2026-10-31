@@ -1,16 +1,4 @@
 <section class="page-shell">
-  <div class="search-banner">
-    <label for="free-search" class="search-label">Ricerca libera</label>
-    <input
-      id="free-search"
-      [formField]="searchForm.text"
-      placeholder="Cerca per nome, brand o nota"
-    />
-    <button type="button" class="ghost filter-toggle" (click)="toggleFilters()">Filtri</button>
-    <span class="banner-separator" aria-hidden="true"></span>
-    <a class="primary" [routerLink]="['new']">Nuovo vestito</a>
-  </div>
-
   @if (selectionService.hasSelection()) {
     <aside class="selection-toolbar" role="region" aria-label="Operazioni vestiti selezionati">
       <div class="toolbar-cluster">
@@ -156,6 +144,7 @@
               class="item-card"
               [class.selected]="selectionService.isSelected(item.id)"
               [routerLink]="[item.id]"
+              [attr.data-item-id]="item.id"
               [attr.aria-label]="'Apri dettaglio ' + getPreferredLabel(item)"
             >
               <div class="thumb">
@@ -364,4 +353,36 @@
       }
     </div>
   </section>
+
+  <!-- Pannello fluttuante trasparente e ombreggiato ancorato in fondo alla pagina -->
+  <aside class="search-banner floating-dock" role="search" aria-label="Ricerca e aggiunta vestiti">
+    <div class="search-input-wrap">
+      <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="8.5" cy="8.5" r="5.5" />
+        <line x1="13" y1="13" x2="17.5" y2="17.5" stroke-linecap="round" />
+      </svg>
+      <input
+        id="free-search"
+        [formField]="searchForm.text"
+        placeholder="Cerca per nome, brand o nota"
+      />
+    </div>
+
+    <button type="button" class="ghost filter-toggle" (click)="toggleFilters()" aria-label="Apri filtri">
+      <svg class="filter-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M3 5h14M5 10h10M7 15h6" stroke-linecap="round" />
+      </svg>
+      <span>Filtri</span>
+    </button>
+
+    <span class="banner-separator" aria-hidden="true"></span>
+
+    <a class="primary new-item-btn" [routerLink]="['new']">
+      <svg class="plus-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+        <line x1="10" y1="4" x2="10" y2="16" stroke-linecap="round" />
+        <line x1="4" y1="10" x2="16" y2="10" stroke-linecap="round" />
+      </svg>
+      <span>Nuovo vestito</span>
+    </a>
+  </aside>
 </section>

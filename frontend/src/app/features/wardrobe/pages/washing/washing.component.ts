@@ -100,10 +100,13 @@ export class WashingPageComponent implements OnInit {
     event?.preventDefault();
     event?.stopPropagation();
 
+    const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-washing-id="${item.id}"]`);
+    void this.laundryService.animateFlyToNav(targetEl, 'washing', 'remove');
+
     try {
       await firstValueFrom(this.api.removeFromWashing(item.id));
       this.items.update((list) => list.filter((i) => i.id !== item.id));
-      void this.laundryService.refreshCounts();
+      void this.laundryService.refreshCounts('washing', 'remove');
       this.toast.success('Capo segnato come lavato');
     } catch {
       this.toast.error('Errore durante la rimozione dalla lavatrice');
@@ -114,10 +117,14 @@ export class WashingPageComponent implements OnInit {
     event?.preventDefault();
     event?.stopPropagation();
 
+    const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-washing-id="${item.id}"]`);
+    void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'add');
+
     try {
       await firstValueFrom(this.api.moveWashingToIroning(item.id));
       this.items.update((list) => list.filter((i) => i.id !== item.id));
-      void this.laundryService.refreshCounts();
+      this.laundryService.updateWashingCount(this.items().length, 'slide-down');
+      void this.laundryService.refreshCounts('ironing', 'add');
       this.toast.success('Capo lavato e aggiunto ai capi da stirare');
     } catch {
       this.toast.error('Errore durante lo spostamento in stiratura');
@@ -142,7 +149,7 @@ export class WashingPageComponent implements OnInit {
     try {
       await firstValueFrom(this.api.clearWashing());
       this.items.set([]);
-      this.laundryService.setWashingCount(0);
+      this.laundryService.updateWashingCount(0, 'slide-down');
       this.toast.success('Lavatrice svuotata');
     } catch {
       this.toast.error('Errore durante lo svuotamento della lavatrice');

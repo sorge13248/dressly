@@ -70,10 +70,13 @@ export class IroningPageComponent implements OnInit {
     event?.preventDefault();
     event?.stopPropagation();
 
+    const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-ironing-id="${item.id}"]`);
+    void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'remove');
+
     try {
       await firstValueFrom(this.api.removeFromIroning(item.id));
       this.items.update((list) => list.filter((i) => i.id !== item.id));
-      void this.laundryService.refreshCounts();
+      void this.laundryService.refreshCounts('ironing', 'remove');
       this.toast.success('Capo segnato come stirato');
     } catch {
       this.toast.error('Errore durante la rimozione dalla stiratura');
@@ -98,7 +101,7 @@ export class IroningPageComponent implements OnInit {
     try {
       await firstValueFrom(this.api.clearIroning());
       this.items.set([]);
-      this.laundryService.setIroningCount(0);
+      this.laundryService.updateIroningCount(0, 'slide-down');
       this.toast.success('Lista stiratura svuotata');
     } catch {
       this.toast.error('Errore durante lo svuotamento della lista');

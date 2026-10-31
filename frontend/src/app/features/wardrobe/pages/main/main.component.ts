@@ -384,6 +384,8 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     if (ids.length === 0) {
       return;
     }
+    const firstCard = document.querySelector<HTMLElement>(`[data-item-id="${ids[0]}"]`);
+    void this.laundryService.animateFlyToNav(firstCard, 'washing', 'add');
     try {
       const res = await firstValueFrom(this.api.addToWashing(ids));
       if (res.added > 0) {
@@ -396,7 +398,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       this.items.update((list) =>
         list.map((item) => (ids.includes(item.id) ? { ...item, isInWashing: true } : item)),
       );
-      void this.laundryService.refreshCounts();
+      void this.laundryService.refreshCounts('washing', 'add');
       this.selectionService.clear();
     } catch {
       this.toast.error('Errore durante l\'aggiunta alla lavatrice');
@@ -408,6 +410,8 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     if (ids.length === 0) {
       return;
     }
+    const firstCard = document.querySelector<HTMLElement>(`[data-item-id="${ids[0]}"]`);
+    void this.laundryService.animateFlyToNav(firstCard, 'ironing', 'add');
     try {
       const res = await firstValueFrom(this.api.addToIroning(ids));
       if (res.added > 0) {
@@ -418,7 +422,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       this.items.update((list) =>
         list.map((item) => (ids.includes(item.id) ? { ...item, isInIroning: true } : item)),
       );
-      void this.laundryService.refreshCounts();
+      void this.laundryService.refreshCounts('ironing', 'add');
       this.selectionService.clear();
       void this.router.navigate(['/wardrobe/ironing']);
     } catch {
@@ -438,6 +442,9 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const action = item.isInWashing ? 'remove' : 'add';
+    void this.laundryService.animateFlyToNav(event.currentTarget as HTMLElement, 'washing', action);
+
     this.pendingActionIds.update((set) => new Set(set).add(item.id));
     try {
       if (item.isInWashing) {
@@ -445,14 +452,14 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
         this.items.update((list) =>
           list.map((i) => (i.id === item.id ? { ...i, isInWashing: false } : i)),
         );
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('washing', 'remove');
         this.toast.success('Capo rimosso dalla lavatrice');
       } else {
         const res = await firstValueFrom(this.api.addToWashing([item.id]));
         this.items.update((list) =>
           list.map((i) => (i.id === item.id ? { ...i, isInWashing: true } : i)),
         );
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('washing', 'add');
         if (res.added > 0) {
           this.toast.success('Capo aggiunto alla lavatrice');
         } else {
@@ -482,6 +489,9 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const action = item.isInIroning ? 'remove' : 'add';
+    void this.laundryService.animateFlyToNav(event.currentTarget as HTMLElement, 'ironing', action);
+
     this.pendingActionIds.update((set) => new Set(set).add(item.id));
     try {
       if (item.isInIroning) {
@@ -489,14 +499,14 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
         this.items.update((list) =>
           list.map((i) => (i.id === item.id ? { ...i, isInIroning: false } : i)),
         );
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('ironing', 'remove');
         this.toast.success('Capo rimosso dalla stiratura');
       } else {
         const res = await firstValueFrom(this.api.addToIroning([item.id]));
         this.items.update((list) =>
           list.map((i) => (i.id === item.id ? { ...i, isInIroning: true } : i)),
         );
-        void this.laundryService.refreshCounts();
+        void this.laundryService.refreshCounts('ironing', 'add');
         if (res.added > 0) {
           this.toast.success('Capo aggiunto alla stiratura');
         } else {
