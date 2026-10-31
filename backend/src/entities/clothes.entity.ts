@@ -13,6 +13,8 @@ import { Type } from './type.entity';
 import { UseCase } from './use-case.entity';
 import { WashingInstruction } from './washing-instruction.entity';
 import { BuyDetail } from './buy-detail.entity';
+import { WashingItem } from './washing-item.entity';
+import { IroningItem } from './ironing-item.entity';
 
 @Entity({ name: 'clothes' })
 @Unique(['userId', 'name'])
@@ -92,6 +94,12 @@ export class Clothes {
 
   @OneToOne(() => BuyDetail, (detail) => detail.clothes, { cascade: true })
   buyDetail!: BuyDetail | null;
+
+  @OneToMany(() => WashingItem, (item) => item.clothes)
+  washingItems!: WashingItem[];
+
+  @OneToMany(() => IroningItem, (item) => item.clothes)
+  ironingItems!: IroningItem[];
 
   @CreateDateColumn()
   createdAt!: Date;

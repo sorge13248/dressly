@@ -32,6 +32,32 @@
   gap: 14px;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clear-btn {
+  min-height: 32px;
+  padding: 4px 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 140, 140, 0.5);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(220, 50, 50, 0.2) 50%, rgba(200, 30, 30, 0.35) 100%),
+    rgba(180, 20, 20, 0.5);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.86rem;
+  transition: all 140ms ease;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.85);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+}
+
 .back-btn {
   min-height: 32px;
   padding: 4px 14px;
@@ -371,6 +397,42 @@
   border-radius: 3px;
   padding: 1px 6px;
   margin-top: auto;
+}
+
+.cloth-actions {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(240, 246, 255, 0.7);
+  border-top: 1px solid rgba(100, 140, 215, 0.15);
+  margin-top: auto;
+}
+
+.cloth-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid rgba(100, 140, 210, 0.35);
+  background: #fff;
+  cursor: pointer;
+  transition: all 120ms ease;
+  color: #1e40af;
+  flex: 1;
+
+  &:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+  }
+
+  .mini-icon {
+    width: 13px;
+    height: 13px;
+  }
 }
 
 @media (max-width: 640px) {

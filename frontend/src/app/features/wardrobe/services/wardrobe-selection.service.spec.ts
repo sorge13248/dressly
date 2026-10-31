@@ -3,6 +3,30 @@ import { WARDROBE_SELECTION_STORAGE_KEY, WardrobeSelectionService } from './ward
 
 describe('WardrobeSelectionService', () => {
   let service: WardrobeSelectionService;
+  const store = new Map<string, string>();
+  const storageMock = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, String(value)),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    get length() {
+      return store.size;
+    },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+  };
+
+  beforeAll(() => {
+    Object.defineProperty(window, 'localStorage', {
+      value: storageMock,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storageMock,
+      writable: true,
+      configurable: true,
+    });
+  });
 
   beforeEach(() => {
     localStorage.clear();

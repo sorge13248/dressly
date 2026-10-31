@@ -27,9 +27,67 @@ export class ClothesController {
     return this.clothesService.create(user, body);
   }
 
+  @Get('laundry-counts')
+  getLaundryCounts(@CurrentUser() user: AuthUser) {
+    return this.clothesService.getLaundryCounts(user);
+  }
+
+  @Get('washing')
+  getWashingList(@CurrentUser() user: AuthUser) {
+    return this.clothesService.getWashingList(user);
+  }
+
+  @Post('washing')
+  addToWashing(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.clothesService.addToWashing(user, this.extractIds(body));
+  }
+
+  @Delete('washing')
+  clearWashing(@CurrentUser() user: AuthUser) {
+    return this.clothesService.clearWashing(user);
+  }
+
+  @Delete('washing/:clothesId')
+  removeFromWashing(@CurrentUser() user: AuthUser, @Param('clothesId') clothesId: string) {
+    return this.clothesService.removeFromWashing(user, clothesId);
+  }
+
+  @Post('washing/:clothesId/move-to-ironing')
+  moveWashingToIroning(@CurrentUser() user: AuthUser, @Param('clothesId') clothesId: string) {
+    return this.clothesService.moveWashingToIroning(user, clothesId);
+  }
+
   @Get('ironing')
   getIroningList(@CurrentUser() user: AuthUser, @Query('ids') ids: string | undefined) {
     return this.clothesService.getIroningList(user, ids);
+  }
+
+  @Post('ironing')
+  addToIroning(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.clothesService.addToIroning(user, this.extractIds(body));
+  }
+
+  @Delete('ironing')
+  clearIroning(@CurrentUser() user: AuthUser) {
+    return this.clothesService.clearIroning(user);
+  }
+
+  @Delete('ironing/:clothesId')
+  removeFromIroning(@CurrentUser() user: AuthUser, @Param('clothesId') clothesId: string) {
+    return this.clothesService.removeFromIroning(user, clothesId);
+  }
+
+  private extractIds(body: Record<string, unknown>): string[] {
+    if (Array.isArray(body?.clothesIds)) {
+      return body.clothesIds.map(String).filter(Boolean);
+    }
+    if (typeof body?.clothesId === 'string' && body.clothesId.trim()) {
+      return [body.clothesId.trim()];
+    }
+    if (Array.isArray(body?.ids)) {
+      return body.ids.map(String).filter(Boolean);
+    }
+    return [];
   }
 
   @Get(':id')

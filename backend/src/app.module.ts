@@ -16,6 +16,8 @@ import { Type } from './entities/type.entity';
 import { UseCase } from './entities/use-case.entity';
 import { User } from './entities/user.entity';
 import { WashingInstruction } from './entities/washing-instruction.entity';
+import { WashingItem } from './entities/washing-item.entity';
+import { IroningItem } from './entities/ironing-item.entity';
 import { AuthController } from './auth.controller';
 import { BearerJwtGuard } from './common/auth/bearer-jwt.guard';
 import { CurrentUserController } from './controllers/current-user.controller';
@@ -49,6 +51,8 @@ import { UsersService } from './services/users.service';
         UseCase,
         User,
         WashingInstruction,
+        WashingItem,
+        IroningItem,
       ],
       autoLoadEntities: process.env.DB_AUTO_LOAD_ENTITIES !== 'false',
       synchronize: process.env.DB_SYNCHRONIZE !== 'false',
