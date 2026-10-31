@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { of } from 'rxjs';
+import { ApiService } from '../../../../core/api.service';
 import { WardrobePageComponent } from './main.component';
 import { ClothesItem } from '../../../../core/models';
 
@@ -174,9 +176,10 @@ describe('WardrobePageComponent', () => {
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('1 vestito selezionato');
 
-    const ironBtn = toolbar.querySelector('.toolbar-action-btn') as HTMLButtonElement;
-    expect(ironBtn).not.toBeNull();
-    expect(ironBtn.textContent).toContain('Stira');
+    const buttons = toolbar.querySelectorAll('.toolbar-action-btn');
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].textContent).toContain('Metti a lavare');
+    expect(buttons[1].textContent).toContain('Stira');
 
     // Clicking deseleziona clears selection and hides toolbar
     const deselectBtn = toolbar.querySelector('.toolbar-btn') as HTMLButtonElement;
@@ -206,21 +209,160 @@ describe('WardrobePageComponent', () => {
     expect(component.selectionService.isSelected('item-page-1')).toBe(true);
   });
 
-  it('should navigate to /wardrobe/ironing when "Stira" button is clicked', () => {
+  it('should navigate to /wardrobe/ironing when "Stira" button is clicked', async () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     const component = fixture.componentInstance;
     const router = TestBed.inject(Router);
+    const api = TestBed.inject(ApiService);
+    vi.spyOn(api, 'addToIroning').mockReturnValue(of({ added: 2, existing: 0, total: 2 }));
     const navigateSpy = vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
 
     component.selectionService.clear();
     component.selectionService.selectMany(['item-1', 'item-2']);
     fixture.detectChanges();
 
-    const ironBtn = fixture.nativeElement.querySelector('.toolbar-action-btn') as HTMLButtonElement;
-    ironBtn.click();
+    await component.onIron();
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/wardrobe/ironing'], {
-      queryParams: { ids: 'item-1,item-2' },
-    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/wardrobe/ironing']);
+  });
+
+  it('should call addToWashing when "Metti a lavare" button is clicked', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const addSpy = vi.spyOn(api, 'addToWashing').mockReturnValue(of({ added: 2, existing: 0, total: 2 }));
+
+    component.selectionService.clear();
+    component.selectionService.selectMany(['item-1', 'item-2']);
+    fixture.detectChanges();
+
+    await component.onAddToWashing();
+
+    expect(addSpy).toHaveBeenCalledWith(['item-1', 'item-2']);
+  });
+
+  it('should render quick action buttons on card and toggle washing when clicked', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    vi.spyOn(component, 'load').mockImplementation(async () => {});
+    const addWashingSpy = vi.spyOn(api, 'addToWashing').mockReturnValue(of({ added: 1, existing: 0, total: 1 }));
+
+    const fakeItem = {
+      id: 'item-wash-1',
+      name: 'Camicia Bianca',
+      userId: 'user-1',
+      size: null,
+      notes: null,
+      isInWashing: false,
+      isInIroning: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as ClothesItem;
+
+    component.items.set([fakeItem]);
+    component.total.set(1);
+    component.loading.set(false);
+    fixture.detectChanges();
+
+    const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
+    expect(quickActionBtns.length).toBe(2);
+
+    const washBtn = quickActionBtns[0] as HTMLButtonElement;
+    expect(washBtn.getAttribute('title')).toBe('Metti a lavare');
+
+    const clickEvent = new MouseEvent('click');
+    const stopPropagationSpy = vi.spyOn(clickEvent, 'stopPropagation');
+    const preventDefaultSpy = vi.spyOn(clickEvent, 'preventDefault');
+
+    await component.toggleWashing(fakeItem, clickEvent);
+    fixture.detectChanges();
+
+    expect(stopPropagationSpy).toHaveBeenCalled();
+    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(addWashingSpy).toHaveBeenCalledWith(['item-wash-1']);
+    expect(component.items()[0].isInWashing).toBe(true);
+  });
+
+  it('should call removeFromWashing when clicking washing button on an item in washing', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    vi.spyOn(component, 'load').mockImplementation(async () => {});
+    const removeWashingSpy = vi.spyOn(api, 'removeFromWashing').mockReturnValue(of({ removed: true }));
+
+    const fakeItem = {
+      id: 'item-wash-2',
+      name: 'Felpa Blu',
+      userId: 'user-1',
+      size: null,
+      notes: null,
+      isInWashing: true,
+      isInIroning: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as ClothesItem;
+
+    component.items.set([fakeItem]);
+    component.total.set(1);
+    component.loading.set(false);
+    fixture.detectChanges();
+
+    const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
+    const washBtn = quickActionBtns[0] as HTMLButtonElement;
+    expect(washBtn.getAttribute('title')).toBe('Togli dalla lavatrice');
+    expect(washBtn.classList.contains('active-washing')).toBe(true);
+
+    const clickEvent = new MouseEvent('click');
+    await component.toggleWashing(fakeItem, clickEvent);
+    fixture.detectChanges();
+
+    expect(removeWashingSpy).toHaveBeenCalledWith('item-wash-2');
+    expect(component.items()[0].isInWashing).toBe(false);
+  });
+
+  it('should toggle ironing when clicking ironing quick action button', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    vi.spyOn(component, 'load').mockImplementation(async () => {});
+    const addIroningSpy = vi.spyOn(api, 'addToIroning').mockReturnValue(of({ added: 1, existing: 0, total: 1 }));
+    const removeIroningSpy = vi.spyOn(api, 'removeFromIroning').mockReturnValue(of({ removed: true }));
+
+    const fakeItem = {
+      id: 'item-iron-1',
+      name: 'Pantaloni Eleganti',
+      userId: 'user-1',
+      size: null,
+      notes: null,
+      isInWashing: false,
+      isInIroning: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as ClothesItem;
+
+    component.items.set([fakeItem]);
+    component.total.set(1);
+    component.loading.set(false);
+    fixture.detectChanges();
+
+    const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
+    const ironBtn = quickActionBtns[1] as HTMLButtonElement;
+    expect(ironBtn.getAttribute('title')).toBe('Metti a stirare');
+
+    const clickEvent = new MouseEvent('click');
+    await component.toggleIroning(fakeItem, clickEvent);
+    fixture.detectChanges();
+
+    expect(addIroningSpy).toHaveBeenCalledWith(['item-iron-1']);
+    expect(component.items()[0].isInIroning).toBe(true);
+
+    // Now remove
+    const updatedItem = component.items()[0];
+    await component.toggleIroning(updatedItem, clickEvent);
+    fixture.detectChanges();
+
+    expect(removeIroningSpy).toHaveBeenCalledWith('item-iron-1');
+    expect(component.items()[0].isInIroning).toBe(false);
   });
 });

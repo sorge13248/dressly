@@ -2,6 +2,7 @@ import { NgOptimizedImage } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { ToastStackComponent } from '../../shared/components/toast-stack/toast-stack.component';
 
@@ -15,11 +16,14 @@ import { ToastStackComponent } from '../../shared/components/toast-stack/toast-s
 export class AppShellComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly referenceStore = inject(ReferenceStoreService);
+  readonly laundryService = inject(LaundryService);
 
-  readonly navItems = [
-    { label: 'Il mio guardaroba', path: 'wardrobe', exact: true },
-    { label: 'Gestione domini', path: 'categories', exact: false },
-  ];
+  readonly navItems = computed(() => [
+    { label: 'Il mio guardaroba', path: 'wardrobe', exact: true, badge: null },
+    { label: 'Lavatrice', path: 'wardrobe/washing', exact: true, badge: this.laundryService.washingCount() },
+    { label: 'Stiratura', path: 'wardrobe/ironing', exact: true, badge: this.laundryService.ironingCount() },
+    { label: 'Domini', path: 'categories', exact: false, badge: null },
+  ]);
 
   readonly displayName = computed(() => this.authService.displayName());
   readonly email = computed(() => this.authService.email());
@@ -47,6 +51,7 @@ export class AppShellComponent implements OnInit {
 
   ngOnInit() {
     void this.referenceStore.loadAll();
+    void this.laundryService.refreshCounts();
   }
 
   logout() {

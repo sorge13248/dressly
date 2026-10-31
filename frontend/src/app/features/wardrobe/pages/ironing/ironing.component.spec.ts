@@ -234,6 +234,7 @@ describe('IroningPageComponent', () => {
   it('should show empty page state when no items exist', () => {
     const fixture = TestBed.createComponent(IroningPageComponent);
     const comp = fixture.componentInstance;
+    vi.spyOn(comp, 'load').mockImplementation(async () => {});
 
     comp.items.set([]);
     comp.loading.set(false);
@@ -241,26 +242,16 @@ describe('IroningPageComponent', () => {
 
     const emptyCard = fixture.nativeElement.querySelector('.empty-card');
     expect(emptyCard).not.toBeNull();
-    expect(emptyCard.textContent).toContain('Nessun capo selezionato');
+    expect(emptyCard.textContent).toContain('Nessun capo da stirare');
   });
 
-  it('should restore selected items in WardrobeSelectionService and navigate to /wardrobe when returnToWardrobe is called', () => {
+  it('should navigate to /wardrobe when returnToWardrobe is called', () => {
     const fixture = TestBed.createComponent(IroningPageComponent);
     const comp = fixture.componentInstance;
     const router = TestBed.inject(Router);
     const navigateSpy = vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
 
-    comp.items.set(fakeClothes);
-    comp.selectionService.clear();
-    expect(comp.selectionService.count()).toBe(0);
-
     comp.returnToWardrobe();
-
-    expect(comp.selectionService.count()).toBe(fakeClothes.length);
-    expect(comp.selectionService.isSelected('cloth-missing')).toBe(true);
-    expect(comp.selectionService.isSelected('cloth-dot1')).toBe(true);
-    expect(comp.selectionService.isSelected('cloth-dot2')).toBe(true);
-    expect(comp.selectionService.isSelected('cloth-dot3')).toBe(true);
     expect(navigateSpy).toHaveBeenCalledWith(['/wardrobe']);
   });
 });

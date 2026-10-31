@@ -42,14 +42,17 @@
       </div>
 
       <nav class="main-nav">
-        @for (item of navItems; track item.path) {
+        @for (item of navItems(); track item.path) {
           <a
             [routerLink]="item.path"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: item.exact }"
             (click)="closeNavMenu()"
           >
-            {{ item.label }}
+            <span>{{ item.label }}</span>
+            @if (item.badge !== null && item.badge > 0) {
+              <span class="nav-badge">{{ item.badge }}</span>
+            }
           </a>
         }
       </nav>

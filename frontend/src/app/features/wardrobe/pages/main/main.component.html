@@ -36,6 +36,31 @@
           <button
             type="button"
             class="toolbar-action-btn primary-action"
+            (click)="onAddToWashing()"
+            title="Metti a lavare i vestiti selezionati"
+          >
+            <svg
+              class="action-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="12" cy="13" r="5" />
+              <path d="M12 10a3 3 0 0 1 3 3" />
+              <circle cx="7" cy="6" r=".5" fill="currentColor" />
+              <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
+            </svg>
+            <span>Metti a lavare</span>
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-action-btn primary-action"
             (click)="onIron()"
             title="Stira i capi selezionati"
           >
@@ -159,6 +184,31 @@
                   </span>
                 </label>
 
+                @if (item.isInWashing || item.isInIroning) {
+                  <div class="card-status-badges">
+                    @if (item.isInWashing) {
+                      <span class="status-badge status-badge--washing" title="In lavatrice" aria-label="In lavatrice">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="status-icon">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="12" cy="13" r="5" />
+                          <path d="M12 10a3 3 0 0 1 3 3" />
+                          <circle cx="7" cy="6" r=".5" fill="currentColor" />
+                          <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
+                        </svg>
+                      </span>
+                    }
+                    @if (item.isInIroning) {
+                      <span class="status-badge status-badge--ironing" title="Da stirare" aria-label="Da stirare">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="status-icon">
+                          <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                          <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                          <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                }
+
                 @if (getPrimaryAttachment(item); as attachment) {
                   <img
                     [src]="getAttachmentUrl(item, attachment)"
@@ -230,6 +280,40 @@
                   <p class="notes">{{ item.notes }}</p>
                 }
 
+                <div class="card-quick-actions" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="quick-action-btn"
+                    [class.active-washing]="item.isInWashing"
+                    [disabled]="isActionPending(item.id)"
+                    (click)="toggleWashing(item, $event)"
+                    [title]="item.isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare'"
+                    [attr.aria-label]="item.isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare'"
+                  >
+                    <svg class="quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="12" cy="13" r="5" />
+                      <path d="M12 10a3 3 0 0 1 3 3" />
+                      <circle cx="7" cy="6" r=".5" fill="currentColor" />
+                      <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="quick-action-btn"
+                    [class.active-ironing]="item.isInIroning"
+                    [disabled]="isActionPending(item.id)"
+                    (click)="toggleIroning(item, $event)"
+                    [title]="item.isInIroning ? 'Togli da stirare' : 'Metti a stirare'"
+                    [attr.aria-label]="item.isInIroning ? 'Togli da stirare' : 'Metti a stirare'"
+                  >
+                    <svg class="quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                      <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                      <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </a>
           }

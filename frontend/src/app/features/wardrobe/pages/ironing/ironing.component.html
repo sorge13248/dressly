@@ -11,6 +11,13 @@
         }
       </div>
     </div>
+    @if (!loading() && items().length > 0) {
+      <div class="header-right">
+        <button type="button" class="danger clear-btn" (click)="onClearList()">
+          Svuota lista
+        </button>
+      </div>
+    }
   </header>
 
   <main class="ironing-content">
@@ -20,8 +27,8 @@
       <div class="state-card error">{{ error() }}</div>
     } @else if (items().length === 0) {
       <div class="state-card empty-card">
-        <h2>Nessun capo selezionato</h2>
-        <p>Seleziona uno o più vestiti dal guardaroba per organizzare la stiratura.</p>
+        <h2>Nessun capo da stirare</h2>
+        <p>Aggiungi capi alla stiratura dal guardaroba o dalla pagina di dettaglio.</p>
         <button type="button" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
       </div>
     } @else {
@@ -61,6 +68,19 @@
                   <div class="cloth-body">
                     <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
                     <span class="action-cta">Imposta stiratura →</span>
+                  </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
                   </div>
                 </a>
               }
@@ -107,6 +127,19 @@
                       <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
                     }
                   </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
+                  </div>
                 </a>
               }
             </div>
@@ -152,6 +185,19 @@
                       <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
                     }
                   </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
+                  </div>
                 </a>
               }
             </div>
@@ -196,6 +242,19 @@
                     @if (item.ironingInstruction?.ironInsideOut) {
                       <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
                     }
+                  </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
                   </div>
                 </a>
               }

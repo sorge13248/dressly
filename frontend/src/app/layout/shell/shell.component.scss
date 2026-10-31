@@ -173,6 +173,23 @@ p {
   text-shadow: 0 1px 1px rgba(0, 0, 40, 0.45);
 }
 
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: #0284c7;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
 .user-area {
   display: grid;
   grid-column: 1;

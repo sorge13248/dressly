@@ -148,6 +148,8 @@ export interface ClothesItem {
   dryingInstruction?: DryingInstructionItem | null;
   ironingInstruction?: IroningInstructionItem | null;
   buyDetail?: BuyDetailItem | null;
+  isInWashing?: boolean;
+  isInIroning?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -225,8 +227,50 @@ export interface IroningClothesItem {
     previewPath: string | null;
     mimeType: string;
   } | null;
+  isInWashing?: boolean;
+  isInIroning?: boolean;
 }
 
 export interface IroningClothesResponse {
   items: IroningClothesItem[];
+}
+
+export interface WashingClothesItem {
+  id: string;
+  name: string | null;
+  fullTitle?: string | null;
+  brand: { id: string; name: string } | null;
+  type: { id: string; name: string } | null;
+  colors: Array<{ id: string; name: string; hexCode: string | null }>;
+  washingInstruction: {
+    id?: string;
+    temperature: string | null;
+    washType: 'do_not_wash' | 'hand_wash_only' | 'washer_ok' | null;
+    bleachType: 'no_bleach' | 'non_chlorine_bleach' | 'any_bleach' | null;
+    stretch: boolean;
+    reverseWashing: boolean;
+    closedZips: boolean;
+    similarColors: boolean;
+    washSeparately: boolean;
+    useColorCatcher: boolean;
+    colorLossRisk: boolean;
+    colorLossTestTemperature: number | null;
+  } | null;
+  primaryAttachment: {
+    id: string;
+    fileName: string;
+    previewPath: string | null;
+    mimeType: string;
+  } | null;
+  isInWashing?: boolean;
+  isInIroning?: boolean;
+}
+
+export interface WashingClothesResponse {
+  items: WashingClothesItem[];
+}
+
+export interface LaundryCountsResponse {
+  washingCount: number;
+  ironingCount: number;
 }

@@ -1,0 +1,321 @@
+<section class="washing-shell">
+  <header class="washing-header">
+    <div class="header-left">
+      <button type="button" class="ghost back-btn" (click)="returnToWardrobe()">
+        <span aria-hidden="true">←</span> Torna al guardaroba
+      </button>
+      <div class="title-cluster">
+        <h1>Lavatrice</h1>
+        @if (!loading() && items().length > 0) {
+          <span class="count-pill">{{ totalCount() }} {{ totalCount() === 1 ? 'capo' : 'capi' }} da lavare</span>
+        }
+      </div>
+    </div>
+    @if (!loading() && items().length > 0) {
+      <div class="header-right">
+        <button type="button" class="danger clear-btn" (click)="onClearList()">
+          Svuota lista
+        </button>
+      </div>
+    }
+  </header>
+
+  <main class="washing-content">
+    @if (loading()) {
+      <div class="state-card">Caricamento capi a lavare...</div>
+    } @else if (error()) {
+      <div class="state-card error">{{ error() }}</div>
+    } @else if (items().length === 0) {
+      <div class="state-card empty-card">
+        <h2>Nessun capo da lavare</h2>
+        <p>Aggiungi capi alla lavatrice dal guardaroba o dalla pagina di dettaglio.</p>
+        <button type="button" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
+      </div>
+    } @else {
+      <div class="cards-layout">
+        <!-- 1. Manca informazione (arancione / warning) -->
+        @if (missingInfoItems().length > 0) {
+          <section class="washing-card card-warning" aria-labelledby="card-missing-heading">
+            <header class="card-head">
+              <div class="head-title">
+                <span class="warn-badge" aria-hidden="true">⚠️</span>
+                <div>
+                  <h2 id="card-missing-heading">Manca informazione</h2>
+                  <p class="head-subtitle">Questi capi non hanno una temperatura di lavaggio definita.</p>
+                </div>
+              </div>
+              <span class="count-badge count-badge--warning">
+                {{ missingInfoItems().length }} {{ missingInfoItems().length === 1 ? 'capo' : 'capi' }}
+              </span>
+            </header>
+
+            <div class="clothes-grid">
+              @for (item of missingInfoItems(); track trackById($index, item)) {
+                <div class="cloth-card cloth-card--link">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id, 'edit']"
+                    [queryParams]="{ step: 4, callbackUrl: currentUrl() }"
+                    [attr.aria-label]="'Imposta lavaggio per ' + getPreferredLabel(item)"
+                    title="Clicca per impostare il lavaggio nella scheda Cura"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      <span class="action-cta">Imposta lavaggio →</span>
+                    </div>
+                  </a>
+
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onWashed(item, $event)"
+                      title="Segna come lavato e rimuovi dalla lavatrice"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Lavato</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="cloth-action-btn action-iron"
+                      (click)="onWashedAndIron(item, $event)"
+                      title="Segna come lavato e aggiungi ai capi da stirare"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+                      </svg>
+                      <span>Lavato e da stirare</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- 2. Lavaggio a mano -->
+        @if (handWashOnlyItems().length > 0) {
+          <section class="washing-card card-handwash" aria-labelledby="card-handwash-heading">
+            <header class="card-head">
+              <div class="head-title">
+                <span class="badge-icon-symbol" aria-hidden="true">🖐️</span>
+                <div>
+                  <h2 id="card-handwash-heading">Lavaggio a mano</h2>
+                  <p class="head-subtitle">Capi delicati da lavare esclusivamente a mano.</p>
+                </div>
+              </div>
+              <span class="count-badge count-badge--info">
+                {{ handWashOnlyItems().length }} {{ handWashOnlyItems().length === 1 ? 'capo' : 'capi' }}
+              </span>
+            </header>
+
+            <div class="clothes-grid">
+              @for (item of handWashOnlyItems(); track trackById($index, item)) {
+                <div class="cloth-card cloth-card--interactive">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id]"
+                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                    title="Clicca per visualizzare il capo"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      <div class="chips-row">
+                        <span class="chip-wash-type">Solo a mano</span>
+                      </div>
+                    </div>
+                  </a>
+
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onWashed(item, $event)"
+                      title="Segna come lavato e rimuovi dalla lavatrice"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Lavato</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="cloth-action-btn action-iron"
+                      (click)="onWashedAndIron(item, $event)"
+                      title="Segna come lavato e aggiungi ai capi da stirare"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+                      </svg>
+                      <span>Lavato e da stirare</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- 3. Non lavare -->
+        @if (doNotWashItems().length > 0) {
+          <section class="washing-card card-donotwash" aria-labelledby="card-donotwash-heading">
+            <header class="card-head">
+              <div class="head-title">
+                <span class="badge-icon-symbol" aria-hidden="true">🚫</span>
+                <div>
+                  <h2 id="card-donotwash-heading">Non lavare</h2>
+                  <p class="head-subtitle">Capi non lavabili in acqua (lavaggio a secco o cure speciali).</p>
+                </div>
+              </div>
+              <span class="count-badge count-badge--danger">
+                {{ doNotWashItems().length }} {{ doNotWashItems().length === 1 ? 'capo' : 'capi' }}
+              </span>
+            </header>
+
+            <div class="clothes-grid">
+              @for (item of doNotWashItems(); track trackById($index, item)) {
+                <div class="cloth-card cloth-card--interactive">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id]"
+                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                    title="Clicca per visualizzare il capo"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      <div class="chips-row">
+                        <span class="chip-wash-type chip-wash-type--danger">Non lavare</span>
+                      </div>
+                    </div>
+                  </a>
+
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onWashed(item, $event)"
+                      title="Rimuovi dalla lista dei capi da lavare"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Rimuovi</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- 4. Gruppi Dinamici per Temperatura -->
+        @for (group of temperatureGroups(); track trackByTemp($index, group)) {
+          <section class="washing-card card-temp" [attr.aria-labelledby]="'card-temp-' + group.temperature + '-heading'">
+            <header class="card-head">
+              <div class="head-title">
+                <span class="temp-pill">{{ group.label }}</span>
+                <div>
+                  <h2 [id]="'card-temp-' + group.temperature + '-heading'">Temperatura {{ group.label }}</h2>
+                  <p class="head-subtitle">{{ group.subtitle }}</p>
+                </div>
+              </div>
+              <span class="count-badge">
+                {{ group.items.length }} {{ group.items.length === 1 ? 'capo' : 'capi' }}
+              </span>
+            </header>
+
+            <div class="clothes-grid">
+              @for (item of group.items; track trackById($index, item)) {
+                <div class="cloth-card cloth-card--interactive">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id]"
+                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                    title="Clicca per visualizzare il capo"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      <div class="chips-row">
+                        @if (item.washingInstruction?.reverseWashing) {
+                          <span class="chip-info" title="Lava al rovescio">Al rovescio</span>
+                        }
+                        @if (item.washingInstruction?.useColorCatcher) {
+                          <span class="chip-info" title="Usa foglietto cattura-colore">Cattura-colore</span>
+                        }
+                        @if (item.washingInstruction?.washSeparately) {
+                          <span class="chip-info" title="Lava separatamente">Separato</span>
+                        }
+                      </div>
+                    </div>
+                  </a>
+
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onWashed(item, $event)"
+                      title="Segna come lavato e rimuovi dalla lavatrice"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Lavato</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="cloth-action-btn action-iron"
+                      (click)="onWashedAndIron(item, $event)"
+                      title="Segna come lavato e aggiungi ai capi da stirare"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
+                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
+                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
+                      </svg>
+                      <span>Lavato e da stirare</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+  </main>
+</section>
+
