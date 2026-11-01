@@ -132,6 +132,19 @@ export class ApiService {
     return this.http.post<AttachmentItem>(`/api/clothes/${clothesId}/attachments`, formData);
   }
 
+  uploadAttachmentWithProgress(clothesId: string, file: File, kind = 'photo', originalName?: string | null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('kind', kind);
+    if (originalName !== undefined) {
+      formData.append('originalName', originalName ?? '');
+    }
+    return this.http.post<AttachmentItem>(`/api/clothes/${clothesId}/attachments`, formData, {
+      reportProgress: true,
+      observe: 'events',
+    });
+  }
+
   deleteAttachment(clothesId: string, attachmentId: string) {
     return this.http.delete<{ deleted: boolean }>(`/api/clothes/${clothesId}/attachments/${attachmentId}`);
   }

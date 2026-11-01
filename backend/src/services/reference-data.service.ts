@@ -38,7 +38,7 @@ export class ReferenceDataService {
 
   async list(type: ReferenceDataType, user: AuthUser) {
     const order =
-      type === 'brands' || type === 'types' || type === 'tags'
+      type === 'brands' || type === 'types' || type === 'tags' || type === 'colors'
         ? ({ name: 'ASC' } as const)
         : ({ sortOrder: 'ASC', name: 'ASC' } as const);
 
@@ -117,7 +117,7 @@ export class ReferenceDataService {
 
     const payload: Record<string, unknown> = { userId };
     if (body.name !== undefined) payload.name = name;
-    if (!['brands', 'types', 'tags'].includes(type) && body.sortOrder !== undefined) payload.sortOrder = Number(body.sortOrder);
+    if (!['brands', 'types', 'tags', 'colors'].includes(type) && body.sortOrder !== undefined) payload.sortOrder = Number(body.sortOrder);
 
     if (type === 'colors' && body.hexCode !== undefined) payload.hexCode = body.hexCode === null ? null : String(body.hexCode).trim();
     if (type === 'brands' && body.logoUrl !== undefined) payload.logoUrl = body.logoUrl === null ? null : String(body.logoUrl).trim();

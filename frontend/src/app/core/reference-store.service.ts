@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 import { ApiService } from './api.service';
+import { sortColorsByHex } from '../shared/utils/color.utils';
 import {
   BaseReferenceItem,
   BrandItem,
@@ -48,7 +49,7 @@ export class ReferenceStoreService {
   private readonly state = signal<ReferenceState>({ ...emptyState });
   readonly loading = signal(false);
 
-  private readonly sortableKinds: ReferenceKind[] = ['colors', 'seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
+  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
 
   private isSortableKind(kind: ReferenceKind) {
     return this.sortableKinds.includes(kind);
@@ -75,7 +76,7 @@ export class ReferenceStoreService {
       : items.slice().sort((left, right) => this.byName(left, right));
   }
 
-  readonly colors = computed(() => this.sortForKind('colors', this.state().colors));
+  readonly colors = computed(() => sortColorsByHex(this.state().colors));
   readonly brands = computed(() => this.sortForKind('brands', this.state().brands));
   readonly seasons = computed(() => this.sortForKind('seasons', this.state().seasons));
   readonly temperatures = computed(() => this.sortForKind('temperatures', this.state().temperatures));

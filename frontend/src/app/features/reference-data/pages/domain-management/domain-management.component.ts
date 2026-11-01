@@ -41,7 +41,7 @@ const tabs = [
   styleUrl: './domain-management.component.scss',
 })
 export class DomainManagementPageComponent {
-    private readonly sortableKinds: ReferenceKind[] = ['colors', 'seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
+  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
 
   private readonly referenceStore = inject(ReferenceStoreService);
   private readonly toast = inject(ToastService);
