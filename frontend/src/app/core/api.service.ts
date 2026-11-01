@@ -23,6 +23,8 @@ import {
   WashingInstructionItem,
   BuyDetailItem,
   IroningClothesResponse,
+  WashingClothesResponse,
+  LaundryCountsResponse,
 } from './models';
 
 type OidcMetadata = {
@@ -52,10 +54,56 @@ export class ApiService {
     return this.http.get<ClothesPageResponse>('/api/clothes', { params: this.toParams(filters) });
   }
 
-  getClothesForIroning(ids: string[]) {
-    return this.http.get<IroningClothesResponse>('/api/clothes/ironing', {
-      params: { ids: ids.join(',') },
+  getLaundryCounts(): Observable<LaundryCountsResponse> {
+    return this.http.get<LaundryCountsResponse>('/api/clothes/laundry-counts');
+  }
+
+  getClothesForWashing(): Observable<WashingClothesResponse> {
+    return this.http.get<WashingClothesResponse>('/api/clothes/washing');
+  }
+
+  addToWashing(clothesIds: string[]) {
+    return this.http.post<{ added: number; existing: number; total: number }>('/api/clothes/washing', {
+      clothesIds,
     });
+  }
+
+  removeFromWashing(clothesId: string) {
+    return this.http.delete<{ removed: boolean }>(`/api/clothes/washing/${clothesId}`);
+  }
+
+  clearWashing() {
+    return this.http.delete<{ cleared: boolean }>('/api/clothes/washing');
+  }
+
+  moveWashingToIroning(clothesId: string) {
+    return this.http.post<{ moved: boolean; washingCount: number; ironingCount: number }>(
+      `/api/clothes/washing/${clothesId}/move-to-ironing`,
+      {},
+    );
+  }
+
+  getClothesForIroning(ids?: string[]): Observable<IroningClothesResponse> {
+    if (ids && ids.length > 0) {
+      return this.http.get<IroningClothesResponse>('/api/clothes/ironing', {
+        params: { ids: ids.join(',') },
+      });
+    }
+    return this.http.get<IroningClothesResponse>('/api/clothes/ironing');
+  }
+
+  addToIroning(clothesIds: string[]) {
+    return this.http.post<{ added: number; existing: number; total: number }>('/api/clothes/ironing', {
+      clothesIds,
+    });
+  }
+
+  removeFromIroning(clothesId: string) {
+    return this.http.delete<{ removed: boolean }>(`/api/clothes/ironing/${clothesId}`);
+  }
+
+  clearIroning() {
+    return this.http.delete<{ cleared: boolean }>('/api/clothes/ironing');
   }
 
   getClothes(id: string) {

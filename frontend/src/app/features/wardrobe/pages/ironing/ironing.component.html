@@ -1,16 +1,12 @@
 <section class="ironing-shell">
   <header class="ironing-header">
-    <div class="header-left">
-      <button type="button" class="ghost back-btn" (click)="returnToWardrobe()">
-        <span aria-hidden="true">←</span> Torna al guardaroba
-      </button>
-      <div class="title-cluster">
-        <h1>Stiratura</h1>
-        @if (!loading() && items().length > 0) {
-          <span class="count-pill">{{ totalCount() }} {{ totalCount() === 1 ? 'capo' : 'capi' }} da stirare</span>
-        }
+    @if (!loading() && items().length > 0) {
+      <div class="header-right">
+        <button type="button" class="danger clear-btn" (click)="onClearList()">
+          Svuota lista
+        </button>
       </div>
-    </div>
+    }
   </header>
 
   <main class="ironing-content">
@@ -20,8 +16,8 @@
       <div class="state-card error">{{ error() }}</div>
     } @else if (items().length === 0) {
       <div class="state-card empty-card">
-        <h2>Nessun capo selezionato</h2>
-        <p>Seleziona uno o più vestiti dal guardaroba per organizzare la stiratura.</p>
+        <h2>Nessun capo da stirare</h2>
+        <p>Aggiungi capi alla stiratura dal guardaroba o dalla pagina di dettaglio.</p>
         <button type="button" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
       </div>
     } @else {
@@ -46,6 +42,7 @@
               @for (item of missingInfoItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--link"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id, 'edit']"
                   [queryParams]="{ step: 4, callbackUrl: currentUrl() }"
                   [attr.aria-label]="'Imposta stiratura per ' + getPreferredLabel(item)"
@@ -61,6 +58,19 @@
                   <div class="cloth-body">
                     <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
                     <span class="action-cta">Imposta stiratura →</span>
+                  </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
                   </div>
                 </a>
               }
@@ -90,6 +100,7 @@
               @for (item of oneDotItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--interactive"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id]"
                   [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
                   title="Clicca per visualizzare il capo"
@@ -106,6 +117,19 @@
                     @if (item.ironingInstruction?.ironInsideOut) {
                       <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
                     }
+                  </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
                   </div>
                 </a>
               }
@@ -135,6 +159,7 @@
               @for (item of twoDotsItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--interactive"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id]"
                   [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
                   title="Clicca per visualizzare il capo"
@@ -151,6 +176,19 @@
                     @if (item.ironingInstruction?.ironInsideOut) {
                       <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
                     }
+                  </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
                   </div>
                 </a>
               }
@@ -180,6 +218,7 @@
               @for (item of threeDotsItems(); track trackById($index, item)) {
                 <a
                   class="cloth-card cloth-card--interactive"
+                  [attr.data-ironing-id]="item.id"
                   [routerLink]="['/wardrobe', item.id]"
                   [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
                   title="Clicca per visualizzare il capo"
@@ -196,6 +235,19 @@
                     @if (item.ironingInstruction?.ironInsideOut) {
                       <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
                     }
+                  </div>
+                  <div class="cloth-actions">
+                    <button
+                      type="button"
+                      class="cloth-action-btn"
+                      (click)="onIroned(item, $event)"
+                      title="Segna come stirato e rimuovi dalla lista"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Stirato</span>
+                    </button>
                   </div>
                 </a>
               }

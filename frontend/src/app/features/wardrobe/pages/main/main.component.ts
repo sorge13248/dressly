@@ -4,6 +4,7 @@ import { FormField, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { LaundryService } from '../../../../core/laundry.service';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
@@ -81,6 +82,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   readonly selectionService = inject(WardrobeSelectionService);
+  readonly laundryService = inject(LaundryService);
   private debounceHandle: ReturnType<typeof setTimeout> | null = null;
   private routeSubscription: Subscription | null = null;
   private isHydratingFromUrl = false;
@@ -97,6 +99,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   readonly total = signal(0);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly pendingActionIds = signal<Set<string>>(new Set());
 
   readonly brandOptions = this.referenceStore.brands;
   readonly fitOptions = this.referenceStore.fits;
@@ -376,14 +379,153 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     this.selectionService.clear();
   }
 
-  onIron() {
+  async onAddToWashing() {
     const ids = this.selectionService.selectedIds();
     if (ids.length === 0) {
       return;
     }
-    void this.router.navigate(['/wardrobe/ironing'], {
-      queryParams: { ids: ids.join(',') },
-    });
+    const firstCard = document.querySelector<HTMLElement>(`[data-item-id="${ids[0]}"]`);
+    void this.laundryService.animateFlyToNav(firstCard, 'washing', 'add');
+    try {
+      const res = await firstValueFrom(this.api.addToWashing(ids));
+      if (res.added > 0) {
+        this.toast.success(
+          `${res.added} ${res.added === 1 ? 'capo aggiunto' : 'capi aggiunti'} alla lavatrice`,
+        );
+      } else if (res.existing > 0) {
+        this.toast.info('I capi selezionati sono già a lavare');
+      }
+      this.items.update((list) =>
+        list.map((item) => (ids.includes(item.id) ? { ...item, isInWashing: true } : item)),
+      );
+      void this.laundryService.refreshCounts('washing', 'add');
+      this.selectionService.clear();
+    } catch {
+      this.toast.error('Errore durante l\'aggiunta alla lavatrice');
+    }
+  }
+
+  async onIron() {
+    const ids = this.selectionService.selectedIds();
+    if (ids.length === 0) {
+      return;
+    }
+    const firstCard = document.querySelector<HTMLElement>(`[data-item-id="${ids[0]}"]`);
+    void this.laundryService.animateFlyToNav(firstCard, 'ironing', 'add');
+    try {
+      const res = await firstValueFrom(this.api.addToIroning(ids));
+      if (res.added > 0) {
+        this.toast.success(
+          `${res.added} ${res.added === 1 ? 'capo aggiunto' : 'capi aggiunti'} alla stiratura`,
+        );
+      }
+      this.items.update((list) =>
+        list.map((item) => (ids.includes(item.id) ? { ...item, isInIroning: true } : item)),
+      );
+      void this.laundryService.refreshCounts('ironing', 'add');
+      this.selectionService.clear();
+      void this.router.navigate(['/wardrobe/ironing']);
+    } catch {
+      this.toast.error('Errore durante l\'aggiunta alla stiratura');
+    }
+  }
+
+  isActionPending(id: string): boolean {
+    return this.pendingActionIds().has(id);
+  }
+
+  async toggleWashing(item: ClothesItem, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.isActionPending(item.id)) {
+      return;
+    }
+
+    const action = item.isInWashing ? 'remove' : 'add';
+    void this.laundryService.animateFlyToNav(event.currentTarget as HTMLElement, 'washing', action);
+
+    this.pendingActionIds.update((set) => new Set(set).add(item.id));
+    try {
+      if (item.isInWashing) {
+        await firstValueFrom(this.api.removeFromWashing(item.id));
+        this.items.update((list) =>
+          list.map((i) => (i.id === item.id ? { ...i, isInWashing: false } : i)),
+        );
+        void this.laundryService.refreshCounts('washing', 'remove');
+        this.toast.success('Capo rimosso dalla lavatrice');
+      } else {
+        const res = await firstValueFrom(this.api.addToWashing([item.id]));
+        this.items.update((list) =>
+          list.map((i) => (i.id === item.id ? { ...i, isInWashing: true } : i)),
+        );
+        void this.laundryService.refreshCounts('washing', 'add');
+        if (res.added > 0) {
+          this.toast.success('Capo aggiunto alla lavatrice');
+        } else {
+          this.toast.info('Il capo è già a lavare');
+        }
+      }
+    } catch {
+      this.toast.error(
+        item.isInWashing
+          ? 'Errore durante la rimozione dalla lavatrice'
+          : 'Errore durante l\'aggiunta alla lavatrice',
+      );
+    } finally {
+      this.pendingActionIds.update((set) => {
+        const next = new Set(set);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  async toggleIroning(item: ClothesItem, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.isActionPending(item.id)) {
+      return;
+    }
+
+    const action = item.isInIroning ? 'remove' : 'add';
+    void this.laundryService.animateFlyToNav(event.currentTarget as HTMLElement, 'ironing', action);
+
+    this.pendingActionIds.update((set) => new Set(set).add(item.id));
+    try {
+      if (item.isInIroning) {
+        await firstValueFrom(this.api.removeFromIroning(item.id));
+        this.items.update((list) =>
+          list.map((i) => (i.id === item.id ? { ...i, isInIroning: false } : i)),
+        );
+        void this.laundryService.refreshCounts('ironing', 'remove');
+        this.toast.success('Capo rimosso dalla stiratura');
+      } else {
+        const res = await firstValueFrom(this.api.addToIroning([item.id]));
+        this.items.update((list) =>
+          list.map((i) => (i.id === item.id ? { ...i, isInIroning: true } : i)),
+        );
+        void this.laundryService.refreshCounts('ironing', 'add');
+        if (res.added > 0) {
+          this.toast.success('Capo aggiunto alla stiratura');
+        } else {
+          this.toast.info('Il capo è già da stirare');
+        }
+      }
+    } catch {
+      this.toast.error(
+        item.isInIroning
+          ? 'Errore durante la rimozione dalla stiratura'
+          : 'Errore durante l\'aggiunta alla stiratura',
+      );
+    } finally {
+      this.pendingActionIds.update((set) => {
+        const next = new Set(set);
+        next.delete(item.id);
+        return next;
+      });
+    }
   }
 
   resolveColorHex(hexCode: string | null) {

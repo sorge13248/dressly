@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Dialog } from '@angular/cdk/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { LaundryService } from '../../../../core/laundry.service';
+import { ToastService } from '../../../../core/toast.service';
 import { IroningClothesItem } from '../../../../core/models';
-import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
   standalone: true,
@@ -14,14 +17,14 @@ import { WardrobeSelectionService } from '../../services/wardrobe-selection.serv
 })
 export class IroningPageComponent implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly selectionService = inject(WardrobeSelectionService);
+  private readonly dialog = inject(Dialog);
+  private readonly toast = inject(ToastService);
+  readonly laundryService = inject(LaundryService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly items = signal<IroningClothesItem[]>([]);
-  readonly ids = signal<string[]>([]);
 
   readonly currentUrl = computed(() => this.router.url);
 
@@ -44,35 +47,18 @@ export class IroningPageComponent implements OnInit {
   readonly totalCount = computed(() => this.items().length);
 
   ngOnInit() {
-    this.route.queryParamMap.subscribe((params) => {
-      const rawIds = params.get('ids') ?? '';
-      const parsedIds = rawIds
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean);
-
-      this.ids.set(parsedIds);
-      void this.load(parsedIds);
-    });
+    void this.load();
   }
 
-  async load(ids: string[]) {
-    if (ids.length === 0) {
-      this.items.set([]);
-      this.loading.set(false);
-      return;
-    }
-
+  async load() {
     this.loading.set(true);
     this.error.set(null);
 
     try {
-      const response = await firstValueFrom(this.api.getClothesForIroning(ids));
+      const response = await firstValueFrom(this.api.getClothesForIroning());
       const loadedItems = response?.items ?? [];
       this.items.set(loadedItems);
-      if (loadedItems.length > 0) {
-        this.selectionService.selectMany(loadedItems.map((item) => item.id));
-      }
+      this.laundryService.setIroningCount(loadedItems.length);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Impossibile caricare i capi da stirare');
     } finally {
@@ -80,12 +66,49 @@ export class IroningPageComponent implements OnInit {
     }
   }
 
-  returnToWardrobe() {
-    const validIds = this.items().length > 0 ? this.items().map((item) => item.id) : this.ids();
-    if (validIds.length > 0) {
-      this.selectionService.clear();
-      this.selectionService.selectMany(validIds);
+  async onIroned(item: IroningClothesItem, event?: Event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-ironing-id="${item.id}"]`);
+    void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'remove');
+
+    try {
+      await firstValueFrom(this.api.removeFromIroning(item.id));
+      this.items.update((list) => list.filter((i) => i.id !== item.id));
+      void this.laundryService.refreshCounts('ironing', 'remove');
+      this.toast.success('Capo segnato come stirato');
+    } catch {
+      this.toast.error('Errore durante la rimozione dalla stiratura');
     }
+  }
+
+  async onClearList() {
+    const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
+      data: {
+        title: 'Svuota lista stiratura',
+        message: 'Vuoi davvero rimuovere tutti i vestiti dalla lista dei capi da stirare?',
+        confirmLabel: 'Svuota',
+        confirmVariant: 'danger',
+      },
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.closed);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(this.api.clearIroning());
+      this.items.set([]);
+      this.laundryService.updateIroningCount(0, 'slide-down');
+      this.toast.success('Lista stiratura svuotata');
+    } catch {
+      this.toast.error('Errore durante lo svuotamento della lista');
+    }
+  }
+
+  returnToWardrobe() {
     void this.router.navigate(['/wardrobe']);
   }
 

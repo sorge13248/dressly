@@ -4,6 +4,8 @@ import { Dialog } from '@angular/cdk/dialog';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { LaundryService } from '../../../../core/laundry.service';
+import { ToastService } from '../../../../core/toast.service';
 import { AttachmentItem, ClothesItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
@@ -44,10 +46,15 @@ export class WardrobeDetailPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
   private readonly dialog = inject(Dialog);
+  private readonly toast = inject(ToastService);
+  readonly laundryService = inject(LaundryService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
+
+  readonly isInWashing = computed(() => Boolean(this.item()?.isInWashing));
+  readonly isInIroning = computed(() => Boolean(this.item()?.isInIroning));
 
   readonly title = computed(() => this.item()?.name || this.item()?.fullTitle || this.item()?.brand?.name || 'Capo');
   readonly photoAttachments = computed(() =>
@@ -215,6 +222,72 @@ export class WardrobeDetailPageComponent implements OnInit {
       this.error.set(error instanceof Error ? error.message : 'Impossibile caricare il capo');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async toggleWashing() {
+    const current = this.item();
+    if (!current?.id) return;
+
+    const action = current.isInWashing ? 'remove' : 'add';
+    const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
+    void this.laundryService.animateFlyToNav(heroImg, 'washing', action);
+
+    if (current.isInWashing) {
+      try {
+        await firstValueFrom(this.api.removeFromWashing(current.id));
+        this.item.update((prev) => (prev ? { ...prev, isInWashing: false } : prev));
+        void this.laundryService.refreshCounts('washing', 'remove');
+        this.toast.success('Capo rimosso dalla lavatrice');
+      } catch {
+        this.toast.error('Errore durante la rimozione dalla lavatrice');
+      }
+    } else {
+      try {
+        const res = await firstValueFrom(this.api.addToWashing([current.id]));
+        this.item.update((prev) => (prev ? { ...prev, isInWashing: true } : prev));
+        void this.laundryService.refreshCounts('washing', 'add');
+        if (res.added > 0) {
+          this.toast.success('Capo aggiunto alla lavatrice');
+        } else {
+          this.toast.info('Il capo è già a lavare');
+        }
+      } catch {
+        this.toast.error('Errore durante l\'aggiunta alla lavatrice');
+      }
+    }
+  }
+
+  async toggleIroning() {
+    const current = this.item();
+    if (!current?.id) return;
+
+    const action = current.isInIroning ? 'remove' : 'add';
+    const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
+    void this.laundryService.animateFlyToNav(heroImg, 'ironing', action);
+
+    if (current.isInIroning) {
+      try {
+        await firstValueFrom(this.api.removeFromIroning(current.id));
+        this.item.update((prev) => (prev ? { ...prev, isInIroning: false } : prev));
+        void this.laundryService.refreshCounts('ironing', 'remove');
+        this.toast.success('Capo rimosso dalla stiratura');
+      } catch {
+        this.toast.error('Errore durante la rimozione dalla stiratura');
+      }
+    } else {
+      try {
+        const res = await firstValueFrom(this.api.addToIroning([current.id]));
+        this.item.update((prev) => (prev ? { ...prev, isInIroning: true } : prev));
+        void this.laundryService.refreshCounts('ironing', 'add');
+        if (res.added > 0) {
+          this.toast.success('Capo aggiunto alla stiratura');
+        } else {
+          this.toast.info('Il capo è già da stirare');
+        }
+      } catch {
+        this.toast.error('Errore durante l\'aggiunta alla stiratura');
+      }
     }
   }
 

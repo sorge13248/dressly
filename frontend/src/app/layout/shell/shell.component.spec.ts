@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppShellComponent } from './shell.component';
+import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 
 describe('AppShellComponent', () => {
@@ -13,6 +14,14 @@ describe('AppShellComponent', () => {
           useValue: {
             loadAll: () => Promise.resolve(),
             loading: () => false,
+          },
+        },
+        {
+          provide: LaundryService,
+          useValue: {
+            refreshCounts: () => Promise.resolve(),
+            washingCount: () => 0,
+            ironingCount: () => 0,
           },
         },
       ],

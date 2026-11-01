@@ -4,7 +4,7 @@ import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
 import { Attachment } from '../entities/attachment.entity';
 import { Brand } from '../entities/brand.entity';
@@ -21,6 +21,8 @@ import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { BuyDetail } from '../entities/buy-detail.entity';
+import { WashingItem } from '../entities/washing-item.entity';
+import { IroningItem } from '../entities/ironing-item.entity';
 import { ReferenceDataService } from './reference-data.service';
 
 function parseCsv(value: string | undefined) {
@@ -138,11 +140,204 @@ export class ClothesService implements OnModuleInit {
     for (const item of items) {
       this.sortAttachments(item);
     }
-    return { items: items.map((item) => this.decorateResponse(item)), total, page, perPage };
+
+    const itemIds = items.map((item) => item.id);
+    const washingIds = itemIds.length > 0
+      ? new Set(
+          (
+            await this.dataSource.getRepository(WashingItem).find({
+              where: { userId: user.id, clothesId: In(itemIds) },
+              select: { clothesId: true },
+            })
+          ).map((w) => w.clothesId),
+        )
+      : new Set<string>();
+
+    const ironingIds = itemIds.length > 0
+      ? new Set(
+          (
+            await this.dataSource.getRepository(IroningItem).find({
+              where: { userId: user.id, clothesId: In(itemIds) },
+              select: { clothesId: true },
+            })
+          ).map((i) => i.clothesId),
+        )
+      : new Set<string>();
+
+    return {
+      items: items.map((item) => ({
+        ...this.decorateResponse(item),
+        isInWashing: washingIds.has(item.id),
+        isInIroning: ironingIds.has(item.id),
+      })),
+      total,
+      page,
+      perPage,
+    };
+  }
+
+  async getWashingList(user: AuthUser) {
+    const washingEntries = await this.dataSource.getRepository(WashingItem).find({
+      where: { userId: user.id },
+      order: { addedAt: 'DESC' },
+      select: { clothesId: true },
+    });
+    const ids = washingEntries.map((w) => w.clothesId);
+    if (ids.length === 0) {
+      return { items: [] };
+    }
+
+    const qb = this.dataSource
+      .getRepository(Clothes)
+      .createQueryBuilder('clothes')
+      .leftJoinAndSelect('clothes.brand', 'brand')
+      .leftJoinAndSelect('clothes.type', 'type')
+      .leftJoinAndSelect('clothes.colors', 'colors')
+      .leftJoinAndSelect('clothes.washingInstruction', 'washingInstruction')
+      .leftJoinAndSelect('clothes.attachments', 'attachments')
+      .where('clothes.userId = :userId', { userId: user.id })
+      .andWhere('clothes.id IN (:...ids)', { ids });
+
+    const items = await qb.getMany();
+    const itemsById = new Map(items.map((i) => [i.id, i]));
+    const orderedItems = ids.map((id) => itemsById.get(id)).filter((item): item is Clothes => Boolean(item));
+
+    for (const item of orderedItems) {
+      this.sortAttachments(item);
+    }
+
+    return {
+      items: orderedItems.map((item) => {
+        const primaryAttachment =
+          (item.attachments ?? []).find((att) => att.mimeType?.startsWith('image/')) ??
+          item.attachments?.[0] ??
+          null;
+        return {
+          id: item.id,
+          name: item.name,
+          fullTitle: item.fullTitle,
+          brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
+          type: item.type ? { id: item.type.id, name: item.type.name } : null,
+          colors: (item.colors ?? []).map((c) => ({ id: c.id, name: c.name, hexCode: c.hexCode })),
+          washingInstruction: item.washingInstruction
+            ? {
+                id: item.washingInstruction.id,
+                temperature: item.washingInstruction.temperature,
+                washType: item.washingInstruction.washType,
+                bleachType: item.washingInstruction.bleachType,
+                stretch: item.washingInstruction.stretch,
+                reverseWashing: item.washingInstruction.reverseWashing,
+                closedZips: item.washingInstruction.closedZips,
+                similarColors: item.washingInstruction.similarColors,
+                washSeparately: item.washingInstruction.washSeparately,
+                useColorCatcher: item.washingInstruction.useColorCatcher,
+                colorLossRisk: item.washingInstruction.colorLossRisk,
+                colorLossTestTemperature: item.washingInstruction.colorLossTestTemperature,
+              }
+            : null,
+          primaryAttachment: primaryAttachment
+            ? {
+                id: primaryAttachment.id,
+                fileName: primaryAttachment.fileName,
+                previewPath: primaryAttachment.previewPath,
+                mimeType: primaryAttachment.mimeType,
+              }
+            : null,
+        };
+      }),
+    };
+  }
+
+  async addToWashing(user: AuthUser, clothesIds: string[]) {
+    if (!clothesIds || clothesIds.length === 0) {
+      return { added: 0, existing: 0, total: 0 };
+    }
+    const uniqueIds = Array.from(new Set(clothesIds.filter(Boolean)));
+    const validClothes = await this.dataSource.getRepository(Clothes).find({
+      where: { userId: user.id, id: In(uniqueIds) },
+      select: { id: true },
+    });
+    const validIds = validClothes.map((c) => c.id);
+    if (validIds.length === 0) {
+      return { added: 0, existing: 0, total: 0 };
+    }
+
+    const washingRepo = this.dataSource.getRepository(WashingItem);
+    const existingItems = await washingRepo.find({
+      where: { userId: user.id, clothesId: In(validIds) },
+      select: { clothesId: true },
+    });
+    const existingSet = new Set(existingItems.map((e) => e.clothesId));
+
+    const toInsert = validIds
+      .filter((id) => !existingSet.has(id))
+      .map((clothesId) => washingRepo.create({ userId: user.id, clothesId }));
+
+    if (toInsert.length > 0) {
+      await washingRepo.save(toInsert);
+    }
+
+    const total = await washingRepo.count({ where: { userId: user.id } });
+    return {
+      added: toInsert.length,
+      existing: existingSet.size,
+      total,
+    };
+  }
+
+  async removeFromWashing(user: AuthUser, clothesId: string) {
+    const washingRepo = this.dataSource.getRepository(WashingItem);
+    await washingRepo.delete({ userId: user.id, clothesId });
+    const total = await washingRepo.count({ where: { userId: user.id } });
+    return { removed: true, total };
+  }
+
+  async clearWashing(user: AuthUser) {
+    const washingRepo = this.dataSource.getRepository(WashingItem);
+    await washingRepo.delete({ userId: user.id });
+    return { cleared: true };
+  }
+
+  async moveWashingToIroning(user: AuthUser, clothesId: string) {
+    const washingRepo = this.dataSource.getRepository(WashingItem);
+    const ironingRepo = this.dataSource.getRepository(IroningItem);
+
+    // Remove from washing
+    await washingRepo.delete({ userId: user.id, clothesId });
+
+    // Validate clothes exists and belongs to user
+    const exists =
+      (await this.dataSource.getRepository(Clothes).count({
+        where: { id: clothesId, userId: user.id },
+      })) > 0;
+    if (!exists) {
+      throw new NotFoundException('Capo non trovato');
+    }
+
+    // Add to ironing if not already there
+    const alreadyInIroning =
+      (await ironingRepo.count({
+        where: { userId: user.id, clothesId },
+      })) > 0;
+    if (!alreadyInIroning) {
+      await ironingRepo.save(ironingRepo.create({ userId: user.id, clothesId }));
+    }
+
+    const washingCount = await washingRepo.count({ where: { userId: user.id } });
+    const ironingCount = await ironingRepo.count({ where: { userId: user.id } });
+    return { moved: true, washingCount, ironingCount };
   }
 
   async getIroningList(user: AuthUser, rawIds?: string) {
-    const ids = parseCsv(rawIds);
+    let ids = parseCsv(rawIds);
+    if (ids.length === 0) {
+      const ironingEntries = await this.dataSource.getRepository(IroningItem).find({
+        where: { userId: user.id },
+        order: { addedAt: 'DESC' },
+        select: { clothesId: true },
+      });
+      ids = ironingEntries.map((item) => item.clothesId);
+    }
     if (ids.length === 0) {
       return { items: [] };
     }
@@ -159,12 +354,15 @@ export class ClothesService implements OnModuleInit {
       .andWhere('clothes.id IN (:...ids)', { ids });
 
     const items = await qb.getMany();
-    for (const item of items) {
+    const itemsById = new Map(items.map((i) => [i.id, i]));
+    const orderedItems = ids.map((id) => itemsById.get(id)).filter((item): item is Clothes => Boolean(item));
+
+    for (const item of orderedItems) {
       this.sortAttachments(item);
     }
 
     return {
-      items: items.map((item) => {
+      items: orderedItems.map((item) => {
         const primaryAttachment =
           (item.attachments ?? []).find((att) => att.mimeType?.startsWith('image/')) ??
           item.attachments?.[0] ??
@@ -197,6 +395,66 @@ export class ClothesService implements OnModuleInit {
     };
   }
 
+  async addToIroning(user: AuthUser, clothesIds: string[]) {
+    if (!clothesIds || clothesIds.length === 0) {
+      return { added: 0, existing: 0, total: 0 };
+    }
+    const uniqueIds = Array.from(new Set(clothesIds.filter(Boolean)));
+    const validClothes = await this.dataSource.getRepository(Clothes).find({
+      where: { userId: user.id, id: In(uniqueIds) },
+      select: { id: true },
+    });
+    const validIds = validClothes.map((c) => c.id);
+    if (validIds.length === 0) {
+      return { added: 0, existing: 0, total: 0 };
+    }
+
+    const ironingRepo = this.dataSource.getRepository(IroningItem);
+    const existingItems = await ironingRepo.find({
+      where: { userId: user.id, clothesId: In(validIds) },
+      select: { clothesId: true },
+    });
+    const existingSet = new Set(existingItems.map((e) => e.clothesId));
+
+    const toInsert = validIds
+      .filter((id) => !existingSet.has(id))
+      .map((clothesId) => ironingRepo.create({ userId: user.id, clothesId }));
+
+    if (toInsert.length > 0) {
+      await ironingRepo.save(toInsert);
+    }
+
+    const total = await ironingRepo.count({ where: { userId: user.id } });
+    return {
+      added: toInsert.length,
+      existing: existingSet.size,
+      total,
+    };
+  }
+
+  async removeFromIroning(user: AuthUser, clothesId: string) {
+    const ironingRepo = this.dataSource.getRepository(IroningItem);
+    await ironingRepo.delete({ userId: user.id, clothesId });
+    const total = await ironingRepo.count({ where: { userId: user.id } });
+    return { removed: true, total };
+  }
+
+  async clearIroning(user: AuthUser) {
+    const ironingRepo = this.dataSource.getRepository(IroningItem);
+    await ironingRepo.delete({ userId: user.id });
+    return { cleared: true };
+  }
+
+  async getLaundryCounts(user: AuthUser) {
+    const washingCount = await this.dataSource.getRepository(WashingItem).count({
+      where: { userId: user.id },
+    });
+    const ironingCount = await this.dataSource.getRepository(IroningItem).count({
+      where: { userId: user.id },
+    });
+    return { washingCount, ironingCount };
+  }
+
   async getOne(user: AuthUser, id: string) {
     const item = await this.dataSource.getRepository(Clothes).findOne({
       where: { id, userId: user.id } as never,
@@ -220,7 +478,21 @@ export class ClothesService implements OnModuleInit {
 
     if (!item) throw new NotFoundException();
     this.sortAttachments(item);
-    return this.decorateResponse(item);
+
+    const isInWashing =
+      (await this.dataSource.getRepository(WashingItem).count({
+        where: { userId: user.id, clothesId: id },
+      })) > 0;
+    const isInIroning =
+      (await this.dataSource.getRepository(IroningItem).count({
+        where: { userId: user.id, clothesId: id },
+      })) > 0;
+
+    return {
+      ...this.decorateResponse(item),
+      isInWashing,
+      isInIroning,
+    };
   }
 
   async create(user: AuthUser, body: Record<string, unknown>) {
