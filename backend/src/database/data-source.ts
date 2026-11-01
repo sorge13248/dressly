@@ -20,6 +20,7 @@ import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { SyncTombstone } from '../entities/sync-tombstone.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { IroningItem } from '../entities/ironing-item.entity';
+import { Outfit } from '../entities/outfit.entity';
 
 export const AppDataSource = new DataSource({
   type: 'better-sqlite3',
@@ -43,6 +44,7 @@ export const AppDataSource = new DataSource({
     WashingInstruction,
     WashingItem,
     IroningItem,
+    Outfit,
     SyncTombstone,
   ],
   synchronize: process.env.DB_SYNCHRONIZE !== 'false',

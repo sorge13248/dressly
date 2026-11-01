@@ -162,8 +162,12 @@ export class WashingPageComponent implements OnInit {
     try {
       const laundry = await this.storage.getLaundry();
       await this.storage.clearWashing();
-      for (const id of laundry.washing) {
-        await this.syncService.queueLaundryChange('washing', id, 'delete');
+      if (this.syncService.queueLaundryChanges) {
+        await this.syncService.queueLaundryChanges('washing', laundry.washing, 'delete');
+      } else {
+        for (const id of laundry.washing) {
+          await this.syncService.queueLaundryChange('washing', id, 'delete');
+        }
       }
       this.items.set([]);
       this.laundryService.updateWashingCount(0, 'slide-down');

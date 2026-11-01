@@ -5,6 +5,7 @@ import { AuthUser } from '../common/auth/auth.types';
 import {
   ClothesSyncInput,
   FieldUpdate,
+  OutfitSyncInput,
   ReferenceDataSyncInput,
   SyncConflict,
   SyncPayloadDto,
@@ -27,6 +28,7 @@ import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
+import { Outfit } from '../entities/outfit.entity';
 import { ReferenceDataService, ReferenceDataType } from './reference-data.service';
 
 const REFERENCE_KINDS: ReferenceDataType[] = [
@@ -64,6 +66,7 @@ export class SyncService {
       clothes: [] as string[],
       referenceData: [] as string[],
       laundry: false,
+      outfits: [] as string[],
     };
 
     const changes = payload.changes ?? {};
@@ -82,6 +85,11 @@ export class SyncService {
     if (changes.laundry) {
       await this.processLaundryChanges(user, changes.laundry);
       applied.laundry = true;
+    }
+
+    // 3.5. Process Outfit Changes
+    if (changes.outfits && changes.outfits.length > 0) {
+      await this.processOutfitChanges(user, changes.outfits, lastSyncDate, conflicts, applied.outfits);
     }
 
     // 4. Gather Server Changes to send back to client
@@ -392,6 +400,130 @@ export class SyncService {
     }
   }
 
+  private async processOutfitChanges(
+    user: AuthUser,
+    outfitChanges: OutfitSyncInput[],
+    lastSyncDate: Date | null,
+    conflicts: SyncConflict[],
+    appliedIds: string[],
+  ) {
+    const outfitRepo = this.dataSource.getRepository(Outfit);
+    const tombstoneRepo = this.dataSource.getRepository(SyncTombstone);
+    const clothesRepo = this.dataSource.getRepository(Clothes);
+
+    for (const change of outfitChanges) {
+      const existing = await outfitRepo.findOne({
+        where: { id: change.id, userId: user.id },
+        relations: { clothes: true, seasons: true, temperatures: true, useCases: true },
+      });
+
+      if (change.deleted) {
+        if (existing) {
+          await outfitRepo.remove(existing);
+        }
+        await tombstoneRepo.save({
+          userId: user.id,
+          entityType: 'outfit',
+          entityId: change.id,
+          deletedAt: new Date(change.updatedAt || Date.now()),
+        });
+        appliedIds.push(change.id);
+        continue;
+      }
+
+      const clientUpdated = new Date(change.updatedAt || Date.now());
+      if (existing) {
+        if (existing.updatedAt && existing.updatedAt > clientUpdated) {
+          // Server wins
+          continue;
+        }
+
+        if (change.name) {
+          existing.name = change.name;
+        } else if (change.fields && 'name' in change.fields) {
+          const val = (change.fields['name'] as FieldUpdate)?.value ?? change.fields['name'];
+          if (val) existing.name = String(val);
+        }
+
+        if (change.description !== undefined) {
+          existing.description = change.description;
+        }
+
+        if (change.canvasLayout !== undefined) {
+          existing.canvasLayout = change.canvasLayout;
+        }
+
+        if (Array.isArray(change.clothesIds)) {
+          existing.clothes =
+            change.clothesIds.length > 0
+              ? await clothesRepo.find({ where: { id: In(change.clothesIds), userId: user.id } })
+              : [];
+        }
+
+        if (Array.isArray(change.season_ids)) {
+          existing.seasons = await this.referenceDataService.resolveOwnedReferences<Season>(
+            'seasons',
+            user.id,
+            change.season_ids,
+          );
+        }
+
+        if (Array.isArray(change.temperature_ids)) {
+          existing.temperatures = await this.referenceDataService.resolveOwnedReferences<Temperature>(
+            'temperatures',
+            user.id,
+            change.temperature_ids,
+          );
+        }
+
+        if (Array.isArray(change.use_case_ids)) {
+          existing.useCases = await this.referenceDataService.resolveOwnedReferences<UseCase>(
+            'use-cases',
+            user.id,
+            change.use_case_ids,
+          );
+        }
+
+        existing.updatedAt = clientUpdated;
+        await outfitRepo.save(existing);
+        appliedIds.push(existing.id);
+      } else {
+        let clothes: Clothes[] = [];
+        if (Array.isArray(change.clothesIds) && change.clothesIds.length > 0) {
+          clothes = await clothesRepo.find({ where: { id: In(change.clothesIds), userId: user.id } });
+        }
+
+        const seasons = Array.isArray(change.season_ids)
+          ? await this.referenceDataService.resolveOwnedReferences<Season>('seasons', user.id, change.season_ids)
+          : [];
+
+        const temperatures = Array.isArray(change.temperature_ids)
+          ? await this.referenceDataService.resolveOwnedReferences<Temperature>('temperatures', user.id, change.temperature_ids)
+          : [];
+
+        const useCases = Array.isArray(change.use_case_ids)
+          ? await this.referenceDataService.resolveOwnedReferences<UseCase>('use-cases', user.id, change.use_case_ids)
+          : [];
+
+        const newOutfit = outfitRepo.create({
+          id: change.id,
+          userId: user.id,
+          name: change.name || 'Nuovo abbinamento',
+          description: change.description || null,
+          canvasLayout: change.canvasLayout || null,
+          clothes,
+          seasons,
+          temperatures,
+          useCases,
+          createdAt: clientUpdated,
+          updatedAt: clientUpdated,
+        });
+        await outfitRepo.save(newOutfit);
+        appliedIds.push(newOutfit.id);
+      }
+    }
+  }
+
   private async getServerChanges(user: AuthUser, lastSyncDate: Date | null) {
     const clothesRepo = this.dataSource.getRepository(Clothes);
     const tombstoneRepo = this.dataSource.getRepository(SyncTombstone);
@@ -474,6 +606,64 @@ export class SyncService {
       select: { clothesId: true },
     });
 
+    // 6. Outfits changes
+    const outfitRepo = this.dataSource.getRepository(Outfit);
+    const outfitQuery = outfitRepo
+      .createQueryBuilder('outfit')
+      .leftJoinAndSelect('outfit.clothes', 'clothes')
+      .leftJoinAndSelect('clothes.brand', 'brand')
+      .leftJoinAndSelect('clothes.type', 'type')
+      .leftJoinAndSelect('clothes.colors', 'colors')
+      .leftJoinAndSelect('clothes.attachments', 'attachments')
+      .leftJoinAndSelect('outfit.seasons', 'seasons')
+      .leftJoinAndSelect('outfit.temperatures', 'temperatures')
+      .leftJoinAndSelect('outfit.useCases', 'useCases')
+      .leftJoinAndSelect('outfit.attachments', 'outfit_attachments')
+      .where('outfit.userId = :userId', { userId: user.id });
+
+    if (lastSyncDate) {
+      outfitQuery.andWhere('outfit.updatedAt > :lastSyncDate', { lastSyncDate });
+    }
+
+    const serverOutfitEntities = await outfitQuery.getMany();
+    const serverOutfits = serverOutfitEntities.map((o) => ({
+      id: o.id,
+      name: o.name,
+      description: o.description ?? null,
+      canvasLayout: o.canvasLayout ?? null,
+      seasons: o.seasons ?? [],
+      temperatures: o.temperatures ?? [],
+      useCases: o.useCases ?? [],
+      attachments: o.attachments ?? [],
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      clothesCount: o.clothes?.length ?? 0,
+      clothes: (o.clothes ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        fullTitle: c.fullTitle,
+        brand: c.brand,
+        type: c.type,
+        colors: c.colors,
+        attachments: c.attachments,
+        primaryAttachment:
+          (c.attachments ?? []).find((a) => a.mimeType?.startsWith('image/')) ??
+          c.attachments?.[0] ??
+          null,
+      })),
+    }));
+
+    // 7. Deleted outfits
+    let deletedOutfitIds: string[] = [];
+    if (lastSyncDate) {
+      const outfitTombstones = await tombstoneRepo.find({
+        where: { userId: user.id, entityType: 'outfit' },
+      });
+      deletedOutfitIds = outfitTombstones
+        .filter((t) => t.deletedAt > lastSyncDate)
+        .map((t) => t.entityId);
+    }
+
     return {
       clothes: serverClothes,
       deletedClothesIds,
@@ -483,6 +673,8 @@ export class SyncService {
         washingClothesIds: washingItems.map((w) => w.clothesId),
         ironingClothesIds: ironingItems.map((i) => i.clothesId),
       },
+      outfits: serverOutfits,
+      deletedOutfitIds,
     };
   }
 

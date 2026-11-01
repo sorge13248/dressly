@@ -31,6 +31,21 @@ export interface LaundrySyncInput {
   };
 }
 
+export interface OutfitSyncInput {
+  id: string;
+  updatedAt: string;
+  deleted?: boolean;
+  name?: string;
+  description?: string | null;
+  canvasLayout?: Record<string, any> | null;
+  clothesIds?: string[];
+  season_ids?: string[];
+  temperature_ids?: string[];
+  use_case_ids?: string[];
+  fields?: Record<string, FieldUpdate | unknown>;
+  data?: Record<string, unknown>;
+}
+
 export interface SyncPayloadDto {
   lastSyncAt?: string | null;
   clientTime?: string;
@@ -38,6 +53,7 @@ export interface SyncPayloadDto {
     clothes?: ClothesSyncInput[];
     referenceData?: ReferenceDataSyncInput[];
     laundry?: LaundrySyncInput;
+    outfits?: OutfitSyncInput[];
   };
 }
 
@@ -62,6 +78,7 @@ export interface SyncResponseDto {
     clothes: string[];
     referenceData: string[];
     laundry: boolean;
+    outfits?: string[];
   };
   serverChanges: {
     clothes: unknown[];
@@ -72,6 +89,8 @@ export interface SyncResponseDto {
       washingClothesIds: string[];
       ironingClothesIds: string[];
     };
+    outfits?: unknown[];
+    deletedOutfitIds?: string[];
   };
 }
 

@@ -310,6 +310,21 @@ export interface LaundrySyncInput {
   };
 }
 
+export interface OutfitSyncInput {
+  id: string;
+  updatedAt: string;
+  deleted?: boolean;
+  name?: string;
+  description?: string | null;
+  canvasLayout?: Record<string, CanvasItemLayout> | null;
+  clothesIds?: string[];
+  season_ids?: string[];
+  temperature_ids?: string[];
+  use_case_ids?: string[];
+  fields?: Record<string, FieldUpdate | unknown>;
+  data?: Record<string, unknown>;
+}
+
 export interface SyncPayloadDto {
   lastSyncAt?: string | null;
   clientTime?: string;
@@ -317,6 +332,7 @@ export interface SyncPayloadDto {
     clothes?: ClothesSyncInput[];
     referenceData?: ReferenceDataSyncInput[];
     laundry?: LaundrySyncInput;
+    outfits?: OutfitSyncInput[];
   };
 }
 
@@ -341,6 +357,7 @@ export interface SyncResponseDto {
     clothes: string[];
     referenceData: string[];
     laundry: boolean;
+    outfits?: string[];
   };
   serverChanges: {
     clothes: ClothesItem[];
@@ -351,12 +368,14 @@ export interface SyncResponseDto {
       washingClothesIds: string[];
       ironingClothesIds: string[];
     };
+    outfits?: OutfitItem[];
+    deletedOutfitIds?: string[];
   };
 }
 
 export interface SyncQueueItem {
   id: string;
-  entityType: 'clothes' | 'referenceData' | 'laundry';
+  entityType: 'clothes' | 'referenceData' | 'laundry' | 'outfits';
   action: 'create' | 'update' | 'delete';
   entityId: string;
   kind?: string;
@@ -365,4 +384,54 @@ export interface SyncQueueItem {
   data?: Record<string, unknown>;
   deleted?: boolean;
 }
+
+export interface CanvasItemLayout {
+  x: number; // percentage 0 - 100 or relative px
+  y: number; // percentage 0 - 100 or relative px
+  scale?: number;
+  rotation?: number;
+  zIndex?: number;
+}
+
+export interface OutfitClothesSummary {
+  id: string;
+  name: string | null;
+  fullTitle?: string | null;
+  brand?: BrandItem | null;
+  type?: TypeItem | null;
+  colors?: ColorItem[];
+  attachments?: AttachmentItem[];
+  primaryAttachment?: AttachmentItem | null;
+}
+
+export interface OutfitItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  canvasLayout?: Record<string, CanvasItemLayout> | null;
+  seasons?: SeasonItem[];
+  temperatures?: TemperatureItem[];
+  useCases?: UseCaseItem[];
+  attachments?: AttachmentItem[];
+  clothesCount: number;
+  clothes: OutfitClothesSummary[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutfitDetailResponse {
+  id: string;
+  name: string;
+  description?: string | null;
+  canvasLayout?: Record<string, CanvasItemLayout> | null;
+  seasons?: SeasonItem[];
+  temperatures?: TemperatureItem[];
+  useCases?: UseCaseItem[];
+  attachments?: AttachmentItem[];
+  clothesCount: number;
+  clothes: ClothesItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 

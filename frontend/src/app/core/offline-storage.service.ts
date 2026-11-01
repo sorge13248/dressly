@@ -9,14 +9,16 @@ import {
   SyncQueueItem,
   SyncStatus,
   WashingClothesItem,
+  OutfitItem,
 } from './models';
 
 const DB_NAME = 'dressly_offline_v1';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORE_CLOTHES = 'clothes';
 const STORE_REFERENCE = 'reference_data';
 const STORE_LAUNDRY = 'laundry';
+const STORE_OUTFITS = 'outfits';
 const STORE_QUEUE = 'sync_queue';
 const STORE_META = 'meta';
 
@@ -33,6 +35,7 @@ export class OfflineStorageService {
     clothes: new Map<string, ClothesItem>(),
     referenceData: new Map<string, BaseReferenceItem>(), // key: `${kind}:${id}`
     laundry: { washing: [] as string[], ironing: [] as string[] },
+    outfits: new Map<string, OutfitItem>(),
     queue: [] as SyncQueueItem[],
     meta: {
       lastSyncAt: null as string | null,
@@ -60,6 +63,9 @@ export class OfflineStorageService {
             }
             if (!db.objectStoreNames.contains(STORE_LAUNDRY)) {
               db.createObjectStore(STORE_LAUNDRY, { keyPath: 'key' });
+            }
+            if (!db.objectStoreNames.contains(STORE_OUTFITS)) {
+              db.createObjectStore(STORE_OUTFITS, { keyPath: 'id' });
             }
             if (!db.objectStoreNames.contains(STORE_QUEUE)) {
               db.createObjectStore(STORE_QUEUE, { keyPath: 'id' });
@@ -398,6 +404,110 @@ export class OfflineStorageService {
       })) as unknown as IroningClothesItem[];
   }
 
+  // Outfits methods
+  async getAllOutfits(): Promise<OutfitItem[]> {
+    const db = await this.getDB();
+    if (!db) {
+      return Array.from(this.memoryStore.outfits.values());
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_OUTFITS, 'readonly');
+        const req = tx.objectStore(STORE_OUTFITS).getAll();
+        req.onsuccess = () => resolve(req.result ?? []);
+        req.onerror = () => resolve(Array.from(this.memoryStore.outfits.values()));
+      } catch {
+        resolve(Array.from(this.memoryStore.outfits.values()));
+      }
+    });
+  }
+
+  async getOutfit(id: string): Promise<OutfitItem | null> {
+    const db = await this.getDB();
+    if (!db) {
+      return this.memoryStore.outfits.get(id) ?? null;
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_OUTFITS, 'readonly');
+        const req = tx.objectStore(STORE_OUTFITS).get(id);
+        req.onsuccess = () => resolve(req.result ?? null);
+        req.onerror = () => resolve(this.memoryStore.outfits.get(id) ?? null);
+      } catch {
+        resolve(this.memoryStore.outfits.get(id) ?? null);
+      }
+    });
+  }
+
+  async saveOutfits(items: OutfitItem[]): Promise<void> {
+    for (const item of items) {
+      this.memoryStore.outfits.set(item.id, item);
+    }
+    const db = await this.getDB();
+    if (!db) return;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_OUTFITS, 'readwrite');
+        const store = tx.objectStore(STORE_OUTFITS);
+        for (const item of items) {
+          store.put(item);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  }
+
+  async saveOutfit(item: OutfitItem): Promise<void> {
+    return this.saveOutfits([item]);
+  }
+
+  async removeOutfit(id: string): Promise<void> {
+    return this.removeOutfits([id]);
+  }
+
+  async removeOutfits(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      this.memoryStore.outfits.delete(id);
+    }
+    const db = await this.getDB();
+    if (!db) return;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_OUTFITS, 'readwrite');
+        const store = tx.objectStore(STORE_OUTFITS);
+        for (const id of ids) {
+          store.delete(id);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  }
+
+  async clearOutfits(): Promise<void> {
+    this.memoryStore.outfits.clear();
+    const db = await this.getDB();
+    if (!db) return;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_OUTFITS, 'readwrite');
+        tx.objectStore(STORE_OUTFITS).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  }
+
   async queryClothes(query: ClothesFilters): Promise<{ items: ClothesItem[]; total: number }> {
     const all = await this.getAllClothes();
     const laundry = await this.getLaundry();
@@ -499,6 +609,27 @@ export class OfflineStorageService {
       try {
         const tx = db.transaction(STORE_QUEUE, 'readwrite');
         tx.objectStore(STORE_QUEUE).put(item);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  }
+
+  async enqueueBatch(items: SyncQueueItem[]): Promise<void> {
+    if (!items.length) return;
+    this.memoryStore.queue.push(...items);
+    const db = await this.getDB();
+    if (!db) return;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_QUEUE, 'readwrite');
+        const store = tx.objectStore(STORE_QUEUE);
+        for (const item of items) {
+          store.put(item);
+        }
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();
       } catch {

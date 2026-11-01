@@ -10,6 +10,8 @@ import { WardrobePageComponent } from './features/wardrobe/pages/main/main.compo
 import { WardrobeWizardPageComponent, canDeactivateWardrobeWizard } from './features/wardrobe/pages/editor/editor.component';
 import { IroningPageComponent } from './features/wardrobe/pages/ironing/ironing.component';
 import { WashingPageComponent } from './features/wardrobe/pages/washing/washing.component';
+import { OutfitsPageComponent } from './features/outfits/pages/list/outfits-page.component';
+import { OutfitDetailPageComponent } from './features/outfits/pages/detail/outfit-detail-page.component';
 
 export const routes: Routes = [
 	{ path: '', pathMatch: 'full', redirectTo: 'wardrobe' },
@@ -26,6 +28,10 @@ export const routes: Routes = [
 			{ path: 'wardrobe/ironing', component: IroningPageComponent },
 			{ path: 'wardrobe/:id', component: WardrobeDetailPageComponent },
 			{ path: 'wardrobe/:id/edit', component: WardrobeWizardPageComponent, canDeactivate: [canDeactivateWardrobeWizard] },
+			{ path: 'outfits', component: OutfitsPageComponent },
+			{ path: 'outfits/:id', component: OutfitDetailPageComponent },
+			{ path: 'abbinamenti', redirectTo: 'outfits' },
+			{ path: 'abbinamenti/:id', redirectTo: 'outfits/:id' },
 			{ path: 'categories', component: DomainManagementPageComponent },
 		],
 	},

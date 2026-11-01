@@ -20,6 +20,7 @@ import { UseCase } from '../entities/use-case.entity';
 import { User } from '../entities/user.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
+import { Outfit } from '../entities/outfit.entity';
 import { ReferenceDataService } from './reference-data.service';
 import { SyncService } from './sync.service';
 
@@ -48,6 +49,7 @@ async function runTests() {
       WashingInstruction,
       WashingItem,
       IroningItem,
+      Outfit,
       SyncTombstone,
     ],
     synchronize: true,

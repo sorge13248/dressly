@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Dialog } from '@angular/cdk/dialog';
 import { of } from 'rxjs';
+import { ApiService } from '../../../../core/api.service';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { WardrobeWizardPageComponent } from './editor.component';
 
@@ -45,6 +46,15 @@ describe('WardrobeWizardPageComponent', () => {
     expect(comp.currentStep()).toBe(5);
     comp.nextStep();
     expect(comp.currentStep()).toBe(5);
+  });
+
+  it('should resolve fileInput in step 5', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    comp.selectStep(5);
+    fixture.detectChanges();
+    expect(comp.fileInput).toBeDefined();
+    expect(comp.fileInput?.nativeElement).toBeDefined();
   });
 
   it('should support adding, reordering and removing photos in the unified photo gallery', () => {
@@ -189,5 +199,79 @@ describe('WardrobeWizardPageComponent', () => {
     } as any);
 
     expect(await comp.canDeactivate()).toBe(true);
+  });
+
+  it('should accept valid images and ignore unsupported files in addPendingFiles', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+
+    const validFile = new File(['content'], 'camicia.jpg', { type: 'image/jpeg' });
+    const textFile = new File(['text'], 'notes.txt', { type: 'text/plain' });
+
+    (comp as any).addPendingFiles([validFile, textFile], 'picker');
+
+    expect(comp.allPhotos().length).toBe(1);
+    expect(comp.allPhotos()[0].name).toBe('camicia.jpg');
+    expect(comp.allPhotos()[0].source).toBe('pending');
+  });
+
+  it('should create clothes via api and upload pending photos when online on save', async () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const router = TestBed.inject(Router);
+
+    vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+    vi.spyOn(api, 'createClothes').mockReturnValue(of({ id: 'new-clothes-123' } as any));
+    vi.spyOn(api, 'getClothes').mockReturnValue(of({
+      id: 'new-clothes-123',
+      name: 'Polo blu',
+      attachments: [{ id: 'att-1', fileName: 'polo.jpg', mimeType: 'image/jpeg' }],
+    } as any));
+    vi.spyOn(api, 'uploadAttachmentWithProgress').mockReturnValue(of({
+      type: 4, // HttpEventType.Response
+      body: { id: 'att-1' },
+    } as any));
+    vi.spyOn(api, 'reorderAttachments').mockReturnValue(of([] as any));
+
+    // Fill minimum required fields
+    comp.wizardForm.base.name().value.set('Polo blu');
+    comp.wizardForm.base.type_id().value.set('type-1');
+    comp.wizardForm.base.brand_id().value.set('brand-1');
+    comp.wizardForm.style.color_ids().value.set(['col-1']);
+    comp.wizardForm.context.season_ids().value.set(['seas-1']);
+    comp.wizardForm.context.temperature_ids().value.set(['temp-1']);
+
+    const photoFile = new File(['photo'], 'polo.jpg', { type: 'image/jpeg' });
+    comp.allPhotos.set([
+      { id: 'pending-1', source: 'pending', file: photoFile, name: 'polo.jpg', previewUrl: 'blob:url' },
+    ]);
+
+    await comp.save();
+
+    expect(api.createClothes).toHaveBeenCalled();
+    expect(api.uploadAttachmentWithProgress).toHaveBeenCalledWith('new-clothes-123', photoFile, 'photo', 'polo.jpg');
+    expect(api.reorderAttachments).toHaveBeenCalledWith('new-clothes-123', ['att-1']);
+    expect(router.navigate).toHaveBeenCalledWith(['/wardrobe', 'new-clothes-123']);
+  });
+
+  it('should fetch from server if clothes not found in local storage on loadClothes', async () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+
+    vi.spyOn(api, 'getClothes').mockReturnValue(of({
+      id: 'c-456',
+      name: 'Giacca lino',
+      attachments: [{ id: 'att-99', fileName: 'giacca.jpg', originalName: 'Giacca', mimeType: 'image/jpeg' }],
+    } as any));
+
+    await comp.loadClothes('c-456');
+
+    expect(api.getClothes).toHaveBeenCalledWith('c-456');
+    expect(comp.wizardForm.base.name().value()).toBe('Giacca lino');
+    expect(comp.allPhotos().length).toBe(1);
+    expect(comp.allPhotos()[0].id).toBe('att-99');
+    expect(comp.allPhotos()[0].source).toBe('existing');
   });
 });

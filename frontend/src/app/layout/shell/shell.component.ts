@@ -35,6 +35,7 @@ export class AppShellComponent implements OnInit {
 
     return [
       { label: 'Guardaroba', path: 'wardrobe', exact: true, badge: null, badgeState: null },
+      { label: 'Abbinamenti', path: 'outfits', exact: false, badge: null, badgeState: null },
       { label: 'Lavatrice', path: 'wardrobe/washing', exact: true, badge: washingState.count, badgeState: washingState },
       { label: 'Stiratura', path: 'wardrobe/ironing', exact: true, badge: ironingState.count, badgeState: ironingState },
       { label: 'Domini', path: 'categories', exact: false, badge: null, badgeState: null },

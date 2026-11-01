@@ -111,8 +111,12 @@ export class IroningPageComponent implements OnInit {
     try {
       const laundry = await this.storage.getLaundry();
       await this.storage.clearIroning();
-      for (const id of laundry.ironing) {
-        await this.syncService.queueLaundryChange('ironing', id, 'delete');
+      if (this.syncService.queueLaundryChanges) {
+        await this.syncService.queueLaundryChanges('ironing', laundry.ironing, 'delete');
+      } else {
+        for (const id of laundry.ironing) {
+          await this.syncService.queueLaundryChange('ironing', id, 'delete');
+        }
       }
       this.items.set([]);
       this.laundryService.updateIroningCount(0, 'slide-down');

@@ -1,0 +1,495 @@
+<section class="outfit-detail-shell">
+  <main class="outfit-detail-content">
+    <!-- Top Navigation / Breadcrumb -->
+    <nav class="top-nav-bar" aria-label="Navigazione abbinamenti">
+      <a routerLink="/outfits" class="back-link" title="Torna alla lista abbinamenti">
+        <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        <span>Tutti gli abbinamenti</span>
+      </a>
+    </nav>
+
+    @if (loading()) {
+      <div class="state-card">Caricamento abbinamento...</div>
+    } @else if (error()) {
+      <div class="state-card error">
+        <p>{{ error() }}</p>
+        <button type="button" class="retry-btn" (click)="loadOutfit()">Riprova</button>
+      </div>
+    } @else if (outfit(); as o) {
+      <!-- Riga Superiore: View mode (2 card) vs Edit mode (1 form con 2 card) -->
+      @if (isEditingDetails()) {
+        <!-- Form unico di modifica dettagli abbinamento -->
+        <form class="outfit-top-row outfit-edit-form" (ngSubmit)="saveEditDetails()">
+          <!-- Card 1: Titolo e Descrizione (nella card originale) -->
+          <div class="hero-banner edit-mode-card edit-card-left">
+            <div class="edit-card-header">
+              <span class="eyebrow">Modifica Dettagli</span>
+              <button
+                type="button"
+                class="close-edit-btn"
+                (click)="cancelEditDetails()"
+                [disabled]="isSavingDetails()"
+                title="Annulla modifiche"
+                aria-label="Annulla modifiche"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="edit-fields-stack">
+              <div class="form-field-group">
+                <label for="edit-outfit-name">Nome abbinamento <span class="required-star">*</span></label>
+                <input
+                  id="edit-outfit-name"
+                  name="name"
+                  type="text"
+                  class="text-input"
+                  [value]="editName()"
+                  (input)="editName.set($any($event.target).value)"
+                  (keydown.enter)="$event.preventDefault(); saveEditDetails()"
+                  placeholder="Es. Look Ufficio Casual"
+                  autocomplete="off"
+                  autofocus
+                  required
+                />
+              </div>
+
+              <div class="form-field-group">
+                <label for="edit-outfit-desc">Descrizione o note di stile</label>
+                <textarea
+                  id="edit-outfit-desc"
+                  name="description"
+                  class="textarea-input"
+                  rows="4"
+                  [value]="editDescription()"
+                  (input)="editDescription.set($any($event.target).value)"
+                  (keydown.control.enter)="$event.preventDefault(); saveEditDetails()"
+                  (keydown.meta.enter)="$event.preventDefault(); saveEditDetails()"
+                  placeholder="Scrivi qui consigli di abbinamento, accessori consigliati o note personali..."
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="edit-shortcut-hint">
+              <span class="hint-icon">↵</span>
+              <span>Premi <strong>Invio</strong> nel titolo o usa il pulsante per salvare</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Stagionalità, Temperature & Occasioni -->
+          <div class="details-summary-card edit-mode-card edit-card-right">
+            <div class="summary-header-row">
+              <h3 class="summary-card-title">Stagionalità & Contesto</h3>
+            </div>
+
+            <div class="context-selector-wrapper">
+              <app-context-selector
+                [(seasonIds)]="editSeasonIds"
+                [(temperatureIds)]="editTemperatureIds"
+                [(useCaseIds)]="editUseCaseIds"
+                [requiredSeasons]="false"
+                [requiredTemperatures]="false"
+                [requiredUseCases]="false"
+              />
+            </div>
+
+            <div class="panel-actions edit-form-actions">
+              <button
+                type="button"
+                appButton
+                variant="secondary"
+                (click)="cancelEditDetails()"
+                [disabled]="isSavingDetails()"
+              >
+                Annulla
+              </button>
+              <button
+                type="submit"
+                appButton
+                variant="primary"
+                [disabled]="isSavingDetails()"
+              >
+                {{ isSavingDetails() ? 'Salvataggio...' : 'Salva modifiche' }}
+              </button>
+            </div>
+          </div>
+        </form>
+      } @else {
+        <!-- Riga Superiore: Intestazione e Contesto in 2 colonne/card distinte -->
+        <div class="outfit-top-row">
+          <!-- Colonna 1: Intestazione & Descrizione -->
+          <header class="hero-banner">
+            <div class="hero-banner-content">
+              <div class="hero-header-top">
+                <span class="eyebrow">Abbinamento</span>
+                <span class="status-pill count-pill">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;" aria-hidden="true">
+                    <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+                  </svg>
+                  {{ o.clothes.length }} {{ o.clothes.length === 1 ? 'vestito' : 'vestiti' }}
+                </span>
+              </div>
+
+              <h1 class="hero-title outfit-name">{{ o.name }}</h1>
+
+              @if (o.description) {
+                <p class="hero-description">{{ o.description }}</p>
+              }
+
+              @if (o.createdAt) {
+                <div class="hero-meta-row">
+                  <span class="meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    Creato il {{ formatDate(o.createdAt) }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <div class="hero-actions-toolbar header-actions">
+              @if (o.clothes.length > 0) {
+                <button
+                  type="button"
+                  appButton
+                  variant="secondary"
+                  class="secondary hero-action-btn wash-batch-btn"
+                  [class.active-batch]="allClothesInWashing()"
+                  [disabled]="batchActionBusy()"
+                  (click)="toggleAllWashing($event)"
+                  [title]="allClothesInWashing() ? 'Rimuovi tutti i capi dell\'abbinamento dalla lavatrice' : 'Metti tutti i capi dell\'abbinamento a lavare'"
+                >
+                  <app-washing-icon [size]="16" [strokeWidth]="2" />
+                  <span>A lavare</span>
+                  @if (clothesInWashingCount() > 0) {
+                    <span class="batch-count-pill">{{ clothesInWashingCount() }}/{{ o.clothes.length }}</span>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  appButton
+                  variant="secondary"
+                  class="secondary hero-action-btn iron-batch-btn"
+                  [class.active-batch]="allClothesInIroning()"
+                  [disabled]="batchActionBusy()"
+                  (click)="toggleAllIroning($event)"
+                  [title]="allClothesInIroning() ? 'Rimuovi tutti i capi dell\'abbinamento dalla stiratura' : 'Metti tutti i capi dell\'abbinamento a stirare'"
+                >
+                  <app-ironing-icon [size]="16" [strokeWidth]="2" />
+                  <span>A stirare</span>
+                  @if (clothesInIroningCount() > 0) {
+                    <span class="batch-count-pill">{{ clothesInIroningCount() }}/{{ o.clothes.length }}</span>
+                  }
+                </button>
+              }
+
+              <button
+                type="button"
+                appButton
+                variant="secondary"
+                class="secondary hero-action-btn"
+                [disabled]="actionBusy()"
+                (click)="openEditDetails()"
+                title="Modifica descrizione e dettagli abbinamento"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Modifica</span>
+              </button>
+
+              <button
+                type="button"
+                appButton
+                variant="ghost"
+                class="ghost hero-action-btn"
+                [disabled]="actionBusy()"
+                (click)="renameOutfit()"
+                title="Modifica nome abbinamento"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                <span>Rinomina</span>
+              </button>
+
+              <button
+                type="button"
+                appButton
+                variant="danger"
+                class="danger hero-action-btn"
+                [disabled]="actionBusy()"
+                (click)="deleteOutfit()"
+                title="Elimina abbinamento"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span>Elimina</span>
+              </button>
+            </div>
+          </header>
+
+          <!-- Colonna 2: Stagioni / Temperature / Occasioni -->
+          <section class="details-summary-card">
+            <div class="summary-body">
+              <div class="summary-header-row">
+                <h3 class="summary-card-title">Stagionalità & Contesto</h3>
+                <button
+                  type="button"
+                  appButton
+                  variant="secondary"
+                  size="sm"
+                  class="secondary summary-edit-btn"
+                  [disabled]="actionBusy()"
+                  (click)="openEditDetails()"
+                  title="Modifica dettagli abbinamento"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 13px; height: 13px;">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  <span>Modifica</span>
+                </button>
+              </div>
+
+              @if ((o.seasons && o.seasons.length > 0) || (o.temperatures && o.temperatures.length > 0) || (o.useCases && o.useCases.length > 0)) {
+                <div class="context-badges-cluster">
+                  @if (o.seasons && o.seasons.length > 0) {
+                    <div class="badge-row">
+                      <span class="badge-label">Stagioni:</span>
+                      <div class="badges-wrap">
+                        @for (s of o.seasons; track s.id) {
+                          <span class="context-pill season-pill">
+                            @if (s.icon) { <span class="pill-icon">{{ s.icon }}</span> }
+                            {{ s.name }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (o.temperatures && o.temperatures.length > 0) {
+                    <div class="badge-row">
+                      <span class="badge-label">Temperature:</span>
+                      <div class="badges-wrap">
+                        @for (t of o.temperatures; track t.id) {
+                          <span class="context-pill temp-pill">
+                            @if (t.icon) { <span class="pill-icon">{{ t.icon }}</span> }
+                            {{ t.name }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (o.useCases && o.useCases.length > 0) {
+                    <div class="badge-row">
+                      <span class="badge-label">Occasioni:</span>
+                      <div class="badges-wrap">
+                        @for (u of o.useCases; track u.id) {
+                          <span class="context-pill usecase-pill">
+                            @if (u.icon) { <span class="pill-icon">{{ u.icon }}</span> }
+                            {{ u.name }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="outfit-context-empty">
+                  <em>Nessuna stagionalità o occasione impostata. Clicca su "Modifica" per aggiungerle.</em>
+                </p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+
+      <!-- Riga Centrale: Canvas affiancato alle Foto dell'abbinamento in 2 colonne -->
+      <div class="outfit-middle-row">
+        <!-- Colonna 1: Canvas Libero Moodboard -->
+        <section class="section-canvas-wrap">
+          <app-outfit-canvas
+            [outfitId]="o.id"
+            [clothes]="o.clothes"
+            [initialLayout]="o.canvasLayout || null"
+            (layoutSaved)="onLayoutSaved($event)"
+          />
+        </section>
+
+        <!-- Colonna 2: Sezione Foto Indossate / Foto dell'abbinamento -->
+        <section class="outfit-photos-section outfit-panel-card">
+          <div class="section-header-row">
+            <div class="section-titles">
+              <h2 class="section-heading">Foto dell'abbinamento</h2>
+              <p class="section-subheading">Scattati una foto vestito in questo modo per abbinarla e ricordarti il look</p>
+            </div>
+
+            <div class="section-header-actions">
+              <input
+                #photoFileInput
+                type="file"
+                accept="image/*"
+                style="display: none;"
+                (change)="onPhotoFileSelected($event)"
+              />
+              <button
+                type="button"
+                appButton
+                variant="secondary"
+                size="sm"
+                [disabled]="uploadingPhoto()"
+                (click)="triggerPhotoUpload()"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>{{ uploadingPhoto() ? 'Caricamento...' : '+ Aggiungi foto' }}</span>
+              </button>
+            </div>
+          </div>
+
+          @if (!o.attachments || o.attachments.length === 0) {
+            <div class="photos-empty-state" (click)="triggerPhotoUpload()" role="button" tabindex="0">
+              <div class="photo-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              </div>
+              <span class="photos-empty-title">Nessuna foto indossata</span>
+              <span class="photos-empty-hint">Clicca qui per scattare una foto o caricarne una dalla galleria</span>
+            </div>
+          } @else {
+            <div class="outfit-photos-grid">
+              @for (att of o.attachments; track att.id) {
+                <div
+                  class="outfit-photo-card"
+                  (click)="openPhotoLightbox(att)"
+                  role="button"
+                  tabindex="0"
+                  title="Ingrandisci foto"
+                >
+                  <img
+                    [src]="getOutfitPhotoUrl(att)"
+                    [alt]="att.originalName || 'Foto abbinamento'"
+                    loading="lazy"
+                  />
+                  <button
+                    type="button"
+                    class="photo-delete-btn"
+                    (click)="deleteOutfitPhoto(att, $event)"
+                    title="Elimina foto"
+                    aria-label="Elimina foto"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </section>
+      </div>
+
+      <!-- Riga Unica Sotto a Tutto: Elenco Capi Inclusi -->
+      <section class="included-clothes-section outfit-panel-card">
+        <div class="section-header-row">
+          <div class="section-titles">
+            <h2 class="section-heading">Capi inclusi ({{ o.clothes.length }})</h2>
+            <p class="section-subheading">I vestiti che compongono questo abbinamento</p>
+          </div>
+
+          @if (o.clothes.length > 0) {
+            <div class="section-header-actions batch-laundry-actions">
+              <button
+                type="button"
+                appButton
+                variant="secondary"
+                size="sm"
+                class="secondary batch-laundry-btn wash-batch-btn"
+                [class.active-batch]="allClothesInWashing()"
+                [disabled]="batchActionBusy()"
+                (click)="toggleAllWashing($event)"
+                [title]="allClothesInWashing() ? 'Rimuovi tutti i capi dell\'abbinamento dalla lavatrice' : 'Metti tutti i capi dell\'abbinamento a lavare'"
+              >
+                <app-washing-icon [size]="16" [strokeWidth]="2" />
+                <span>A lavare</span>
+                @if (clothesInWashingCount() > 0) {
+                  <span class="batch-count-pill">{{ clothesInWashingCount() }}/{{ o.clothes.length }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                appButton
+                variant="secondary"
+                size="sm"
+                class="secondary batch-laundry-btn iron-batch-btn"
+                [class.active-batch]="allClothesInIroning()"
+                [disabled]="batchActionBusy()"
+                (click)="toggleAllIroning($event)"
+                [title]="allClothesInIroning() ? 'Rimuovi tutti i capi dell\'abbinamento dalla stiratura' : 'Metti tutti i capi dell\'abbinamento a stirare'"
+              >
+                <app-ironing-icon [size]="16" [strokeWidth]="2" />
+                <span>A stirare</span>
+                @if (clothesInIroningCount() > 0) {
+                  <span class="batch-count-pill">{{ clothesInIroningCount() }}/{{ o.clothes.length }}</span>
+                }
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (o.clothes.length === 0) {
+          <div class="empty-state-box">
+            <div class="empty-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+              </svg>
+            </div>
+            <h2>Nessun capo in questo abbinamento</h2>
+            <p>Vai nel guardaroba, seleziona i vestiti desiderati e clicca su "Abbina..." per aggiungerli qui.</p>
+            <a routerLink="/wardrobe" appButton variant="primary" class="primary go-wardrobe-btn">
+              Vai al guardaroba
+            </a>
+          </div>
+        } @else {
+          <div class="cards-grid">
+            @for (item of o.clothes; track item.id) {
+              <app-clothes-card
+                [item]="item"
+                [showRemove]="true"
+                linkPrefix="/wardrobe"
+                (removeClick)="removeCloth($event.item, $event.event)"
+                (washingClick)="toggleWashing($event.item, $event.event)"
+                (ironingClick)="toggleIroning($event.item, $event.event)"
+              />
+            }
+          </div>
+        }
+      </section>
+    }
+  </main>
+</section>

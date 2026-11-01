@@ -3,6 +3,7 @@ import { Component, OnInit, computed, effect, inject, signal } from '@angular/co
 import { Dialog } from '@angular/cdk/dialog';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { ApiService } from '../../../../core/api.service';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
@@ -47,6 +48,7 @@ type BuyDetailView = {
 export class WardrobeDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
   private readonly storage = inject(OfflineStorageService, { optional: true });
   private readonly syncService = inject(SyncService, { optional: true });
   private readonly dialog = inject(Dialog);
@@ -240,15 +242,51 @@ export class WardrobeDetailPageComponent implements OnInit {
           const isInWashing = laundry.washing.includes(cached.id);
           const isInIroning = laundry.ironing.includes(cached.id);
           this.item.set({ ...cached, isInWashing, isInIroning });
+          this.loading.set(false);
+
+          if (this.syncService && !this.syncService.checkIsOffline()) {
+            void this.refreshFromServerSilently(id);
+          }
           return;
         }
+      }
+
+      const item = await firstValueFrom(this.api.getClothes(id));
+      if (item) {
+        const laundry = this.storage ? await this.storage.getLaundry() : { washing: [], ironing: [] };
+        const isInWashing = laundry.washing.includes(item.id);
+        const isInIroning = laundry.ironing.includes(item.id);
+        this.item.set({ ...item, isInWashing, isInIroning });
+        if (this.storage) {
+          await this.storage.saveClothes([item]);
+        }
+        return;
       }
       this.item.set(null);
       this.error.set('Capo non trovato');
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Impossibile caricare il capo');
+      if (!this.item()) {
+        this.error.set(error instanceof Error ? error.message : 'Impossibile caricare il capo');
+      }
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async refreshFromServerSilently(id: string) {
+    try {
+      const item = await firstValueFrom(this.api.getClothes(id));
+      if (item) {
+        const laundry = this.storage ? await this.storage.getLaundry() : { washing: [], ironing: [] };
+        const isInWashing = laundry.washing.includes(item.id);
+        const isInIroning = laundry.ironing.includes(item.id);
+        this.item.set({ ...item, isInWashing, isInIroning });
+        if (this.storage) {
+          await this.storage.saveClothes([item]);
+        }
+      }
+    } catch {
+      // Silent error in background
     }
   }
 

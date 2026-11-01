@@ -8,6 +8,7 @@ import {
   ClothesSyncInput,
   FieldUpdate,
   LaundrySyncInput,
+  OutfitSyncInput,
   ReferenceDataSyncInput,
   ReferenceKind,
   SyncConflict,
@@ -33,7 +34,7 @@ export class SyncService {
   readonly dataUpdated = signal<number>(0);
 
   private activeSyncPromise: Promise<SyncResponseDto | null> | null = null;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private startupToastShown = false;
 
   readonly isSyncing = computed(() => this.status() === 'syncing');
@@ -42,6 +43,7 @@ export class SyncService {
   readonly isOk = computed(() => this.isOnline() && this.status() === 'online-ok');
 
   private probeInterval: ReturnType<typeof setInterval> | null = null;
+  private syncScheduled = false;
 
   constructor() {
     this.init();
@@ -118,10 +120,14 @@ export class SyncService {
     }
   }
 
-  async init(): Promise<void> {
-    if (this.initialized) return;
-    this.initialized = true;
+  init(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = this.doInit();
+    }
+    return this.initPromise;
+  }
 
+  private async doInit(): Promise<void> {
     if (typeof window !== 'undefined') {
       this.isOnline.set(navigator.onLine);
       if (!navigator.onLine) {
@@ -176,26 +182,34 @@ export class SyncService {
   }
 
   async sync(forceFullSync = false): Promise<SyncResponseDto | null> {
-    if (!this.isOnline()) {
-      this.status.set('offline');
+    if (!this.isOnline() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      this.markOffline();
       return null;
     }
 
     if (this.activeSyncPromise) {
+      this.syncScheduled = true;
       return this.activeSyncPromise;
     }
 
-    this.activeSyncPromise = this.executeSync(forceFullSync);
-    try {
-      return await this.activeSyncPromise;
-    } finally {
-      this.activeSyncPromise = null;
-    }
+    this.activeSyncPromise = (async () => {
+      try {
+        return await this.executeSync(forceFullSync);
+      } finally {
+        this.activeSyncPromise = null;
+        if (this.syncScheduled) {
+          this.syncScheduled = false;
+          void this.sync();
+        }
+      }
+    })();
+
+    return this.activeSyncPromise;
   }
 
   async downloadServerVersion(): Promise<SyncResponseDto | null> {
-    if (!this.isOnline()) {
-      this.status.set('offline');
+    if (!this.isOnline() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      this.markOffline();
       return null;
     }
 
@@ -251,6 +265,13 @@ export class SyncService {
           washing: response.serverChanges.laundry.washingClothesIds ?? [],
           ironing: response.serverChanges.laundry.ironingClothesIds ?? [],
         });
+      }
+
+      if (this.storage.clearOutfits) {
+        await this.storage.clearOutfits();
+      }
+      if (response.serverChanges?.outfits?.length && this.storage.saveOutfits) {
+        await this.storage.saveOutfits(response.serverChanges.outfits);
       }
 
       this.conflicts.set([]);
@@ -320,10 +341,39 @@ export class SyncService {
         }
 
         if (response.serverChanges.laundry) {
+          const remainingQueue = await this.storage.getQueue();
+          const pendingLaundry = remainingQueue.filter((q) => q.entityType === 'laundry');
+
+          let washing = [...(response.serverChanges.laundry.washingClothesIds ?? [])];
+          let ironing = [...(response.serverChanges.laundry.ironingClothesIds ?? [])];
+
+          for (const item of pendingLaundry) {
+            if (item.kind === 'washing') {
+              if (item.action === 'create') {
+                washing = [...new Set([...washing, item.entityId])];
+              } else if (item.action === 'delete') {
+                washing = washing.filter((id) => id !== item.entityId);
+              }
+            } else if (item.kind === 'ironing') {
+              if (item.action === 'create') {
+                ironing = [...new Set([...ironing, item.entityId])];
+              } else if (item.action === 'delete') {
+                ironing = ironing.filter((id) => id !== item.entityId);
+              }
+            }
+          }
+
           await this.storage.saveLaundry({
-            washing: response.serverChanges.laundry.washingClothesIds,
-            ironing: response.serverChanges.laundry.ironingClothesIds,
+            washing,
+            ironing,
           });
+        }
+
+        if (response.serverChanges.outfits?.length && this.storage.saveOutfits) {
+          await this.storage.saveOutfits(response.serverChanges.outfits);
+        }
+        if (response.serverChanges.deletedOutfitIds?.length && this.storage.removeOutfits) {
+          await this.storage.removeOutfits(response.serverChanges.deletedOutfitIds);
         }
 
         this.notifyDataChanged();
@@ -368,6 +418,7 @@ export class SyncService {
   private buildSyncPayload(lastSyncAt: string | null, queue: SyncQueueItem[]): SyncPayloadDto {
     const clothesMap = new Map<string, ClothesSyncInput>();
     const refMap = new Map<string, ReferenceDataSyncInput>();
+    const outfitMap = new Map<string, OutfitSyncInput>();
     const laundryInput: LaundrySyncInput = {
       washing: { added: [], removed: [] },
       ironing: { added: [], removed: [] },
@@ -435,6 +486,53 @@ export class SyncService {
           target.removed = Array.from(new Set([...(target.removed ?? []), item.entityId]));
           target.added = (target.added ?? []).filter((id) => id !== item.entityId);
         }
+      } else if (item.entityType === 'outfits') {
+        const existing = outfitMap.get(item.entityId) ?? {
+          id: item.entityId,
+          updatedAt: item.updatedAt,
+          deleted: false,
+        };
+
+        if (item.action === 'delete') {
+          existing.deleted = true;
+          existing.updatedAt = item.updatedAt;
+        } else {
+          existing.deleted = false;
+          existing.updatedAt = item.updatedAt;
+          if (item.data) {
+            if (item.data['name'] !== undefined) {
+              existing.name = String(item.data['name']);
+            }
+            if (item.data['description'] !== undefined) {
+              existing.description = item.data['description'] as string | null;
+            }
+            if (item.data['canvasLayout'] !== undefined) {
+              existing.canvasLayout = item.data['canvasLayout'] as any;
+            }
+            if (Array.isArray(item.data['clothesIds'])) {
+              existing.clothesIds = item.data['clothesIds'] as string[];
+            }
+            if (Array.isArray(item.data['season_ids'])) {
+              existing.season_ids = item.data['season_ids'] as string[];
+            }
+            if (Array.isArray(item.data['temperature_ids'])) {
+              existing.temperature_ids = item.data['temperature_ids'] as string[];
+            }
+            if (Array.isArray(item.data['use_case_ids'])) {
+              existing.use_case_ids = item.data['use_case_ids'] as string[];
+            }
+          }
+          if (item.fields) {
+            existing.fields = { ...(existing.fields ?? {}), ...item.fields };
+            if (item.fields['name']) {
+              existing.name = String((item.fields['name'] as FieldUpdate)?.value ?? item.fields['name']);
+            }
+            if (item.fields['clothesIds']) {
+              existing.clothesIds = (item.fields['clothesIds'] as FieldUpdate)?.value as string[];
+            }
+          }
+        }
+        outfitMap.set(item.entityId, existing);
       }
     }
 
@@ -445,6 +543,7 @@ export class SyncService {
         clothes: Array.from(clothesMap.values()),
         referenceData: Array.from(refMap.values()),
         laundry: laundryInput,
+        outfits: Array.from(outfitMap.values()),
       },
     };
   }
@@ -529,6 +628,72 @@ export class SyncService {
       action,
       entityId: clothesId,
       updatedAt: timestamp,
+      deleted: action === 'delete',
+    };
+
+    await this.storage.enqueue(queueItem);
+    this.pendingCount.update((count) => count + 1);
+    this.notifyDataChanged();
+
+    if (this.isOnline()) {
+      void this.sync();
+    }
+  }
+
+  async queueLaundryChanges(
+    type: 'washing' | 'ironing',
+    clothesIds: string[],
+    action: 'create' | 'delete',
+  ): Promise<void> {
+    if (!clothesIds.length) return;
+
+    const timestamp = new Date().toISOString();
+    const queueItems: SyncQueueItem[] = clothesIds.map((clothesId) => ({
+      id: crypto.randomUUID ? crypto.randomUUID() : `queue_${Date.now()}_${Math.random()}`,
+      entityType: 'laundry',
+      kind: type,
+      action,
+      entityId: clothesId,
+      updatedAt: timestamp,
+      deleted: action === 'delete',
+    }));
+
+    if (this.storage.enqueueBatch) {
+      await this.storage.enqueueBatch(queueItems);
+    } else {
+      for (const item of queueItems) {
+        await this.storage.enqueue(item);
+      }
+    }
+    this.pendingCount.update((count) => count + queueItems.length);
+    this.notifyDataChanged();
+
+    if (this.isOnline()) {
+      void this.sync();
+    }
+  }
+
+  async queueOutfitChange(
+    outfitId: string,
+    action: 'create' | 'update' | 'delete',
+    data?: { name?: string; clothesIds?: string[]; [key: string]: unknown },
+  ): Promise<void> {
+    const timestamp = new Date().toISOString();
+    const formattedFields: Record<string, FieldUpdate> = {};
+    if (data) {
+      for (const [k, v] of Object.entries(data)) {
+        formattedFields[k] = { value: v, updatedAt: timestamp };
+      }
+    }
+
+    const queueItem: SyncQueueItem = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `queue_${Date.now()}_${Math.random()}`,
+      entityType: 'outfits',
+      action,
+      entityId: outfitId,
+      updatedAt: timestamp,
+      data,
+      fields: formattedFields,
       deleted: action === 'delete',
     };
 

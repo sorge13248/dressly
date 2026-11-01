@@ -532,6 +532,12 @@ export class ClothesService implements OnModuleInit {
     const repository = this.dataSource.getRepository(Clothes);
     const item = await repository.findOne({ where: { id, userId: user.id } as never });
     if (!item) throw new NotFoundException();
+    await this.dataSource
+      .createQueryBuilder()
+      .delete()
+      .from('outfit_clothes')
+      .where('clothesId = :id', { id })
+      .execute();
     await repository.remove(item);
     await this.dataSource.getRepository(SyncTombstone).save({
       userId: user.id,

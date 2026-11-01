@@ -29,6 +29,9 @@ describe('SyncService', () => {
     saveReferenceData: ReturnType<typeof vi.fn>;
     removeReferenceData: ReturnType<typeof vi.fn>;
     saveLaundry: ReturnType<typeof vi.fn>;
+    saveOutfits: ReturnType<typeof vi.fn>;
+    removeOutfits: ReturnType<typeof vi.fn>;
+    clearOutfits: ReturnType<typeof vi.fn>;
   };
 
   const dummyResponse: SyncResponseDto = {
@@ -52,7 +55,8 @@ describe('SyncService', () => {
     },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
     mockApi = {
       sync: vi.fn().mockReturnValue(of(dummyResponse)),
     };
@@ -79,6 +83,9 @@ describe('SyncService', () => {
       saveReferenceData: vi.fn().mockResolvedValue(undefined),
       removeReferenceData: vi.fn().mockResolvedValue(undefined),
       saveLaundry: vi.fn().mockResolvedValue(undefined),
+      saveOutfits: vi.fn().mockResolvedValue(undefined),
+      removeOutfits: vi.fn().mockResolvedValue(undefined),
+      clearOutfits: vi.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
@@ -91,6 +98,11 @@ describe('SyncService', () => {
     });
 
     service = TestBed.inject(SyncService);
+    await service.init();
+  });
+
+  afterEach(() => {
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
   });
 
   it('should initialize and set status to online-ok when online and no conflicts', async () => {

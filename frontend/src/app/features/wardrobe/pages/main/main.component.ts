@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { FormField, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Dialog } from '@angular/cdk/dialog';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
@@ -10,10 +11,12 @@ import { LaundryService } from '../../../../core/laundry.service';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
-import { AttachmentItem, ClothesFilters, ClothesItem } from '../../../../core/models';
+import { AttachmentItem, ClothesFilters, ClothesItem, OutfitDetailResponse } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
+import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
+import { ClothesCardComponent } from '../../components/clothes-card/clothes-card.component';
 
 interface FilterPillOption {
   id: string;
@@ -75,7 +78,15 @@ const initialFilters = (query: Record<string, string>) => {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormField, RouterLink, ButtonComponent, WashingIconComponent, IroningIconComponent],
+  imports: [
+    CommonModule,
+    FormField,
+    RouterLink,
+    ButtonComponent,
+    WashingIconComponent,
+    IroningIconComponent,
+    ClothesCardComponent,
+  ],
   templateUrl: './main.component.html',
   styleUrl: './main.component.scss',
 })
@@ -87,6 +98,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(Dialog);
   readonly selectionService = inject(WardrobeSelectionService);
   readonly laundryService = inject(LaundryService);
   private debounceHandle: ReturnType<typeof setTimeout> | null = null;
@@ -702,6 +714,27 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
 
   clearSelection() {
     this.selectionService.clear();
+  }
+
+  async onOpenOutfitModal() {
+    const ids = this.selectionService.selectedIds();
+    if (ids.length === 0) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open<OutfitDetailResponse | null>(OutfitSelectModalComponent, {
+      data: {
+        clothesIds: ids,
+      },
+    });
+
+    const result = await firstValueFrom(dialogRef.closed);
+    if (result) {
+      this.selectionService.clear();
+      this.toast.success(
+        `Capi aggiunti all'abbinamento "${result.name}"`,
+      );
+    }
   }
 
   async onAddToWashing() {

@@ -19,15 +19,18 @@ import { WashingInstruction } from './entities/washing-instruction.entity';
 import { SyncTombstone } from './entities/sync-tombstone.entity';
 import { WashingItem } from './entities/washing-item.entity';
 import { IroningItem } from './entities/ironing-item.entity';
+import { Outfit } from './entities/outfit.entity';
 import { AuthController } from './auth.controller';
 import { BearerJwtGuard } from './common/auth/bearer-jwt.guard';
 import { CurrentUserController } from './controllers/current-user.controller';
 import { ClothesController } from './controllers/clothes.controller';
+import { OutfitsController } from './controllers/outfits.controller';
 import { SyncController } from './controllers/sync.controller';
 import { HealthController } from './health.controller';
 import { PublicController } from './public.controller';
 import { ReferenceDataController } from './controllers/reference-data.controller';
 import { ClothesService } from './services/clothes.service';
+import { OutfitsService } from './services/outfits.service';
 import { ReferenceDataService } from './services/reference-data.service';
 import { SyncService } from './services/sync.service';
 import { UsersService } from './services/users.service';
@@ -56,6 +59,7 @@ import { UsersService } from './services/users.service';
         WashingInstruction,
         WashingItem,
         IroningItem,
+        Outfit,
         SyncTombstone,
       ],
       autoLoadEntities: process.env.DB_AUTO_LOAD_ENTITIES !== 'false',
@@ -70,8 +74,9 @@ import { UsersService } from './services/users.service';
     CurrentUserController,
     ReferenceDataController,
     ClothesController,
+    OutfitsController,
     SyncController,
   ],
-  providers: [BearerJwtGuard, UsersService, ReferenceDataService, ClothesService, SyncService],
+  providers: [BearerJwtGuard, UsersService, ReferenceDataService, ClothesService, OutfitsService, SyncService],
 })
 export class AppModule {}

@@ -56,10 +56,13 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
     const navPillItems = fixture.nativeElement.querySelectorAll('.main-nav.nav-pill .nav-pill-item');
-    expect(navPillItems.length).toBe(4);
+    expect(navPillItems.length).toBe(5);
 
-    const labels = fixture.nativeElement.querySelectorAll('.main-nav.nav-pill .nav-pill-label');
-    expect(labels.length).toBe(4);
+    const labels = Array.from(fixture.nativeElement.querySelectorAll('.main-nav.nav-pill .nav-pill-label')).map(
+      (el: any) => el.textContent.trim(),
+    );
+    expect(labels.length).toBe(5);
+    expect(labels).toEqual(['Guardaroba', 'Abbinamenti', 'Lavatrice', 'Stiratura', 'Domini']);
   });
 
   it('should toggle menu-open class on main-topbar when mobile menu is toggled', () => {

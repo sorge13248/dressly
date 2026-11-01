@@ -26,6 +26,18 @@
           <button
             type="button"
             class="toolbar-action-btn primary-action"
+            (click)="onOpenOutfitModal()"
+            title="Crea o aggiungi ad un abbinamento"
+          >
+            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 18px; height: 18px;">
+              <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+            </svg>
+            <span>Abbina...</span>
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-action-btn primary-action"
             (click)="onAddToWashing()"
             title="Metti a lavare i vestiti selezionati"
           >
@@ -114,151 +126,16 @@
       } @else {
         <section class="cards-grid">
           @for (item of items(); track trackById($index, item)) {
-            <a
-              class="item-card"
-              [class.selected]="selectionService.isSelected(item.id)"
-              [routerLink]="[item.id]"
-              [attr.data-item-id]="item.id"
-              [attr.aria-label]="'Apri dettaglio ' + getPreferredLabel(item)"
-            >
-              <div class="thumb">
-                <label
-                  class="card-select-label"
-                  (click)="$event.stopPropagation()"
-                  [attr.aria-label]="'Seleziona ' + getPreferredLabel(item)"
-                >
-                  <input
-                    type="checkbox"
-                    class="aero-checkbox-input"
-                    [checked]="selectionService.isSelected(item.id)"
-                    (change)="toggleSelection(item.id, $event)"
-                    (click)="$event.stopPropagation()"
-                  />
-                  <span class="aero-checkbox" aria-hidden="true">
-                    <svg class="aero-check-icon" viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M3.5 8.5L6.5 11.5L12.5 4.5"
-                        stroke="currentColor"
-                        stroke-width="2.3"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </span>
-                </label>
-
-                @if (item.isInWashing || item.isInIroning) {
-                  <div class="card-status-badges">
-                    @if (item.isInWashing) {
-                      <span class="status-badge status-badge--washing" title="In lavatrice" aria-label="In lavatrice">
-                        <app-washing-icon [size]="14" [strokeWidth]="2" />
-                      </span>
-                    }
-                    @if (item.isInIroning) {
-                      <span class="status-badge status-badge--ironing" title="Da stirare" aria-label="Da stirare">
-                        <app-ironing-icon [size]="14" [strokeWidth]="2" />
-                      </span>
-                    }
-                  </div>
-                }
-
-                @if (getPrimaryAttachment(item); as attachment) {
-                  <img
-                    [src]="getAttachmentUrl(item, attachment)"
-                    [alt]="getPreferredLabel(item)"
-                    loading="lazy"
-                  />
-                } @else {
-                  <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
-                }
-              </div>
-
-              <div class="card-body">
-                <div class="card-top">
-                  <div>
-                    <p class="brand">{{ item.brand?.name || 'Marchio non assegnato' }}</p>
-                    <h3>{{ getPreferredLabel(item) }}</h3>
-                  </div>
-
-                  @if (item.size) {
-                    <div class="size-pill">{{ item.size }}</div>
-                  }
-                </div>
-                <div class="meta-line">
-                  @if (item.fit?.name) {
-                    <span class="meta-chip">{{ item.fit?.name }}</span>
-                  }
-                  @if (hasItems(item.colors)) {
-                    <span
-                      class="meta-chip meta-chip--group"
-                      [title]="'Colori: ' + listItemNames(item.colors)"
-                      [attr.aria-label]="'Colori: ' + listItemNames(item.colors)"
-                    >
-                      @for (color of item.colors ?? []; track color.id) {
-                        <span
-                          class="meta-dot"
-                          [style.--dot-color]="resolveColorHex(color.hexCode)"
-                          [title]="color.name"
-                          [attr.aria-label]="'Colore ' + color.name"
-                          aria-hidden="true"
-                        ></span>
-                      }
-                    </span>
-                  }
-                  @if (hasItems(item.seasons)) {
-                    <span
-                      class="meta-chip meta-chip--group meta-chip--emoji-group"
-                      [title]="'Stagioni: ' + listItemNames(item.seasons)"
-                      [attr.aria-label]="'Stagioni: ' + listItemNames(item.seasons)"
-                    >
-                      @for (season of item.seasons ?? []; track season.id) {
-                        <span aria-hidden="true">{{ season.icon || '🗓️' }}</span>
-                      }
-                    </span>
-                  }
-                  @if (hasItems(item.temperatures)) {
-                    <span
-                      class="meta-chip meta-chip--group meta-chip--emoji-group"
-                      [title]="'Temperature: ' + listItemNames(item.temperatures)"
-                      [attr.aria-label]="'Temperature: ' + listItemNames(item.temperatures)"
-                    >
-                      @for (temperature of item.temperatures ?? []; track temperature.id) {
-                        <span aria-hidden="true">{{ temperature.icon || '🌡️' }}</span>
-                      }
-                    </span>
-                  }
-                </div>
-
-                @if (item.notes?.trim()) {
-                  <p class="notes">{{ item.notes }}</p>
-                }
-
-                <div class="card-quick-actions" (click)="$event.stopPropagation()">
-                  <button
-                    type="button"
-                    class="quick-action-btn"
-                    [class.active-washing]="item.isInWashing"
-                    [disabled]="isActionPending(item.id)"
-                    (click)="toggleWashing(item, $event)"
-                    [title]="item.isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare'"
-                    [attr.aria-label]="item.isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare'"
-                  >
-                    <app-washing-icon class="quick-icon" [size]="18" />
-                  </button>
-                  <button
-                    type="button"
-                    class="quick-action-btn"
-                    [class.active-ironing]="item.isInIroning"
-                    [disabled]="isActionPending(item.id)"
-                    (click)="toggleIroning(item, $event)"
-                    [title]="item.isInIroning ? 'Togli da stirare' : 'Metti a stirare'"
-                    [attr.aria-label]="item.isInIroning ? 'Togli da stirare' : 'Metti a stirare'"
-                  >
-                    <app-ironing-icon class="quick-icon" [size]="18" />
-                  </button>
-                </div>
-              </div>
-            </a>
+            <app-clothes-card
+              [item]="item"
+              [selectable]="true"
+              [selected]="selectionService.isSelected(item.id)"
+              [actionPending]="isActionPending(item.id)"
+              linkPrefix="/wardrobe"
+              (selectionChange)="toggleSelection($event.id, $event.event)"
+              (washingClick)="toggleWashing($event.item, $event.event)"
+              (ironingClick)="toggleIroning($event.item, $event.event)"
+            />
           }
         </section>
       }
