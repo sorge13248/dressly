@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
 import { ToastService } from '../../../../core/toast.service';
 import { IroningClothesItem } from '../../../../core/models';
@@ -17,7 +18,8 @@ import { ButtonComponent } from '../../../../shared/components/button';
   styleUrl: './ironing.component.scss',
 })
 export class IroningPageComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService);
+  private readonly syncService = inject(SyncService);
   private readonly router = inject(Router);
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
@@ -47,6 +49,13 @@ export class IroningPageComponent implements OnInit {
 
   readonly totalCount = computed(() => this.items().length);
 
+  constructor() {
+    effect(() => {
+      this.syncService.dataUpdated();
+      void this.load();
+    });
+  }
+
   ngOnInit() {
     void this.load();
   }
@@ -56,8 +65,7 @@ export class IroningPageComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const response = await firstValueFrom(this.api.getClothesForIroning());
-      const loadedItems = response?.items ?? [];
+      const loadedItems = await this.storage.getClothesForIroning();
       this.items.set(loadedItems);
       this.laundryService.setIroningCount(loadedItems.length);
     } catch (err) {
@@ -75,7 +83,8 @@ export class IroningPageComponent implements OnInit {
     void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'remove');
 
     try {
-      await firstValueFrom(this.api.removeFromIroning(item.id));
+      await this.storage.removeFromIroning(item.id);
+      await this.syncService.queueLaundryChange('ironing', item.id, 'delete');
       this.items.update((list) => list.filter((i) => i.id !== item.id));
       void this.laundryService.refreshCounts('ironing', 'remove');
       this.toast.success('Capo segnato come stirato');
@@ -100,7 +109,11 @@ export class IroningPageComponent implements OnInit {
     }
 
     try {
-      await firstValueFrom(this.api.clearIroning());
+      const laundry = await this.storage.getLaundry();
+      await this.storage.clearIroning();
+      for (const id of laundry.ironing) {
+        await this.syncService.queueLaundryChange('ironing', id, 'delete');
+      }
       this.items.set([]);
       this.laundryService.updateIroningCount(0, 'slide-down');
       this.toast.success('Lista stiratura svuotata');

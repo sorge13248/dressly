@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { SyncService } from '../../../../core/sync.service';
 import { WardrobePageComponent } from './main.component';
 import { ClothesItem } from '../../../../core/models';
 
@@ -226,11 +227,11 @@ describe('WardrobePageComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/wardrobe/ironing']);
   });
 
-  it('should call addToWashing when "Metti a lavare" button is clicked', async () => {
+  it('should call queueLaundryChange when "Metti a lavare" button is clicked', async () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     const component = fixture.componentInstance;
-    const api = TestBed.inject(ApiService);
-    const addSpy = vi.spyOn(api, 'addToWashing').mockReturnValue(of({ added: 2, existing: 0, total: 2 }));
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
 
     component.selectionService.clear();
     component.selectionService.selectMany(['item-1', 'item-2']);
@@ -238,15 +239,16 @@ describe('WardrobePageComponent', () => {
 
     await component.onAddToWashing();
 
-    expect(addSpy).toHaveBeenCalledWith(['item-1', 'item-2']);
+    expect(queueSpy).toHaveBeenCalledWith('washing', 'item-1', 'create');
+    expect(queueSpy).toHaveBeenCalledWith('washing', 'item-2', 'create');
   });
 
   it('should render quick action buttons on card and toggle washing when clicked', async () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     const component = fixture.componentInstance;
-    const api = TestBed.inject(ApiService);
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
     vi.spyOn(component, 'load').mockImplementation(async () => {});
-    const addWashingSpy = vi.spyOn(api, 'addToWashing').mockReturnValue(of({ added: 1, existing: 0, total: 1 }));
 
     const fakeItem = {
       id: 'item-wash-1',
@@ -280,16 +282,16 @@ describe('WardrobePageComponent', () => {
 
     expect(stopPropagationSpy).toHaveBeenCalled();
     expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(addWashingSpy).toHaveBeenCalledWith(['item-wash-1']);
+    expect(queueSpy).toHaveBeenCalledWith('washing', 'item-wash-1', 'create');
     expect(component.items()[0].isInWashing).toBe(true);
   });
 
-  it('should call removeFromWashing when clicking washing button on an item in washing', async () => {
+  it('should call queueLaundryChange when clicking washing button on an item in washing', async () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     const component = fixture.componentInstance;
-    const api = TestBed.inject(ApiService);
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
     vi.spyOn(component, 'load').mockImplementation(async () => {});
-    const removeWashingSpy = vi.spyOn(api, 'removeFromWashing').mockReturnValue(of({ removed: true }));
 
     const fakeItem = {
       id: 'item-wash-2',
@@ -317,17 +319,16 @@ describe('WardrobePageComponent', () => {
     await component.toggleWashing(fakeItem, clickEvent);
     fixture.detectChanges();
 
-    expect(removeWashingSpy).toHaveBeenCalledWith('item-wash-2');
+    expect(queueSpy).toHaveBeenCalledWith('washing', 'item-wash-2', 'delete');
     expect(component.items()[0].isInWashing).toBe(false);
   });
 
   it('should toggle ironing when clicking ironing quick action button', async () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     const component = fixture.componentInstance;
-    const api = TestBed.inject(ApiService);
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
     vi.spyOn(component, 'load').mockImplementation(async () => {});
-    const addIroningSpy = vi.spyOn(api, 'addToIroning').mockReturnValue(of({ added: 1, existing: 0, total: 1 }));
-    const removeIroningSpy = vi.spyOn(api, 'removeFromIroning').mockReturnValue(of({ removed: true }));
 
     const fakeItem = {
       id: 'item-iron-1',
@@ -354,7 +355,7 @@ describe('WardrobePageComponent', () => {
     await component.toggleIroning(fakeItem, clickEvent);
     fixture.detectChanges();
 
-    expect(addIroningSpy).toHaveBeenCalledWith(['item-iron-1']);
+    expect(queueSpy).toHaveBeenCalledWith('ironing', 'item-iron-1', 'create');
     expect(component.items()[0].isInIroning).toBe(true);
 
     // Now remove
@@ -362,7 +363,7 @@ describe('WardrobePageComponent', () => {
     await component.toggleIroning(updatedItem, clickEvent);
     fixture.detectChanges();
 
-    expect(removeIroningSpy).toHaveBeenCalledWith('item-iron-1');
+    expect(queueSpy).toHaveBeenCalledWith('ironing', 'item-iron-1', 'delete');
     expect(component.items()[0].isInIroning).toBe(false);
   });
 

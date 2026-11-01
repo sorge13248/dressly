@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { ToastStackComponent } from '../../shared/components/toast-stack/toast-stack.component';
+import { SyncIndicatorComponent } from '../../shared/components/sync-indicator/sync-indicator.component';
 import { WashingIconComponent, IroningIconComponent } from '../../shared/components/icons';
 
 @Component({
@@ -16,6 +17,7 @@ import { WashingIconComponent, IroningIconComponent } from '../../shared/compone
     RouterLinkActive,
     RouterOutlet,
     ToastStackComponent,
+    SyncIndicatorComponent,
     WashingIconComponent,
     IroningIconComponent,
   ],

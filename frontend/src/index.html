@@ -4,8 +4,34 @@
     <meta charset="utf-8" />
     <title>Dressly</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Responsive Viewport with Safe Area coverage for iOS Notch & Dynamic Island -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- Color Scheme & Theme Color for iOS Safari & Android Chrome -->
     <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#2c7cd7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a3d7a" media="(prefers-color-scheme: dark)" />
+
+    <!-- Web App Manifest (Standard PWA for Android, Chrome, Edge, Safari 16.4+) -->
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <!-- iOS / Safari WebClip & PWA Specific Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dressly" />
+    <meta name="application-name" content="Dressly" />
+
+    <!-- Apple Touch Icons (iOS Home Screen) -->
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167x167.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180x180.png" />
+
+    <!-- Standard Favicons & App Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png" />
     <link rel="icon" type="image/webp" href="assets/logo.webp" />
   </head>
   <body>

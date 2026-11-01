@@ -18,6 +18,8 @@ import { FormField, form, max, min, minLength, pattern } from '@angular/forms/si
 import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { ClothesItem } from '../../../../core/models';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
@@ -222,6 +224,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService, { optional: true });
+  private readonly syncService = inject(SyncService, { optional: true });
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(Dialog);
   readonly referenceStore = inject(ReferenceStoreService);
@@ -448,68 +452,91 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
     try {
       const payload = this.buildPayload();
-      const saved = this.editingId()
-        ? await firstValueFrom(this.api.updateClothes(this.editingId()!, payload))
-        : await firstValueFrom(this.api.createClothes(payload));
+      const isEdit = Boolean(this.editingId());
+      const clothesId =
+        this.editingId() || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `clothes_${Date.now()}`);
 
-      const clothesId = saved?.id;
-      if (!clothesId) {
-        throw new Error('Impossibile recuperare l id del capo salvato');
+      // 1. Local-First: Save directly and only to local storage (IndexedDB)
+      if (this.storage) {
+        const existing = isEdit ? await this.storage.getClothes(clothesId) : null;
+        const localItem: ClothesItem = {
+          ...(existing ?? ({} as ClothesItem)),
+          id: clothesId,
+          name: (payload['name'] as string) ?? null,
+          size: (payload['size'] as string) ?? null,
+          notes: (payload['notes'] as string) ?? null,
+          updatedAt: new Date().toISOString(),
+          createdAt: existing?.createdAt ?? new Date().toISOString(),
+          userId: existing?.userId ?? '',
+        };
+        await this.storage.saveClothes([localItem]);
       }
 
-      // 1. Delete removed existing attachments
-      for (const attachmentId of this.attachmentsToDelete()) {
-        try {
-          await firstValueFrom(this.api.deleteAttachment(clothesId, attachmentId));
-        } catch {
-          // ignore error if attachment already gone
+      // 2. Queue mutation in SyncService (SyncService handles sync to server in background when online)
+      if (this.syncService) {
+        await this.syncService.queueClothesChange(clothesId, isEdit ? 'update' : 'create', payload);
+      }
+
+      // 3. Attachments handling (upload/delete if online)
+      const isOnline = this.syncService ? !this.syncService.checkIsOffline() : (typeof navigator !== 'undefined' && navigator.onLine);
+      if (isOnline) {
+        for (const attachmentId of this.attachmentsToDelete()) {
+          try {
+            await firstValueFrom(this.api.deleteAttachment(clothesId, attachmentId));
+          } catch {
+            // ignore
+          }
         }
-      }
 
-      // 2. Upload pending attachments with progress
-      const pendingPhotos = this.allPhotos().filter((photo) => photo.source === 'pending' && photo.file);
-      const uploadedMap = new Map<string, string>();
+        const pendingPhotos = this.allPhotos().filter((photo) => photo.source === 'pending' && photo.file);
+        const uploadedMap = new Map<string, string>();
 
-      if (pendingPhotos.length > 0) {
-        this.uploadProgress.set({
-          total: pendingPhotos.length,
-          current: 0,
-          percent: 0,
-          currentFileName: '',
-        });
-
-        for (let i = 0; i < pendingPhotos.length; i++) {
-          const photo = pendingPhotos[i];
+        if (pendingPhotos.length > 0) {
           this.uploadProgress.set({
             total: pendingPhotos.length,
-            current: i + 1,
+            current: 0,
             percent: 0,
-            currentFileName: photo.name,
+            currentFileName: '',
           });
 
-          const uploadedId = await this.uploadSinglePhoto(clothesId, photo);
-          if (uploadedId) {
-            uploadedMap.set(photo.id, uploadedId);
+          for (let i = 0; i < pendingPhotos.length; i++) {
+            const photo = pendingPhotos[i];
+            this.uploadProgress.set({
+              total: pendingPhotos.length,
+              current: i + 1,
+              percent: 0,
+              currentFileName: photo.name,
+            });
+
+            const uploadedId = await this.uploadSinglePhoto(clothesId, photo);
+            if (uploadedId) {
+              uploadedMap.set(photo.id, uploadedId);
+            }
+          }
+        }
+
+        const finalOrderedIds: string[] = [];
+        for (const photo of this.allPhotos()) {
+          if (photo.source === 'existing') {
+            finalOrderedIds.push(photo.id);
+          } else if (uploadedMap.has(photo.id)) {
+            finalOrderedIds.push(uploadedMap.get(photo.id)!);
+          }
+        }
+
+        if (finalOrderedIds.length > 0) {
+          try {
+            await firstValueFrom(this.api.reorderAttachments(clothesId, finalOrderedIds));
+          } catch {
+            // ignore
           }
         }
       }
 
-      // 3. Reorder attachments according to current allPhotos() order
-      const finalOrderedIds: string[] = [];
-      for (const photo of this.allPhotos()) {
-        if (photo.source === 'existing') {
-          finalOrderedIds.push(photo.id);
-        } else if (uploadedMap.has(photo.id)) {
-          finalOrderedIds.push(uploadedMap.get(photo.id)!);
-        }
-      }
-
-      if (finalOrderedIds.length > 0) {
-        await firstValueFrom(this.api.reorderAttachments(clothesId, finalOrderedIds));
-      }
-
       this.uploadProgress.set(null);
       this.skipUnsavedGuard = true;
+      this.saving.set(false);
+      this.toast.success(isEdit ? 'Capo aggiornato!' : 'Capo salvato!');
 
       const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
       if (callbackUrl) {
@@ -1110,11 +1137,16 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   async loadClothes(id: string) {
     this.loading.set(true);
     try {
-      const clothes = await firstValueFrom(this.api.getClothes(id));
-      if (clothes) {
-        this.patchForms(clothes);
-        this.initialSnapshot.set(this.takeSnapshot());
+      if (this.storage) {
+        const cached = await this.storage.getClothes(id);
+        if (cached) {
+          this.patchForms(cached);
+          this.initialSnapshot.set(this.takeSnapshot());
+          return;
+        }
       }
+    } catch {
+      // graceful fallback
     } finally {
       this.loading.set(false);
     }

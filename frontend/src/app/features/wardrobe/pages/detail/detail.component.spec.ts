@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { SyncService } from '../../../../core/sync.service';
 import { WardrobeDetailPageComponent } from './detail.component';
 
 describe('WardrobeDetailPageComponent', () => {
@@ -163,9 +164,8 @@ describe('WardrobeDetailPageComponent', () => {
   it('should toggle washing status when toggleWashing is called', async () => {
     const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
     const comp = fixture.componentInstance;
-    const api = TestBed.inject(ApiService);
-    const addSpy = vi.spyOn(api, 'addToWashing').mockReturnValue(of({ added: 1, existing: 0, total: 1 }));
-    const removeSpy = vi.spyOn(api, 'removeFromWashing').mockReturnValue(of({ removed: true }));
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
 
     comp.item.set({
       id: 'cloth-1',
@@ -180,21 +180,20 @@ describe('WardrobeDetailPageComponent', () => {
 
     // When not in washing: adds to washing
     await comp.toggleWashing();
-    expect(addSpy).toHaveBeenCalledWith(['cloth-1']);
+    expect(queueSpy).toHaveBeenCalledWith('washing', 'cloth-1', 'create');
     expect(comp.isInWashing()).toBe(true);
 
     // When already in washing: removes from washing
     await comp.toggleWashing();
-    expect(removeSpy).toHaveBeenCalledWith('cloth-1');
+    expect(queueSpy).toHaveBeenCalledWith('washing', 'cloth-1', 'delete');
     expect(comp.isInWashing()).toBe(false);
   });
 
   it('should toggle ironing status when toggleIroning is called', async () => {
     const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
     const comp = fixture.componentInstance;
-    const api = TestBed.inject(ApiService);
-    const addSpy = vi.spyOn(api, 'addToIroning').mockReturnValue(of({ added: 1, existing: 0, total: 1 }));
-    const removeSpy = vi.spyOn(api, 'removeFromIroning').mockReturnValue(of({ removed: true }));
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
 
     comp.item.set({
       id: 'cloth-2',
@@ -209,12 +208,12 @@ describe('WardrobeDetailPageComponent', () => {
 
     // When not in ironing: adds to ironing
     await comp.toggleIroning();
-    expect(addSpy).toHaveBeenCalledWith(['cloth-2']);
+    expect(queueSpy).toHaveBeenCalledWith('ironing', 'cloth-2', 'create');
     expect(comp.isInIroning()).toBe(true);
 
     // When already in ironing: removes from ironing
     await comp.toggleIroning();
-    expect(removeSpy).toHaveBeenCalledWith('cloth-2');
+    expect(queueSpy).toHaveBeenCalledWith('ironing', 'cloth-2', 'delete');
     expect(comp.isInIroning()).toBe(false);
   });
 });

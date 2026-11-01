@@ -1,0 +1,123 @@
+<div class="sync-indicator-container">
+  <button
+    type="button"
+    class="sync-pill"
+    [class.is-open]="dropdownOpen()"
+    [class.status-syncing]="status() === 'syncing'"
+    [class.status-online-ok]="status() === 'online-ok'"
+    [class.status-offline]="status() === 'offline'"
+    [class.status-conflict]="status() === 'conflict'"
+    [attr.title]="tooltip()"
+    [attr.aria-label]="tooltip()"
+    [attr.aria-expanded]="dropdownOpen()"
+    aria-haspopup="true"
+    (click)="toggleDropdown($event)"
+  >
+    @if (status() === 'syncing') {
+      <!-- Spinner per sincronizzazione in corso -->
+      <svg class="sync-icon icon-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.25)" />
+        <path d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" />
+      </svg>
+    } @else if (status() === 'online-ok') {
+      <!-- Frecce circolari verdi: sincronizzazione in linea OK -->
+      <svg class="sync-icon icon-ok" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 3v5h-5" />
+        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+        <path d="M3 21v-5h5" />
+        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+      </svg>
+    } @else if (status() === 'offline') {
+      <!-- Nuvola sbarrata grigia: manca la connessione -->
+      <svg class="sync-icon icon-offline" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m2 2 20 20" />
+        <path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193" />
+        <path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07" />
+      </svg>
+    } @else if (status() === 'conflict') {
+      <!-- Icona di errore rossa: conflitto di sincronizzazione -->
+      <svg class="sync-icon icon-conflict" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    }
+
+    @if (pendingCount() > 0) {
+      <span class="pending-badge" [attr.aria-label]="pendingCount() + ' modifiche in attesa'">
+        {{ pendingCount() }}
+      </span>
+    }
+  </button>
+
+  @if (dropdownOpen()) {
+    <div class="sync-dropdown" role="menu" aria-label="Menu opzioni sincronizzazione">
+      <div class="dropdown-header">
+        <div class="status-indicator-row">
+          <span class="status-dot" [class]="'dot-' + status()"></span>
+          <span class="status-text">{{ statusLabel() }}</span>
+        </div>
+        @if (pendingCount() > 0) {
+          <span class="pending-tag">
+            {{ pendingCount() }} {{ pendingCount() === 1 ? 'in attesa' : 'in attesa' }}
+          </span>
+        }
+      </div>
+
+      <div class="last-sync-block">
+        <div class="last-sync-label">
+          <svg class="clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span>Ultima sincronizzazione</span>
+        </div>
+        <div class="last-sync-value">
+          {{ formattedLastSync() }}
+        </div>
+      </div>
+
+      <div class="dropdown-divider"></div>
+
+      <div class="dropdown-actions">
+        <button
+          type="button"
+          class="dropdown-action-btn sync-now-btn"
+          role="menuitem"
+          [disabled]="status() === 'syncing' || !isOnline()"
+          (click)="onSyncNow()"
+        >
+          <svg class="action-icon" [class.action-spin]="status() === 'syncing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 3v5h-5" />
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+            <path d="M3 21v-5h5" />
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+          </svg>
+          <div class="action-text-block">
+            <span class="action-title">Sincronizza ora</span>
+            <span class="action-desc">Invia le modifiche e scarica gli aggiornamenti</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          class="dropdown-action-btn download-server-btn"
+          role="menuitem"
+          [disabled]="status() === 'syncing' || !isOnline()"
+          (click)="onDownloadServerVersion()"
+        >
+          <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <div class="action-text-block">
+            <span class="action-title">Scarica versione server</span>
+            <span class="action-desc">Ripristina i dati locali con la versione remota</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  }
+</div>
+

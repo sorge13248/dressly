@@ -25,6 +25,8 @@ import {
   IroningClothesResponse,
   WashingClothesResponse,
   LaundryCountsResponse,
+  SyncPayloadDto,
+  SyncResponseDto,
 } from './models';
 
 type OidcMetadata = {
@@ -48,6 +50,18 @@ export class ApiService {
 
   getMe() {
     return this.http.get<{ id: string; subject: string; email: string | null; displayName: string }>('/api/me');
+  }
+
+  sync(payload: SyncPayloadDto): Observable<SyncResponseDto> {
+    return this.http.post<SyncResponseDto>('/api/sync', payload);
+  }
+
+  getSyncState(since?: string | null): Observable<SyncResponseDto> {
+    const params: Record<string, string> = {};
+    if (since) {
+      params['since'] = since;
+    }
+    return this.http.get<SyncResponseDto>('/api/sync', { params });
   }
 
   listClothes(filters: Partial<ClothesFilters>) {

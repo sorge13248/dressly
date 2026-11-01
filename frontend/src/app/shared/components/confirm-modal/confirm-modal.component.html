@@ -12,7 +12,8 @@
       type="button"
       appButton
       [variant]="data.confirmVariant === 'primary' ? 'primary' : 'danger'"
-      [class]="data.confirmVariant === 'primary' ? 'primary' : 'danger'"
+      [class.danger]="data.confirmVariant !== 'primary'"
+      [class.primary]="data.confirmVariant === 'primary'"
       (click)="confirm()"
     >
       {{ data.confirmLabel || 'Conferma' }}

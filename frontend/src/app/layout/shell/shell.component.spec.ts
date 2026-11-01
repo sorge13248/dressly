@@ -3,12 +3,23 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { AppShellComponent } from './shell.component';
 import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
+import { SyncService } from '../../core/sync.service';
+import { signal } from '@angular/core';
 
 describe('AppShellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppShellComponent, RouterTestingModule],
       providers: [
+        {
+          provide: SyncService,
+          useValue: {
+            status: signal('online-ok'),
+            pendingCount: signal(0),
+            conflicts: signal([]),
+            sync: () => Promise.resolve(null),
+          },
+        },
         {
           provide: ReferenceStoreService,
           useValue: {

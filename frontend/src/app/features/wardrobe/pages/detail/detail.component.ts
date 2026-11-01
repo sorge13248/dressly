@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
 import { ToastService } from '../../../../core/toast.service';
 import { AttachmentItem, ClothesItem } from '../../../../core/models';
@@ -46,7 +47,8 @@ type BuyDetailView = {
 export class WardrobeDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService, { optional: true });
+  private readonly syncService = inject(SyncService, { optional: true });
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
   readonly laundryService = inject(LaundryService);
@@ -54,6 +56,19 @@ export class WardrobeDetailPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
+
+  constructor() {
+    const sync = this.syncService;
+    if (sync) {
+      effect(() => {
+        sync.dataUpdated();
+        const id = this.route.snapshot.paramMap.get('id');
+        if (id) {
+          void this.load(id);
+        }
+      });
+    }
+  }
 
   readonly isInWashing = computed(() => Boolean(this.item()?.isInWashing));
   readonly isInIroning = computed(() => Boolean(this.item()?.isInIroning));
@@ -218,8 +233,18 @@ export class WardrobeDetailPageComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const item = await firstValueFrom(this.api.getClothes(id));
-      this.item.set(item ?? null);
+      if (this.storage) {
+        const cached = await this.storage.getClothes(id);
+        if (cached) {
+          const laundry = await this.storage.getLaundry();
+          const isInWashing = laundry.washing.includes(cached.id);
+          const isInIroning = laundry.ironing.includes(cached.id);
+          this.item.set({ ...cached, isInWashing, isInIroning });
+          return;
+        }
+      }
+      this.item.set(null);
+      this.error.set('Capo non trovato');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Impossibile caricare il capo');
     } finally {
@@ -235,29 +260,20 @@ export class WardrobeDetailPageComponent implements OnInit {
     const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
     void this.laundryService.animateFlyToNav(heroImg, 'washing', action);
 
-    if (current.isInWashing) {
-      try {
-        await firstValueFrom(this.api.removeFromWashing(current.id));
-        this.item.update((prev) => (prev ? { ...prev, isInWashing: false } : prev));
-        void this.laundryService.refreshCounts('washing', 'remove');
-        this.toast.success('Capo rimosso dalla lavatrice');
-      } catch {
-        this.toast.error('Errore durante la rimozione dalla lavatrice');
-      }
-    } else {
-      try {
-        const res = await firstValueFrom(this.api.addToWashing([current.id]));
-        this.item.update((prev) => (prev ? { ...prev, isInWashing: true } : prev));
-        void this.laundryService.refreshCounts('washing', 'add');
-        if (res.added > 0) {
-          this.toast.success('Capo aggiunto alla lavatrice');
-        } else {
-          this.toast.info('Il capo è già a lavare');
-        }
-      } catch {
-        this.toast.error('Errore durante l\'aggiunta alla lavatrice');
-      }
+    const nextState = !current.isInWashing;
+    this.item.update((prev) => (prev ? { ...prev, isInWashing: nextState } : prev));
+    if (this.storage) {
+      const cached = await this.storage.getLaundry();
+      const updatedList = nextState
+        ? [...new Set([...cached.washing, current.id])]
+        : cached.washing.filter((id) => id !== current.id);
+      await this.storage.saveLaundry({ ...cached, washing: updatedList });
     }
+    if (this.syncService) {
+      await this.syncService.queueLaundryChange('washing', current.id, nextState ? 'create' : 'delete');
+    }
+    void this.laundryService.refreshCounts('washing', action);
+    this.toast.success(nextState ? 'Capo aggiunto alla lavatrice' : 'Capo rimosso dalla lavatrice');
   }
 
   async toggleIroning() {
@@ -268,29 +284,20 @@ export class WardrobeDetailPageComponent implements OnInit {
     const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
     void this.laundryService.animateFlyToNav(heroImg, 'ironing', action);
 
-    if (current.isInIroning) {
-      try {
-        await firstValueFrom(this.api.removeFromIroning(current.id));
-        this.item.update((prev) => (prev ? { ...prev, isInIroning: false } : prev));
-        void this.laundryService.refreshCounts('ironing', 'remove');
-        this.toast.success('Capo rimosso dalla stiratura');
-      } catch {
-        this.toast.error('Errore durante la rimozione dalla stiratura');
-      }
-    } else {
-      try {
-        const res = await firstValueFrom(this.api.addToIroning([current.id]));
-        this.item.update((prev) => (prev ? { ...prev, isInIroning: true } : prev));
-        void this.laundryService.refreshCounts('ironing', 'add');
-        if (res.added > 0) {
-          this.toast.success('Capo aggiunto alla stiratura');
-        } else {
-          this.toast.info('Il capo è già da stirare');
-        }
-      } catch {
-        this.toast.error('Errore durante l\'aggiunta alla stiratura');
-      }
+    const nextState = !current.isInIroning;
+    this.item.update((prev) => (prev ? { ...prev, isInIroning: nextState } : prev));
+    if (this.storage) {
+      const cached = await this.storage.getLaundry();
+      const updatedList = nextState
+        ? [...new Set([...cached.ironing, current.id])]
+        : cached.ironing.filter((id) => id !== current.id);
+      await this.storage.saveLaundry({ ...cached, ironing: updatedList });
     }
+    if (this.syncService) {
+      await this.syncService.queueLaundryChange('ironing', current.id, nextState ? 'create' : 'delete');
+    }
+    void this.laundryService.refreshCounts('ironing', action);
+    this.toast.success(nextState ? 'Capo aggiunto alla stiratura' : 'Capo rimosso dalla stiratura');
   }
 
   edit() {
@@ -319,7 +326,14 @@ export class WardrobeDetailPageComponent implements OnInit {
       return;
     }
 
-    await firstValueFrom(this.api.deleteClothes(id));
+    // Local-First: delete directly from local storage and queue sync
+    if (this.storage) {
+      await this.storage.removeClothes([id]);
+    }
+    if (this.syncService) {
+      await this.syncService.queueClothesChange(id, 'delete');
+    }
+    this.toast.success('Capo eliminato');
     void this.router.navigateByUrl('/wardrobe');
   }
 

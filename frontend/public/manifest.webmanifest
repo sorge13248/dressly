@@ -1,0 +1,85 @@
+{
+  "name": "Dressly",
+  "short_name": "Dressly",
+  "description": "Il tuo guardaroba digitale: gestione capi, outfit, lavaggi e stirature.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f6f9fc",
+  "theme_color": "#2c7cd7",
+  "lang": "it-IT",
+  "dir": "ltr",
+  "categories": ["lifestyle", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Guardaroba",
+      "short_name": "Guardaroba",
+      "description": "Visualizza tutti i capi del guardaroba",
+      "url": "/wardrobe",
+      "icons": [
+        {
+          "src": "icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Lavaggio",
+      "short_name": "Lavaggio",
+      "description": "Visualizza i capi in attesa di lavaggio",
+      "url": "/wardrobe/washing",
+      "icons": [
+        {
+          "src": "icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Stiratura",
+      "short_name": "Stiratura",
+      "description": "Visualizza i capi da stirare",
+      "url": "/wardrobe/ironing",
+      "icons": [
+        {
+          "src": "icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
+

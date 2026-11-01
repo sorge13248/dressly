@@ -28,6 +28,32 @@ footer {
   gap: 8px;
 }
 
+button.danger,
+.danger {
+  color: #ffffff !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.18) 100%),
+    linear-gradient(180deg, #ef4444 0%, #dc2626 48%, #b91c1c 100%) !important;
+  background-color: #dc2626 !important;
+  border: 1px solid #991b1b !important;
+  box-shadow: 0 2px 10px rgba(185, 28, 28, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  text-shadow: 0 1px 1px rgba(70, 0, 0, 0.6) !important;
+
+  &:hover:not(:disabled) {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.22) 100%),
+      linear-gradient(180deg, #f87171 0%, #ef4444 48%, #dc2626 100%) !important;
+    background-color: #ef4444 !important;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  }
+
+  &:active:not(:disabled) {
+    background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%) !important;
+    background-color: #991b1b !important;
+    box-shadow: 0 1px 4px rgba(153, 27, 27, 0.6) !important;
+  }
+}
+
 @media (max-width: 480px) {
   .modal-shell {
     width: 96vw;

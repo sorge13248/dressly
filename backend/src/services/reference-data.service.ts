@@ -7,6 +7,7 @@ import { Color } from '../entities/color.entity';
 import { Fit } from '../entities/fit.entity';
 import { Material } from '../entities/material.entity';
 import { Season } from '../entities/season.entity';
+import { SyncTombstone } from '../entities/sync-tombstone.entity';
 import { Tag } from '../entities/tag.entity';
 import { Temperature } from '../entities/temperature.entity';
 import { Type } from '../entities/type.entity';
@@ -32,7 +33,7 @@ const entityMap: Record<ReferenceDataType, EntityTarget<EntityInstance>> = {
 export class ReferenceDataService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  private repository(type: ReferenceDataType): Repository<EntityInstance> {
+  repository(type: ReferenceDataType): Repository<EntityInstance> {
     return this.dataSource.getRepository(entityMap[type]);
   }
 
@@ -114,6 +115,12 @@ export class ReferenceDataService {
     }
 
     await repository.remove(entity);
+    await this.dataSource.getRepository(SyncTombstone).save({
+      userId: user.id,
+      entityType: type,
+      entityId: id,
+      deletedAt: new Date(),
+    });
     return { deleted: true };
   }
 
