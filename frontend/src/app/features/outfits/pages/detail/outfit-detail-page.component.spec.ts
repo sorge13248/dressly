@@ -219,6 +219,50 @@ describe('OutfitDetailPageComponent', () => {
     expect(mockToast.success).toHaveBeenCalledWith('Dettagli abbinamento aggiornati con successo');
   });
 
+  it('should render unified form across both cards and submit on enter in name input', async () => {
+    component.openEditDetails();
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form.outfit-edit-form');
+    expect(form).toBeTruthy();
+
+    const leftCard = form.querySelector('.edit-card-left');
+    const rightCard = form.querySelector('.edit-card-right');
+    expect(leftCard).toBeTruthy();
+    expect(rightCard).toBeTruthy();
+
+    const nameInput = leftCard.querySelector('#edit-outfit-name') as HTMLInputElement;
+    const descTextarea = leftCard.querySelector('#edit-outfit-desc') as HTMLTextAreaElement;
+    expect(nameInput).toBeTruthy();
+    expect(descTextarea).toBeTruthy();
+
+    const contextSelector = rightCard.querySelector('app-context-selector');
+    const submitBtn = rightCard.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(contextSelector).toBeTruthy();
+    expect(submitBtn).toBeTruthy();
+
+    // Modify name and simulate Enter keydown in name input
+    component.editName.set('Look Serale');
+    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
+    nameInput.dispatchEvent(enterEvent);
+    await fixture.whenStable();
+
+    expect(mockApi.updateOutfit).toHaveBeenCalledWith('outfit-1', expect.objectContaining({
+      name: 'Look Serale',
+    }));
+  });
+
+  it('should show error and not save if name is empty', async () => {
+    component.openEditDetails();
+    component.editName.set('   ');
+
+    await component.saveEditDetails();
+
+    expect(mockToast.error).toHaveBeenCalledWith("Il nome dell'abbinamento è obbligatorio");
+    expect(mockApi.updateOutfit).not.toHaveBeenCalled();
+    expect(component.isEditingDetails()).toBe(true);
+  });
+
   it('should cancel edit details mode without saving', () => {
     component.openEditDetails();
     expect(component.isEditingDetails()).toBe(true);

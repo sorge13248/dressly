@@ -1,21 +1,26 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Dialog, DialogRef } from '@angular/cdk/dialog';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
+import { signal } from '@angular/core';
 import { OutfitGridComponent } from './outfit-grid.component';
 import { ApiService } from '../../../../core/api.service';
 import { ToastService } from '../../../../core/toast.service';
+import { SyncService } from '../../../../core/sync.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { OutfitDetailResponse, OutfitItem } from '../../../../core/models';
 import { CreateNameModalComponent } from '../../../../shared/components/create-name-modal/create-name-modal.component';
 
 describe('OutfitGridComponent', () => {
   let fixture: ComponentFixture<OutfitGridComponent>;
   let component: OutfitGridComponent;
-  let mockApi: Partial<ApiService>;
-  let mockToast: Partial<ToastService>;
-  let mockDialog: Partial<Dialog>;
-  let mockRouter: Partial<Router>;
+  let mockApi: any;
+  let mockToast: any;
+  let mockDialog: any;
+  let mockRouter: any;
+  let mockSyncService: any;
+  let mockStorage: any;
 
   const mockOutfits: OutfitItem[] = [
     {
@@ -94,6 +99,19 @@ describe('OutfitGridComponent', () => {
       navigate: vi.fn().mockResolvedValue(true),
     };
 
+    mockSyncService = {
+      sync: vi.fn().mockResolvedValue({}),
+      checkIsOffline: vi.fn().mockReturnValue(false),
+      dataUpdated: signal(0),
+    };
+
+    mockStorage = {
+      getAllOutfits: vi.fn().mockResolvedValue(mockOutfits),
+      saveOutfits: vi.fn().mockResolvedValue(undefined),
+      saveOutfit: vi.fn().mockResolvedValue(undefined),
+      removeOutfit: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [OutfitGridComponent],
       providers: [
@@ -101,6 +119,12 @@ describe('OutfitGridComponent', () => {
         { provide: ToastService, useValue: mockToast },
         { provide: Dialog, useValue: mockDialog },
         { provide: Router, useValue: mockRouter },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: { get: () => null } }, queryParams: of({}) },
+        },
+        { provide: SyncService, useValue: mockSyncService },
+        { provide: OfflineStorageService, useValue: mockStorage },
       ],
     }).compileComponents();
 
@@ -111,9 +135,10 @@ describe('OutfitGridComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create and load outfits', () => {
+  it('should create and load outfits from storage', () => {
     expect(component).toBeTruthy();
-    expect(mockApi.listOutfits).toHaveBeenCalled();
+    expect(mockStorage.getAllOutfits).toHaveBeenCalled();
+    expect(mockSyncService.sync).not.toHaveBeenCalled();
     expect(component.outfits().length).toBe(1);
   });
 
@@ -200,5 +225,45 @@ describe('OutfitGridComponent', () => {
 
     expect(mockApi.addClothesToOutfit).toHaveBeenCalledWith('outfit-1', ['c3', 'c4']);
     expect(selectSpy).toHaveBeenCalled();
+  });
+
+  it('should load outfits from storage when empty without calling syncService.sync() or api.listOutfits()', async () => {
+    mockStorage.getAllOutfits.mockResolvedValue([]);
+    mockSyncService.sync.mockClear();
+    mockApi.listOutfits.mockClear();
+
+    await component.loadOutfits();
+    fixture.detectChanges();
+
+    expect(component.outfits().length).toBe(0);
+    expect(mockStorage.getAllOutfits).toHaveBeenCalled();
+    expect(mockSyncService.sync).not.toHaveBeenCalled();
+    expect(mockApi.listOutfits).not.toHaveBeenCalled();
+  });
+
+  it('should reload from storage on dataUpdated without calling syncService.sync()', async () => {
+    mockSyncService.sync.mockClear();
+    mockStorage.getAllOutfits.mockResolvedValue([mockOutfits[0]]);
+
+    // Trigger dataUpdated signal
+    mockSyncService.dataUpdated.update((v: number) => v + 1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // Verify storage was read and outfits updated, without triggering sync()
+    expect(mockStorage.getAllOutfits).toHaveBeenCalled();
+    expect(mockSyncService.sync).not.toHaveBeenCalled();
+    expect(component.outfits().length).toBe(1);
+  });
+
+  it('should fallback to api.listOutfits when storage is not available', async () => {
+    (component as any).storage = null;
+    mockApi.listOutfits.mockClear();
+    mockApi.listOutfits.mockReturnValue(of(mockOutfits));
+
+    await component.loadOutfits();
+
+    expect(mockApi.listOutfits).toHaveBeenCalled();
+    expect(component.outfits().length).toBe(1);
   });
 });
