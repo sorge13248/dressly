@@ -1,0 +1,197 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Tipo di incremento versione'
+        required: true
+        type: choice
+        default: 'patch'
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: 'Versione custom (obbligatoria solo se hai scelto "custom", es. 1.2.3)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
+jobs:
+  release:
+    name: Release & Publish Trigger
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verifica autorizzazione utente
+        run: |
+          echo "Workflow avviato da: ${{ github.actor }}"
+          echo "Owner del repository: ${{ github.repository_owner }}"
+          if [ "${{ github.actor }}" != "${{ github.repository_owner }}" ] && [ "${{ github.actor }}" != "sorge13248" ]; then
+            echo "::error::Accesso negato. Solo l'owner del repository (${{ github.repository_owner }}) è autorizzato a lanciare il rilascio."
+            exit 1
+          fi
+
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Configura Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B develop origin/develop
+
+      - name: Calcola nuova versione e aggiorna package.json
+        id: versioning
+        run: |
+          python3 - << 'EOF'
+          import json
+          import os
+          import sys
+
+          bump_type = """${{ github.event.inputs.bump_type }}""".strip()
+          custom_ver = """${{ github.event.inputs.custom_version }}""".strip().lstrip("v")
+
+          # Leggi versione attuale dal package.json di root
+          with open("package.json", "r", encoding="utf-8") as f:
+              root_pkg = json.load(f)
+          current_ver = root_pkg.get("version", "0.0.0")
+
+          if bump_type == "custom":
+              if not custom_ver:
+                  print("::error::Hai selezionato 'custom' ma non hai specificato custom_version!")
+                  sys.exit(1)
+              new_ver = custom_ver
+          else:
+              try:
+                  parts = list(map(int, current_ver.split(".")))
+                  if len(parts) != 3:
+                      raise ValueError("Formato semver deve essere X.Y.Z")
+              except Exception as e:
+                  print(f"::error::Impossibile analizzare la versione attuale '{current_ver}': {e}")
+                  sys.exit(1)
+
+              if bump_type == "major":
+                  parts[0] += 1
+                  parts[1] = 0
+                  parts[2] = 0
+              elif bump_type == "minor":
+                  parts[1] += 1
+                  parts[2] = 0
+              elif bump_type == "patch":
+                  parts[2] += 1
+              else:
+                  print(f"::error::Tipo di incremento sconosciuto: {bump_type}")
+                  sys.exit(1)
+
+              new_ver = ".".join(map(str, parts))
+
+          print(f"Versione precedente: {current_ver}")
+          print(f"Tipo di incremento: {bump_type}")
+          print(f"Nuova versione: {new_ver}")
+
+          files_to_update = [
+              "package.json",
+              "package-lock.json",
+              "backend/package.json",
+              "backend/package-lock.json",
+              "frontend/package.json",
+              "frontend/package-lock.json",
+          ]
+
+          for file_path in files_to_update:
+              if not os.path.exists(file_path):
+                  continue
+              with open(file_path, "r", encoding="utf-8") as f:
+                  data = json.load(f)
+              data["version"] = new_ver
+              if "packages" in data and "" in data["packages"]:
+                  data["packages"][""]["version"] = new_ver
+              with open(file_path, "w", encoding="utf-8") as f:
+                  json.dump(data, f, indent=2)
+                  f.write("\n")
+              print(f"Aggiornato: {file_path} -> {new_ver}")
+
+          github_output = os.getenv("GITHUB_OUTPUT")
+          if github_output:
+              with open(github_output, "a", encoding="utf-8") as f:
+                  f.write(f"previous_version={current_ver}\n")
+                  f.write(f"new_version={new_ver}\n")
+                  f.write(f"tag_name=v{new_ver}\n")
+          EOF
+
+      - name: Commit e push su develop
+        run: |
+          NEW_VER="${{ steps.versioning.outputs.new_version }}"
+          git add package.json package-lock.json backend/package.json backend/package-lock.json frontend/package.json frontend/package-lock.json
+          
+          if git diff --staged --quiet; then
+            echo "Nessuna modifica da committare su develop."
+          else
+            git commit -m "chore(release): bump version to v${NEW_VER}"
+            git push origin develop
+          fi
+
+      - name: Merge develop in main e push
+        run: |
+          NEW_VER="${{ steps.versioning.outputs.new_version }}"
+          git checkout -B main origin/main
+          git pull origin main
+          git merge develop --no-ff -m "chore(release): merge develop into main for v${NEW_VER}"
+          git push origin main
+
+      - name: Crea GitHub Release
+        id: create_release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ steps.versioning.outputs.tag_name }}"
+          echo "Creazione GitHub Release per ${TAG_NAME} su main..."
+          
+          gh release create "${TAG_NAME}" \
+            --target main \
+            --title "Release ${TAG_NAME}" \
+            --generate-notes
+          
+          echo "Release ${TAG_NAME} creata con successo."
+
+      - name: Avvia pipeline di publish (docker-multiarch)
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ steps.versioning.outputs.tag_name }}"
+          echo "Avvio della pipeline di publish Docker per il tag ${TAG_NAME}..."
+          
+          if [ -n "${{ secrets.RELEASE_PAT }}" ]; then
+            echo "Release e tag creati con RELEASE_PAT."
+            echo "GitHub Actions avvierà automaticamente docker-multiarch tramite l'evento tag."
+          else
+            echo "Release e tag creati con GITHUB_TOKEN standard."
+            echo "Avvio esplicito di docker-multiarch via workflow_dispatch..."
+            gh workflow run docker-multiarch.yml --ref "${TAG_NAME}"
+          fi
+
+      - name: Summary del rilascio
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ## 🚀 Rilascio completato con successo!
+          
+          * **Versione precedente:** `${{ steps.versioning.outputs.previous_version }}`
+          * **Nuova versione:** `${{ steps.versioning.outputs.new_version }}`
+          * **Tag creato:** `${{ steps.versioning.outputs.tag_name }}`
+          * **Branch aggiornati:** `develop` e `main`
+          * **Release GitHub:** Creata con note automatiche generate dalle PR/commit
+          * **Pipeline di publish:** Avviata per la build Docker multi-arch (amd64 / arm64) su GHCR
+          EOF
+
