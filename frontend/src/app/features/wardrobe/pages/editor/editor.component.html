@@ -2,8 +2,30 @@
   <div class="wizard-window">
     <header class="window-titlebar">
       <div class="title-wrap">
-        <h1>{{ title() }}</h1>
+        <div class="title-icon-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+            <path d="M2 18h20" />
+          </svg>
+        </div>
+        <div class="title-text-group">
+          <h1>{{ title() }}</h1>
+          <span class="step-pill-badge">Passo {{ currentStep() }} di {{ steps.length }}</span>
+        </div>
       </div>
+
+      <button
+        type="button"
+        class="window-close-btn"
+        (click)="cancelOrClose()"
+        title="Chiudi e torna al guardaroba"
+        aria-label="Chiudi e torna al guardaroba"
+      >
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="3" x2="11" y2="11" />
+          <line x1="11" y1="3" x2="3" y2="11" />
+        </svg>
+      </button>
     </header>
 
     <section class="stepper-card">
@@ -15,8 +37,8 @@
           [class.error]="hasStepError(step.index)"
           (click)="selectStep(step.index)"
         >
-          <span>{{ step.index }}</span>
-          <div>
+          <span class="step-number">{{ step.index }}</span>
+          <div class="step-text">
             <strong>{{ step.label }}</strong>
             <small>{{ step.hint }}</small>
           </div>
@@ -145,18 +167,20 @@
                 <h3>Colori *</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickColorBusy()"
                   (click)="openCreateColorModal()"
                 >
                   + Nuovo colore
                 </button>
               </div>
-              <div class="pill-list">
+              <div class="chip-cloud">
                 @for (color of referenceStore.colors(); track color.id) {
                   <button
                     type="button"
-                    class="pill"
+                    class="chip"
                     [class.active]="wizardForm.style.color_ids().value().includes(color.id)"
                     (click)="toggleArray(wizardForm.style.color_ids, color.id)"
                   >
@@ -179,18 +203,20 @@
                 <h3>Materiali</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickMaterialBusy()"
                   (click)="openCreateMaterialModal()"
                 >
                   + Nuovo materiale
                 </button>
               </div>
-              <div class="pill-list">
+              <div class="chip-cloud">
                 @for (material of referenceStore.materials(); track material.id) {
                   <button
                     type="button"
-                    class="pill"
+                    class="chip"
                     [class.active]="wizardForm.style.material_ids().value().includes(material.id)"
                     (click)="toggleArray(wizardForm.style.material_ids, material.id)"
                   >
@@ -200,20 +226,24 @@
                 }
               </div>
 
-              <h3 style="margin-top: 18px;">Tag</h3>
-              <div class="pill-list">
+              <div class="section-head" style="margin-top: 18px;">
+                <h3>Tag</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickTagBusy()"
                   (click)="openCreateTagModal()"
                 >
                   + Nuovo tag
                 </button>
+              </div>
+              <div class="chip-cloud">
                 @for (tag of referenceStore.tags(); track tag.id) {
                   <button
                     type="button"
-                    class="pill"
+                    class="chip"
                     [class.active]="wizardForm.style.tag_ids().value().includes(tag.id)"
                     (click)="toggleArray(wizardForm.style.tag_ids, tag.id)"
                   >
@@ -233,7 +263,9 @@
                 <h3>Stagioni *</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickSeasonBusy()"
                   (click)="openCreateSeasonModal()"
                 >
@@ -262,7 +294,9 @@
                 <h3>Temperature *</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickTemperatureBusy()"
                   (click)="openCreateTemperatureModal()"
                 >
@@ -296,7 +330,9 @@
                 <h3>Occasioni</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickUseCaseBusy()"
                   (click)="openCreateUseCaseModal()"
                 >
@@ -723,35 +759,50 @@
         }
       }
     </section>
-
-    <footer class="wizard-footer">
-      <button type="button" appButton variant="ghost" size="md" (click)="cancelOrClose()">Chiudi</button>
-      <button
-        type="button"
-        appButton
-        variant="secondary"
-        size="md"
-        [disabled]="currentStep() === 1"
-        (click)="previousStep()"
-      >
-        Indietro
-      </button>
-      @if (currentStep() < 5) {
-        <button type="button" appButton variant="primary" size="md" (click)="nextStep()">
-          Avanti
-        </button>
-      }
-      <button
-        type="button"
-        appButton
-        variant="primary"
-        size="md"
-        [disabled]="saving()"
-        [loading]="saving()"
-        (click)="save()"
-      >
-        {{ saveLabel() }}
-      </button>
-    </footer>
   </div>
+
+  <!-- Floating Dock Action Island: ancorata in basso al centro, stile Aero glass -->
+  <aside class="wizard-dock floating-dock" role="region" aria-label="Azioni del wizard">
+    <button type="button" appButton variant="ghost" size="md" (click)="cancelOrClose()">
+      Chiudi
+    </button>
+    <span class="dock-separator" aria-hidden="true"></span>
+    <button
+      type="button"
+      appButton
+      variant="secondary"
+      size="md"
+      [disabled]="currentStep() === 1"
+      (click)="previousStep()"
+    >
+      <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12.5 15L7.5 10L12.5 5"/>
+      </svg>
+      <span>Indietro</span>
+    </button>
+    @if (currentStep() < 5) {
+      <button type="button" appButton variant="primary" size="md" (click)="nextStep()">
+        <span>Avanti</span>
+        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7.5 15L12.5 10L7.5 5"/>
+        </svg>
+      </button>
+    }
+    <button
+      type="button"
+      appButton
+      variant="primary"
+      size="md"
+      [disabled]="saving()"
+      [loading]="saving()"
+      (click)="save()"
+    >
+      <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M16 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10l4 4v10a2 2 0 0 1-2 2z"/>
+        <polyline points="14 3 14 7 6 7"/>
+        <rect x="6" y="12" width="8" height="5"/>
+      </svg>
+      <span>{{ saveLabel() }}</span>
+    </button>
+  </aside>
 </section>

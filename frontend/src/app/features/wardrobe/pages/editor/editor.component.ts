@@ -15,7 +15,7 @@ import {
 import { Dialog } from '@angular/cdk/dialog';
 import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormField, form, max, min, minLength, pattern } from '@angular/forms/signals';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { ClothesItem } from '../../../../core/models';
@@ -23,6 +23,7 @@ import { ReferenceStoreService } from '../../../../core/reference-store.service'
 import { ToastService } from '../../../../core/toast.service';
 import { SelectDropdownComponent, SelectDropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 import { CreateNameModalComponent } from '../../../../shared/components/create-name-modal/create-name-modal.component';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { WashingIconComponent, DryingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
@@ -309,7 +310,51 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     return this.isStepValid(this.currentStep());
   });
 
+  private readonly initialSnapshot = signal<string>('');
+  private skipUnsavedGuard = false;
+
+  takeSnapshot(): string {
+    return JSON.stringify({
+      model: this.wizardModel(),
+      photos: this.allPhotos().map((p) => ({ id: p.id, source: p.source, name: p.name })),
+      deleted: this.attachmentsToDelete(),
+    });
+  }
+
+  hasUnsavedChanges(): boolean {
+    if (this.saving() || this.loading()) {
+      return false;
+    }
+    const initial = this.initialSnapshot();
+    if (!initial) {
+      return false;
+    }
+    return this.takeSnapshot() !== initial;
+  }
+
+  async confirmDiscardChanges(): Promise<boolean> {
+    const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
+      data: {
+        title: 'Modifiche non salvate',
+        message: 'Ci sono modifiche non salvate nel wizard. Sei sicuro di voler uscire e annullare le modifiche?',
+        confirmLabel: 'Esci',
+        cancelLabel: 'Annulla',
+        confirmVariant: 'danger',
+      },
+    });
+    const confirmed = await firstValueFrom(dialogRef.closed);
+    return Boolean(confirmed);
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    if (this.skipUnsavedGuard || !this.hasUnsavedChanges()) {
+      return true;
+    }
+    return this.confirmDiscardChanges();
+  }
+
   constructor() {
+    this.initialSnapshot.set(this.takeSnapshot());
     effect(() => {
       void this.referenceStore.loadAll();
     });
@@ -336,6 +381,13 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       if (photo.source === 'pending') {
         URL.revokeObjectURL(photo.previewUrl);
       }
+    }
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  handleBeforeUnload(event: BeforeUnloadEvent) {
+    if (this.hasUnsavedChanges()) {
+      event.preventDefault();
     }
   }
 
@@ -457,6 +509,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       }
 
       this.uploadProgress.set(null);
+      this.skipUnsavedGuard = true;
 
       const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
       if (callbackUrl) {
@@ -503,7 +556,15 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  cancelOrClose() {
+  async cancelOrClose() {
+    if (this.hasUnsavedChanges()) {
+      const confirmed = await this.confirmDiscardChanges();
+      if (!confirmed) {
+        return;
+      }
+      this.skipUnsavedGuard = true;
+    }
+
     const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
     if (callbackUrl) {
       void this.router.navigateByUrl(callbackUrl);
@@ -1052,6 +1113,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       const clothes = await firstValueFrom(this.api.getClothes(id));
       if (clothes) {
         this.patchForms(clothes);
+        this.initialSnapshot.set(this.takeSnapshot());
       }
     } finally {
       this.loading.set(false);
@@ -1244,3 +1306,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     return isDefaultAttachmentName(normalized) ? null : normalized;
   }
 }
+
+export const canDeactivateWardrobeWizard: CanDeactivateFn<WardrobeWizardPageComponent> = (component) => {
+  return component.canDeactivate();
+};
