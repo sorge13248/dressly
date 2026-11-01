@@ -5,11 +5,20 @@ import { AuthService } from '../../core/auth.service';
 import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { ToastStackComponent } from '../../shared/components/toast-stack/toast-stack.component';
+import { WashingIconComponent, IroningIconComponent } from '../../shared/components/icons';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [NgOptimizedImage, RouterLink, RouterLinkActive, RouterOutlet, ToastStackComponent],
+  imports: [
+    NgOptimizedImage,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ToastStackComponent,
+    WashingIconComponent,
+    IroningIconComponent,
+  ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })

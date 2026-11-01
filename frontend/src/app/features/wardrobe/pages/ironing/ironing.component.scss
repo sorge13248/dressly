@@ -126,20 +126,7 @@
 }
 
 .primary.return-btn {
-  min-height: 36px;
-  padding: 6px 18px;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.92rem;
-  color: #fff;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.06) 50%, transparent 50%, rgba(0,0,0,0.06) 100%),
-    linear-gradient(180deg, #5a9de8 0%, #2873ce 45%, #1c5bb8 50%, #2060c0 100%);
-  border: 1px solid var(--accent-strong);
-  cursor: pointer;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
 }
 
 .cards-layout {
@@ -389,8 +376,8 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 600;
   border: 1px solid rgba(100, 140, 210, 0.35);

@@ -77,26 +77,6 @@ footer {
   gap: 8px;
 }
 
-.ghost,
-.primary {
-  min-height: 30px;
-  border-radius: 4px;
-  padding: 4px 12px;
-  border: 1px solid var(--line-dark);
-  cursor: pointer;
-}
-
-.primary {
-  color: #fff;
-  background: linear-gradient(180deg, #5a9de8 0%, #2873ce 50%, #2060c0 100%);
-  border-color: var(--accent-strong);
-}
-
-.ghost {
-  background: rgba(215, 232, 255, 0.25);
-  color: var(--text);
-}
-
 @media (max-width: 480px) {
   .modal-shell {
     width: 96vw;

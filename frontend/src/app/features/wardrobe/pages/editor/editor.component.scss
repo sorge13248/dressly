@@ -93,12 +93,35 @@ h1 {
   gap: 8px;
 }
 
-/* Silver/glass ghost button */
-.ghost,
-.chip,
-.step-node,
-.attachment-footer .ghost {
-  border-radius: 4px;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(100, 140, 210, 0.5);
+  cursor: pointer;
+  font-weight: 500;
+  padding: 4px 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(220, 235, 255, 0.1) 50%,
+      rgba(200, 225, 255, 0.18) 100%
+    ),
+    rgba(215, 232, 255, 0.25);
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: all 120ms ease;
+
+  &:hover {
+    border-color: rgba(60, 120, 220, 0.8);
+    background: rgba(215, 232, 255, 0.5);
+  }
+}
+
+.step-node {
+  border-radius: 6px;
   border: 1px solid rgba(100, 140, 210, 0.5);
   cursor: pointer;
   font-weight: 400;
@@ -113,28 +136,6 @@ h1 {
     rgba(215, 232, 255, 0.25);
   color: var(--text);
   font-size: 0.9rem;
-}
-
-/* Glossy Aero primary button */
-.primary {
-  min-height: 26px;
-  padding: 3px 14px;
-  color: #fff;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.42) 0%,
-      rgba(255, 255, 255, 0.06) 50%,
-      transparent 50%,
-      rgba(0, 0, 0, 0.06) 100%
-    ),
-    linear-gradient(180deg, #5a9de8 0%, #2873ce 45%, #1c5bb8 50%, #2060c0 100%);
-  border: 1px solid var(--accent-strong);
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 400;
-  font-size: 0.9rem;
-  text-shadow: 0 1px 1px rgba(0, 0, 40, 0.4);
 }
 
 .step-pill {
@@ -489,7 +490,21 @@ textarea {
 .island-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+}
+
+.island-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1a497b;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
 }
 
 .toggle-button {

@@ -8,10 +8,11 @@ import { LaundryService } from '../../../../core/laundry.service';
 import { ToastService } from '../../../../core/toast.service';
 import { IroningClothesItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { ButtonComponent } from '../../../../shared/components/button';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ButtonComponent],
   templateUrl: './ironing.component.html',
   styleUrl: './ironing.component.scss',
 })

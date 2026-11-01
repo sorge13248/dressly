@@ -95,48 +95,17 @@ h1 {
   gap: 8px;
 }
 
-.chip,
-.ghost,
-.danger,
-.primary {
-  min-height: 26px;
-  border-radius: 4px;
-  padding: 3px 12px;
-  border: 1px solid rgba(100, 140, 210, 0.5);
-  cursor: pointer;
-  font-weight: 400;
-  font-size: 0.9rem;
-}
-
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.chip-emoji {
-  font-size: 0.95rem;
-  line-height: 1;
-}
-
-.chip.active,
-.primary {
-  color: #fff;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.42) 0%,
-      rgba(255, 255, 255, 0.06) 50%,
-      transparent 50%,
-      rgba(0, 0, 0, 0.06) 100%
-    ),
-    linear-gradient(180deg, #5a9de8 0%, #2873ce 45%, #1c5bb8 50%, #2060c0 100%);
-  border-color: var(--accent-strong);
-  text-shadow: 0 1px 1px rgba(0, 0, 40, 0.4);
-}
-
-.ghost,
-.chip {
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 4px 14px;
+  border: 1px solid rgba(100, 140, 210, 0.5);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.88rem;
   background:
     linear-gradient(
       180deg,
@@ -147,6 +116,29 @@ h1 {
     ),
     rgba(215, 232, 255, 0.25);
   color: var(--text);
+  box-shadow: 0 1px 3px rgba(15, 45, 90, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 120ms ease;
+
+  &.active {
+    color: #fff;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.42) 0%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.06) 100%
+      ),
+      linear-gradient(180deg, #5a9de8 0%, #2873ce 45%, #1c5bb8 50%, #2060c0 100%);
+    border-color: var(--accent-strong);
+    box-shadow: 0 2px 8px rgba(15, 73, 168, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    text-shadow: 0 1px 1px rgba(0, 0, 40, 0.4);
+  }
+}
+
+.chip-emoji {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .chip.tone-blue:not(.active) {
@@ -183,20 +175,6 @@ h1 {
   border-color: rgba(117, 87, 182, 0.34);
   background: rgba(238, 232, 255, 0.8);
   color: #4b3679;
-}
-
-.danger {
-  color: var(--danger);
-  border-color: rgba(192, 48, 64, 0.35);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.65) 0%,
-      rgba(255, 255, 255, 0.12) 50%,
-      rgba(255, 230, 235, 0.1) 50%,
-      rgba(255, 200, 210, 0.15) 100%
-    ),
-    rgba(255, 220, 225, 0.25);
 }
 
 .editor-card {

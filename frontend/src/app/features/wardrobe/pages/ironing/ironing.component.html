@@ -8,7 +8,7 @@
       <div class="state-card empty-card">
         <h2>Nessun capo da stirare</h2>
         <p>Aggiungi capi alla stiratura dal guardaroba o dalla pagina di dettaglio.</p>
-        <button type="button" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
+        <button type="button" appButton variant="primary" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
       </div>
     } @else {
       <div class="cards-layout" [class.grid-2x2]="missingInfoItems().length > 0">

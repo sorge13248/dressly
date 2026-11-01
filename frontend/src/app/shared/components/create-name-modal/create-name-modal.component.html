@@ -19,7 +19,7 @@
   </label>
 
   <footer>
-    <button type="button" class="ghost" (click)="close()">{{ data.cancelLabel || 'Annulla' }}</button>
-    <button type="submit" class="primary">{{ data.confirmLabel || 'Crea' }}</button>
+    <button type="button" appButton variant="ghost" class="ghost" (click)="close()">{{ data.cancelLabel || 'Annulla' }}</button>
+    <button type="submit" appButton variant="primary" class="primary">{{ data.confirmLabel || 'Crea' }}</button>
   </footer>
 </form>

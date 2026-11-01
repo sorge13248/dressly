@@ -62,6 +62,9 @@
                     />
                     <button
                       type="button"
+                      appButton
+                      variant="primary"
+                      size="icon"
                       class="mini-add-btn"
                       [disabled]="quickBrandBusy()"
                       (click)="openCreateBrandModal()"
@@ -324,11 +327,15 @@
           <section class="step-grid care-islands">
             <article class="panel care-island">
               <div class="island-head">
-                <h3>Lavaggio</h3>
+                <div class="island-title-group">
+                  <app-washing-icon [size]="22" />
+                  <h3>Lavaggio</h3>
+                </div>
                 <button
                   type="button"
-                  class="toggle-button"
-                  [class.active]="wizardForm.care.washingEnabled().value()"
+                  appButton
+                  [variant]="wizardForm.care.washingEnabled().value() ? 'primary' : 'ghost'"
+                  size="sm"
                   (click)="toggleWashingEnabled()"
                 >
                   {{ wizardForm.care.washingEnabled().value() ? 'Attivo' : 'Disattivo' }}
@@ -462,11 +469,15 @@
 
             <article class="panel care-island">
               <div class="island-head">
-                <h3>Asciugatura</h3>
+                <div class="island-title-group">
+                  <app-drying-icon [size]="22" />
+                  <h3>Asciugatura</h3>
+                </div>
                 <button
                   type="button"
-                  class="toggle-button"
-                  [class.active]="wizardForm.care.dryingEnabled().value()"
+                  appButton
+                  [variant]="wizardForm.care.dryingEnabled().value() ? 'primary' : 'ghost'"
+                  size="sm"
                   (click)="toggleDryingEnabled()"
                 >
                   {{ wizardForm.care.dryingEnabled().value() ? 'Attivo' : 'Disattivo' }}
@@ -513,11 +524,15 @@
 
             <article class="panel care-island">
               <div class="island-head">
-                <h3>Stiraggio</h3>
+                <div class="island-title-group">
+                  <app-ironing-icon [size]="22" />
+                  <h3>Stiraggio</h3>
+                </div>
                 <button
                   type="button"
-                  class="toggle-button"
-                  [class.active]="wizardForm.care.ironingEnabled().value()"
+                  appButton
+                  [variant]="wizardForm.care.ironingEnabled().value() ? 'primary' : 'ghost'"
+                  size="sm"
                   (click)="toggleIroningEnabled()"
                 >
                   {{ wizardForm.care.ironingEnabled().value() ? 'Attivo' : 'Disattivo' }}
@@ -590,7 +605,7 @@
 
               <div class="photo-top-bar">
                 <div class="photo-top-left">
-                  <button type="button" class="primary upload-btn" (click)="openFilePicker()">
+                  <button type="button" appButton variant="primary" size="sm" class="upload-btn" (click)="openFilePicker()">
                     📷 Aggiungi foto
                   </button>
                   <span class="muted photo-hint">
@@ -710,24 +725,29 @@
     </section>
 
     <footer class="wizard-footer">
-      <button type="button" class="dialog-btn" (click)="cancelOrClose()">Chiudi</button>
+      <button type="button" appButton variant="ghost" size="md" (click)="cancelOrClose()">Chiudi</button>
       <button
         type="button"
-        class="dialog-btn"
+        appButton
+        variant="secondary"
+        size="md"
         [disabled]="currentStep() === 1"
         (click)="previousStep()"
       >
         Indietro
       </button>
       @if (currentStep() < 5) {
-        <button type="button" class="dialog-btn dialog-btn-primary" (click)="nextStep()">
+        <button type="button" appButton variant="primary" size="md" (click)="nextStep()">
           Avanti
         </button>
       }
       <button
         type="button"
-        class="dialog-btn dialog-btn-primary"
+        appButton
+        variant="primary"
+        size="md"
         [disabled]="saving()"
+        [loading]="saving()"
         (click)="save()"
       >
         {{ saveLabel() }}

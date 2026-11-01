@@ -1,0 +1,193 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+  transition: all 140ms ease;
+  outline: none;
+  position: relative;
+  text-align: center;
+  line-height: 1;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent, #1e6dcf) !important;
+  }
+}
+
+/* SIZES */
+:host(.btn-sm) {
+  min-height: 28px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  border-radius: 999px;
+  gap: 5px;
+}
+
+:host(.btn-md) {
+  min-height: 38px;
+  padding: 0 18px;
+  font-size: 0.9rem;
+  border-radius: 999px;
+  gap: 7px;
+}
+
+:host(.btn-lg) {
+  min-height: 44px;
+  padding: 0 24px;
+  font-size: 1rem;
+  border-radius: 999px;
+  gap: 8px;
+}
+
+:host(.btn-icon) {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0.9rem;
+}
+
+:host(.btn-sm.btn-icon) {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  font-size: 0.76rem;
+}
+
+:host(.btn-lg.btn-icon) {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  font-size: 1.1rem;
+}
+
+/* VARIANTS */
+
+/* 1. Primary (Deep Glossy Aero Blue - inspired by "Nuovo vestito") */
+:host(.btn-primary) {
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(15, 74, 151, 0.2) 100%),
+    linear-gradient(180deg, #4ea0f8 0%, #2071d4 50%, #165ab8 100%);
+  border: 1px solid rgba(15, 73, 168, 0.75);
+  box-shadow: 0 2px 8px rgba(15, 73, 168, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 1px rgba(0, 0, 40, 0.4);
+
+  &:hover:not(.disabled):not([disabled]) {
+    box-shadow: 0 4px 12px rgba(15, 73, 168, 0.45), inset 0 1px 0 #ffffff;
+    filter: brightness(1.05);
+  }
+
+  &:active:not(.disabled):not([disabled]) {
+    filter: brightness(0.96);
+  }
+}
+
+/* 2. Secondary (Soft Glossy Light Glass Blue) */
+:host(.btn-secondary) {
+  color: #144070;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.28) 50%, rgba(200, 225, 255, 0.3) 100%),
+    linear-gradient(180deg, #e4f1ff 0%, #b8d9fc 50%, #9bc7f7 100%);
+  border: 1px solid rgba(50, 115, 195, 0.6);
+  box-shadow: 0 2px 6px rgba(40, 110, 190, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  &:hover:not(.disabled):not([disabled]) {
+    box-shadow: 0 4px 10px rgba(35, 100, 180, 0.26), inset 0 1px 0 #ffffff;
+    filter: brightness(1.04);
+  }
+
+  &:active:not(.disabled):not([disabled]) {
+    filter: brightness(0.96);
+  }
+}
+
+/* 3. Danger / Destructive (Glossy Ruby Red) */
+:host(.btn-danger) {
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(120, 15, 25, 0.2) 100%),
+    linear-gradient(180deg, #f25d6b 0%, #d82b3d 50%, #b21828 100%);
+  border: 1px solid rgba(150, 20, 35, 0.75);
+  box-shadow: 0 2px 8px rgba(180, 25, 40, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 1px rgba(60, 0, 10, 0.45);
+
+  &:hover:not(.disabled):not([disabled]) {
+    box-shadow: 0 4px 12px rgba(180, 25, 40, 0.45), inset 0 1px 0 #ffffff;
+    filter: brightness(1.06);
+  }
+
+  &:active:not(.disabled):not([disabled]) {
+    filter: brightness(0.96);
+  }
+}
+
+/* 4. Ghost / Subtle Silver (Silver Aero Glass) */
+:host(.btn-ghost) {
+  color: #1e3a5f;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.25) 50%, rgba(230, 240, 255, 0.2) 100%),
+    rgba(235, 244, 255, 0.65);
+  border: 1px solid rgba(115, 155, 210, 0.5);
+  box-shadow: 0 1px 4px rgba(30, 70, 130, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+
+  &:hover:not(.disabled):not([disabled]) {
+    box-shadow: 0 3px 8px rgba(30, 70, 130, 0.18), inset 0 1px 0 #ffffff;
+    filter: brightness(1.04);
+  }
+}
+
+/* 5. Success (Glossy Emerald Green) */
+:host(.btn-success) {
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(15, 90, 45, 0.2) 100%),
+    linear-gradient(180deg, #4bd675 0%, #1ea84b 50%, #158338 100%);
+  border: 1px solid rgba(15, 110, 45, 0.75);
+  box-shadow: 0 2px 8px rgba(25, 130, 55, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 1px rgba(0, 40, 15, 0.4);
+
+  &:hover:not(.disabled):not([disabled]) {
+    box-shadow: 0 4px 12px rgba(25, 130, 55, 0.45), inset 0 1px 0 #ffffff;
+    filter: brightness(1.05);
+  }
+}
+
+/* Disabled */
+:host([disabled]),
+:host(.disabled) {
+  opacity: 0.52;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(0.35) !important;
+}
+
+/* Spinner for loading */
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

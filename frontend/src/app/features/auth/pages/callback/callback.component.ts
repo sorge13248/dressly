@@ -1,9 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth.service';
+import { ButtonComponent } from '../../../../shared/components/button';
 
 @Component({
   standalone: true,
+  imports: [ButtonComponent],
   templateUrl: './callback.component.html',
   styleUrl: './callback.component.scss',
 })

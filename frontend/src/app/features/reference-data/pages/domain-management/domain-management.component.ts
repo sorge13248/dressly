@@ -12,6 +12,7 @@ import {
   ReferenceEditorDialogResult,
   ReferenceEditorModalComponent,
 } from '../../components/reference-editor-modal/reference-editor-modal.component';
+import { ButtonComponent } from '../../../../shared/components/button';
 
 type TabMeta = {
   key: ReferenceKind;
@@ -36,7 +37,7 @@ const tabs = [
 
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [CommonModule, CdkDropList, CdkDrag, CdkDragHandle, ButtonComponent],
   templateUrl: './domain-management.component.html',
   styleUrl: './domain-management.component.scss',
 })

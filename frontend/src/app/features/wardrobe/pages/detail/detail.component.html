@@ -30,21 +30,13 @@
                 <div class="hero-status-tags">
                   @if (isInWashing()) {
                     <span class="status-chip status-chip--washing" title="In lavatrice">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="status-chip-icon">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="12" cy="13" r="5" />
-                        <path d="M12 10a3 3 0 0 1 3 3" />
-                      </svg>
+                      <app-washing-icon [size]="14" [strokeWidth]="2" />
                       In lavatrice
                     </span>
                   }
                   @if (isInIroning()) {
                     <span class="status-chip status-chip--ironing" title="Da stirare">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="status-chip-icon">
-                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-                      </svg>
+                      <app-ironing-icon [size]="14" [strokeWidth]="2" />
                       Da stirare
                     </span>
                   }
@@ -190,13 +182,7 @@
               (click)="toggleWashing()"
               [title]="isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare'"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="hero-btn-icon">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="12" cy="13" r="5" />
-                <path d="M12 10a3 3 0 0 1 3 3" />
-                <circle cx="7" cy="6" r=".5" fill="currentColor" />
-                <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
-              </svg>
+              <app-washing-icon [size]="16" />
               <span>{{ isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare' }}</span>
             </button>
 
@@ -207,16 +193,12 @@
               (click)="toggleIroning()"
               [title]="isInIroning() ? 'Togli da stirare' : 'Metti a stirare'"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="hero-btn-icon">
-                <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-              </svg>
+              <app-ironing-icon [size]="16" />
               <span>{{ isInIroning() ? 'Togli da stirare' : 'Metti a stirare' }}</span>
             </button>
 
-            <button class="ghost" type="button" (click)="edit()">Modifica</button>
-            <button class="danger" type="button" (click)="remove()">Elimina</button>
+            <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit()">Modifica</button>
+            <button type="button" appButton variant="danger" size="sm" class="danger" (click)="remove()">Elimina</button>
           </div>
         </div>
 

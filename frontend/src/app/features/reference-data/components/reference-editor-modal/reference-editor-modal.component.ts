@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Component, computed, inject, signal } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormField, form, pattern, required } from '@angular/forms/signals';
+import { ButtonComponent } from '../../../../shared/components/button';
 
 type ReferenceEditorMode = 'create' | 'edit';
 
@@ -29,7 +30,7 @@ export type ReferenceEditorDialogResult = {
 @Component({
   selector: 'app-reference-editor-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, FormField],
+  imports: [CommonModule, FormsModule, FormField, ButtonComponent],
   templateUrl: './reference-editor-modal.component.html',
   styleUrl: './reference-editor-modal.component.scss',
 })

@@ -23,6 +23,8 @@ import { ReferenceStoreService } from '../../../../core/reference-store.service'
 import { ToastService } from '../../../../core/toast.service';
 import { SelectDropdownComponent, SelectDropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 import { CreateNameModalComponent } from '../../../../shared/components/create-name-modal/create-name-modal.component';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { WashingIconComponent, DryingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 
 export type StepIndex = 1 | 2 | 3 | 4 | 5;
@@ -200,7 +202,18 @@ const ironingTemperatureOptions: SelectDropdownOption[] = [
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormField, SelectDropdownComponent, CdkDropList, CdkDrag, CdkDragPlaceholder],
+  imports: [
+    CommonModule,
+    FormField,
+    SelectDropdownComponent,
+    CdkDropList,
+    CdkDrag,
+    CdkDragPlaceholder,
+    ButtonComponent,
+    WashingIconComponent,
+    DryingIconComponent,
+    IroningIconComponent,
+  ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.scss',
 })

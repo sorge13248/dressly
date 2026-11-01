@@ -10,6 +10,8 @@ import { ToastService } from '../../../../core/toast.service';
 import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
 import { AttachmentItem, ClothesFilters, ClothesItem } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
+import { ButtonComponent } from '../../../../shared/components/button';
+import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 
 interface FilterPillOption {
   id: string;
@@ -71,7 +73,7 @@ const initialFilters = (query: Record<string, string>) => {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormField, RouterLink],
+  imports: [CommonModule, FormField, RouterLink, ButtonComponent, WashingIconComponent, IroningIconComponent],
   templateUrl: './main.component.html',
   styleUrl: './main.component.scss',
 })

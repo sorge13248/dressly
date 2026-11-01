@@ -32,7 +32,7 @@
 
     <section class="window-card editor-card">
       <div class="editor-actions">
-        <button type="button" class="primary" (click)="openCreateModal()" [disabled]="busy()">Nuovo valore</button>
+        <button type="button" appButton variant="primary" class="primary" (click)="openCreateModal()" [disabled]="busy()">Nuovo valore</button>
         <span class="message">Crea e modifica un valore di dominio</span>
       </div>
     </section>
@@ -75,9 +75,9 @@
             <span>{{ row.sortOrder }}</span>
             }
             <div class="actions">
-              <button type="button" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
-              <button type="button" class="ghost" (click)="edit(row)">Modifica</button>
-              <button type="button" class="danger" (click)="remove(row)">Elimina</button>
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit(row)">Modifica</button>
+              <button type="button" appButton variant="danger" size="sm" class="danger" (click)="remove(row)">Elimina</button>
             </div>
           </div>
         }

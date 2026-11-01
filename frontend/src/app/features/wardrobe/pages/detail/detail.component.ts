@@ -10,6 +10,8 @@ import { AttachmentItem, ClothesItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { WardrobePhotoLightboxModalComponent } from '../../components/photo-lightbox-modal/photo-lightbox-modal.component';
+import { ButtonComponent } from '../../../../shared/components/button';
+import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 
 interface CareSpec {
   label: string;
@@ -37,7 +39,7 @@ type BuyDetailView = {
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ButtonComponent, WashingIconComponent, IroningIconComponent],
   templateUrl: './detail.component.html',
   styleUrl: './detail.component.scss',
 })
