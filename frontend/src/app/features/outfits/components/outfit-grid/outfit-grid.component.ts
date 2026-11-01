@@ -54,61 +54,16 @@ export class OutfitGridComponent implements OnInit {
     try {
       if (this.storage) {
         const cached = await this.storage.getAllOutfits();
-        if (cached.length > 0) {
-          this.outfits.set(cached);
-          this.loading.set(false);
-          if (this.syncService && !this.syncService.checkIsOffline()) {
-            void this.refreshFromServerSilently();
-          }
-          return;
-        }
-      }
-
-      if (this.syncService && !this.syncService.checkIsOffline()) {
-        try {
-          await this.syncService.sync();
-          if (this.storage) {
-            const synced = await this.storage.getAllOutfits();
-            if (synced.length > 0) {
-              this.outfits.set(synced);
-              this.loading.set(false);
-              return;
-            }
-          }
-        } catch {
-          // fallback to direct API
-        }
+        this.outfits.set(cached);
+        return;
       }
 
       const items = await firstValueFrom(this.api.listOutfits());
       this.outfits.set(items);
-      if (this.storage) {
-        await this.storage.saveOutfits(items);
-      }
     } catch (err) {
-      if (this.storage) {
-        const cached = await this.storage.getAllOutfits();
-        if (cached.length > 0) {
-          this.outfits.set(cached);
-          this.loading.set(false);
-          return;
-        }
-      }
       this.error.set(err instanceof Error ? err.message : 'Errore nel caricamento degli abbinamenti');
     } finally {
       this.loading.set(false);
-    }
-  }
-
-  private async refreshFromServerSilently() {
-    try {
-      const items = await firstValueFrom(this.api.listOutfits());
-      this.outfits.set(items);
-      if (this.storage) {
-        await this.storage.saveOutfits(items);
-      }
-    } catch {
-      // Silent background error
     }
   }
 
