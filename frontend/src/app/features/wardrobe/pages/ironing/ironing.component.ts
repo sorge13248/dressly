@@ -48,11 +48,12 @@ export class IroningPageComponent implements OnInit {
   );
 
   readonly totalCount = computed(() => this.items().length);
+  private initialLoaded = false;
 
   constructor() {
     effect(() => {
       this.syncService.dataUpdated();
-      void this.load();
+      void this.load({ silent: this.initialLoaded });
     });
   }
 
@@ -60,16 +61,22 @@ export class IroningPageComponent implements OnInit {
     void this.load();
   }
 
-  async load() {
-    this.loading.set(true);
+  async load(options?: { silent?: boolean }) {
+    const isSilent = options?.silent ?? this.initialLoaded;
+    if (!isSilent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
 
     try {
       const loadedItems = await this.storage.getClothesForIroning();
       this.items.set(loadedItems);
       this.laundryService.setIroningCount(loadedItems.length);
+      this.initialLoaded = true;
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Impossibile caricare i capi da stirare');
+      if (!this.initialLoaded || !this.items().length) {
+        this.error.set(err instanceof Error ? err.message : 'Impossibile caricare i capi da stirare');
+      }
     } finally {
       this.loading.set(false);
     }

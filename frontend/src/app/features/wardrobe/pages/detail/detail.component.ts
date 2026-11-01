@@ -58,6 +58,7 @@ export class WardrobeDetailPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
+  private initialLoaded = false;
 
   constructor() {
     const sync = this.syncService;
@@ -66,7 +67,7 @@ export class WardrobeDetailPageComponent implements OnInit {
         sync.dataUpdated();
         const id = this.route.snapshot.paramMap.get('id');
         if (id) {
-          void this.load(id);
+          void this.load(id, { silent: this.initialLoaded });
         }
       });
     }
@@ -230,8 +231,11 @@ export class WardrobeDetailPageComponent implements OnInit {
     this.load(id);
   }
 
-  async load(id: string) {
-    this.loading.set(true);
+  async load(id: string, options?: { silent?: boolean }) {
+    const isSilent = options?.silent ?? (this.initialLoaded && this.item() !== null);
+    if (!isSilent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
 
     try {
@@ -242,9 +246,10 @@ export class WardrobeDetailPageComponent implements OnInit {
           const isInWashing = laundry.washing.includes(cached.id);
           const isInIroning = laundry.ironing.includes(cached.id);
           this.item.set({ ...cached, isInWashing, isInIroning });
+          this.initialLoaded = true;
           this.loading.set(false);
 
-          if (this.syncService && !this.syncService.checkIsOffline()) {
+          if (this.syncService && !this.syncService.checkIsOffline() && !isSilent) {
             void this.refreshFromServerSilently(id);
           }
           return;
@@ -257,6 +262,7 @@ export class WardrobeDetailPageComponent implements OnInit {
         const isInWashing = laundry.washing.includes(item.id);
         const isInIroning = laundry.ironing.includes(item.id);
         this.item.set({ ...item, isInWashing, isInIroning });
+        this.initialLoaded = true;
         if (this.storage) {
           await this.storage.saveClothes([item]);
         }

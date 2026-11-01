@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Dialog } from '@angular/cdk/dialog';
@@ -68,6 +68,20 @@ export class OutfitDetailPageComponent implements OnInit {
 
   // Batch laundry / ironing actions
   readonly batchActionBusy = signal(false);
+  private initialLoaded = false;
+
+  constructor() {
+    const sync = this.syncService;
+    if (sync) {
+      effect(() => {
+        sync.dataUpdated();
+        const id = this.route.snapshot.paramMap.get('id');
+        if (id && this.initialLoaded) {
+          void this.loadOutfit({ silent: true });
+        }
+      });
+    }
+  }
 
   readonly clothesInWashingCount = computed(() => {
     return this.outfit()?.clothes.filter((c) => c.isInWashing).length ?? 0;
@@ -101,7 +115,7 @@ export class OutfitDetailPageComponent implements OnInit {
     }
   }
 
-  async loadOutfit() {
+  async loadOutfit(options?: { silent?: boolean }) {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.error.set('Identificativo abbinamento mancante');
@@ -109,7 +123,10 @@ export class OutfitDetailPageComponent implements OnInit {
       return;
     }
 
-    this.loading.set(true);
+    const isSilent = options?.silent ?? (this.initialLoaded && this.outfit() !== null);
+    if (!isSilent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
 
     // 1. Check local offline storage
@@ -148,9 +165,10 @@ export class OutfitDetailPageComponent implements OnInit {
           updatedAt: cached.updatedAt,
         };
         this.outfit.set(resolvedOutfit);
+        this.initialLoaded = true;
         this.loading.set(false);
 
-        if (this.syncService && !this.syncService.checkIsOffline()) {
+        if (this.syncService && !this.syncService.checkIsOffline() && !isSilent) {
           void this.refreshFromServerSilently(id);
         }
         return;
@@ -161,6 +179,7 @@ export class OutfitDetailPageComponent implements OnInit {
     try {
       const data = await firstValueFrom(this.api.getOutfit(id));
       this.outfit.set(data);
+      this.initialLoaded = true;
       if (this.storage) {
         await this.storage.saveOutfit(data);
       }

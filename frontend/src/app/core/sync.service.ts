@@ -312,31 +312,37 @@ export class SyncService {
       const response = await firstValueFrom(this.api.sync(payload));
 
       // Remove synced queue items
-      if (queue.length > 0) {
+      const hadQueue = queue.length > 0;
+      if (hadQueue) {
         await this.storage.removeQueueItems(queue.map((q) => q.id));
         const updatedQueue = await this.storage.getQueue();
         this.pendingCount.set(updatedQueue.length);
       }
 
       // Apply server changes to local storage
+      let hasChanges = hadQueue;
       if (response.serverChanges) {
         if (response.serverChanges.clothes?.length) {
           await this.storage.saveClothes(response.serverChanges.clothes);
+          hasChanges = true;
         }
         if (response.serverChanges.deletedClothesIds?.length) {
           await this.storage.removeClothes(response.serverChanges.deletedClothesIds);
+          hasChanges = true;
         }
 
         if (response.serverChanges.referenceData) {
           for (const [kind, items] of Object.entries(response.serverChanges.referenceData)) {
             if (items?.length) {
               await this.storage.saveReferenceData(kind as ReferenceKind, items);
+              hasChanges = true;
             }
           }
         }
         if (response.serverChanges.deletedReferenceData?.length) {
           for (const item of response.serverChanges.deletedReferenceData) {
             await this.storage.removeReferenceData(item.kind as ReferenceKind, [item.id]);
+            hasChanges = true;
           }
         }
 
@@ -363,20 +369,47 @@ export class SyncService {
             }
           }
 
-          await this.storage.saveLaundry({
-            washing,
-            ironing,
-          });
+          let laundryDiffers = true;
+          if (this.storage.getLaundry) {
+            try {
+              const currentLaundry = await this.storage.getLaundry();
+              if (currentLaundry) {
+                const washingSame =
+                  currentLaundry.washing.length === washing.length &&
+                  currentLaundry.washing.every((id, i) => id === washing[i]);
+                const ironingSame =
+                  currentLaundry.ironing.length === ironing.length &&
+                  currentLaundry.ironing.every((id, i) => id === ironing[i]);
+                if (washingSame && ironingSame) {
+                  laundryDiffers = false;
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          if (laundryDiffers) {
+            await this.storage.saveLaundry({
+              washing,
+              ironing,
+            });
+            hasChanges = true;
+          }
         }
 
         if (response.serverChanges.outfits?.length && this.storage.saveOutfits) {
           await this.storage.saveOutfits(response.serverChanges.outfits);
+          hasChanges = true;
         }
         if (response.serverChanges.deletedOutfitIds?.length && this.storage.removeOutfits) {
           await this.storage.removeOutfits(response.serverChanges.deletedOutfitIds);
+          hasChanges = true;
         }
 
-        this.notifyDataChanged();
+        if (hasChanges) {
+          this.notifyDataChanged();
+        }
       }
 
       // Check conflicts

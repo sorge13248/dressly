@@ -29,6 +29,7 @@ describe('SyncService', () => {
     saveReferenceData: ReturnType<typeof vi.fn>;
     removeReferenceData: ReturnType<typeof vi.fn>;
     saveLaundry: ReturnType<typeof vi.fn>;
+    getLaundry: ReturnType<typeof vi.fn>;
     saveOutfits: ReturnType<typeof vi.fn>;
     removeOutfits: ReturnType<typeof vi.fn>;
     clearOutfits: ReturnType<typeof vi.fn>;
@@ -83,6 +84,7 @@ describe('SyncService', () => {
       saveReferenceData: vi.fn().mockResolvedValue(undefined),
       removeReferenceData: vi.fn().mockResolvedValue(undefined),
       saveLaundry: vi.fn().mockResolvedValue(undefined),
+      getLaundry: vi.fn().mockResolvedValue({ washing: [], ironing: [] }),
       saveOutfits: vi.fn().mockResolvedValue(undefined),
       removeOutfits: vi.fn().mockResolvedValue(undefined),
       clearOutfits: vi.fn().mockResolvedValue(undefined),
@@ -130,6 +132,15 @@ describe('SyncService', () => {
     expect(result?.status).toBe('ok');
     expect(service.status()).toBe('online-ok');
     expect(mockStorage.removeQueueItems).toHaveBeenCalledWith(['q1']);
+  });
+
+  it('should not notify dataUpdated if sync completes with no queue and no server changes', async () => {
+    mockStorage.getQueue.mockResolvedValue([]);
+    const initialDataUpdated = service.dataUpdated();
+
+    await service.sync();
+
+    expect(service.dataUpdated()).toBe(initialDataUpdated);
   });
 
   it('should set status to conflict when response contains unresolved conflicts', async () => {
