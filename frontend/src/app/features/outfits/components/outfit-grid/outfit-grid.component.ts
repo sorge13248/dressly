@@ -36,11 +36,12 @@ export class OutfitGridComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly actionBusy = signal(false);
+  private initialLoaded = false;
 
   constructor() {
     effect(() => {
       this.syncService?.dataUpdated();
-      void this.loadOutfits();
+      void this.loadOutfits({ silent: this.initialLoaded });
     });
   }
 
@@ -48,20 +49,27 @@ export class OutfitGridComponent implements OnInit {
     void this.loadOutfits();
   }
 
-  async loadOutfits() {
-    this.loading.set(true);
+  async loadOutfits(options?: { silent?: boolean }) {
+    const isSilent = options?.silent ?? this.initialLoaded;
+    if (!isSilent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
     try {
       if (this.storage) {
         const cached = await this.storage.getAllOutfits();
         this.outfits.set(cached);
+        this.initialLoaded = true;
         return;
       }
 
       const items = await firstValueFrom(this.api.listOutfits());
       this.outfits.set(items);
+      this.initialLoaded = true;
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Errore nel caricamento degli abbinamenti');
+      if (!this.initialLoaded || !this.outfits().length) {
+        this.error.set(err instanceof Error ? err.message : 'Errore nel caricamento degli abbinamenti');
+      }
     } finally {
       this.loading.set(false);
     }

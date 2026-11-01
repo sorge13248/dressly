@@ -55,7 +55,7 @@ export class ReferenceStoreService {
     if (sync) {
       effect(() => {
         sync.dataUpdated();
-        void this.loadAll();
+        void this.loadAll({ silent: true });
       });
     }
   }
@@ -112,12 +112,14 @@ export class ReferenceStoreService {
     }),
   );
 
-  async loadAll() {
-    this.loading.set(true);
+  async loadAll(options?: { silent?: boolean }) {
+    if (!options?.silent && !this.isLoaded()) {
+      this.loading.set(true);
+    }
     try {
       if (this.storage) {
         const cached = await this.storage.getAllReferenceData();
-        this.state.set({
+        const nextState: ReferenceState = {
           colors: (cached['colors'] ?? []) as ColorItem[],
           brands: (cached['brands'] ?? []) as BrandItem[],
           seasons: (cached['seasons'] ?? []) as SeasonItem[],
@@ -127,17 +129,68 @@ export class ReferenceStoreService {
           materials: (cached['materials'] ?? []) as MaterialItem[],
           types: (cached['types'] ?? []) as TypeItem[],
           tags: (cached['tags'] ?? []) as TagItem[],
-        });
+        };
+
+        if (this.hasStateChanged(this.state(), nextState)) {
+          this.state.set(nextState);
+        }
       }
     } finally {
       this.loading.set(false);
     }
   }
 
+  private hasStateChanged(curr: ReferenceState, next: ReferenceState): boolean {
+    const kinds: (keyof ReferenceState)[] = [
+      'colors',
+      'brands',
+      'seasons',
+      'temperatures',
+      'use-cases',
+      'fits',
+      'materials',
+      'types',
+      'tags',
+    ];
+    for (const kind of kinds) {
+      const c = curr[kind] ?? [];
+      const n = next[kind] ?? [];
+      if (c.length !== n.length) return true;
+      for (let i = 0; i < c.length; i++) {
+        if (
+          c[i].id !== n[i].id ||
+          c[i].updatedAt !== n[i].updatedAt ||
+          c[i].name !== n[i].name ||
+          (c[i] as any).hexCode !== (n[i] as any).hexCode ||
+          (c[i] as any).sortOrder !== (n[i] as any).sortOrder
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   async load(kind: ReferenceKind) {
     if (this.storage) {
       const cached = await this.storage.getReferenceData(kind);
-      this.patch(kind, cached);
+      const curr = this.state()[kind] ?? [];
+      const changed =
+        curr.length !== cached.length ||
+        curr.some((item, idx) => {
+          const other = cached[idx];
+          return (
+            !other ||
+            item.id !== other.id ||
+            item.updatedAt !== other.updatedAt ||
+            item.name !== other.name ||
+            (item as any).hexCode !== (other as any).hexCode ||
+            (item as any).sortOrder !== (other as any).sortOrder
+          );
+        });
+      if (changed) {
+        this.patch(kind, cached);
+      }
     }
   }
 

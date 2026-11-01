@@ -79,11 +79,12 @@ export class WashingPageComponent implements OnInit {
   });
 
   readonly totalCount = computed(() => this.items().length);
+  private initialLoaded = false;
 
   constructor() {
     effect(() => {
       this.syncService.dataUpdated();
-      void this.load();
+      void this.load({ silent: this.initialLoaded });
     });
   }
 
@@ -91,16 +92,22 @@ export class WashingPageComponent implements OnInit {
     void this.load();
   }
 
-  async load() {
-    this.loading.set(true);
+  async load(options?: { silent?: boolean }) {
+    const isSilent = options?.silent ?? this.initialLoaded;
+    if (!isSilent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
 
     try {
       const loadedItems = await this.storage.getClothesForWashing();
       this.items.set(loadedItems);
       this.laundryService.setWashingCount(loadedItems.length);
+      this.initialLoaded = true;
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Impossibile caricare i capi a lavare');
+      if (!this.initialLoaded || !this.items().length) {
+        this.error.set(err instanceof Error ? err.message : 'Impossibile caricare i capi a lavare');
+      }
     } finally {
       this.loading.set(false);
     }

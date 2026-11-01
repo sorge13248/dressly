@@ -254,6 +254,22 @@ describe('OutfitGridComponent', () => {
     expect(mockStorage.getAllOutfits).toHaveBeenCalled();
     expect(mockSyncService.sync).not.toHaveBeenCalled();
     expect(component.outfits().length).toBe(1);
+    expect(component.loading()).toBe(false);
+  });
+
+  it('should reload from storage on dataUpdated silently without flickering loading state', async () => {
+    let wasLoadingDuringReload = false;
+    mockStorage.getAllOutfits = vi.fn().mockImplementation(async () => {
+      wasLoadingDuringReload = component.loading();
+      return [mockOutfits[0]];
+    });
+
+    mockSyncService.dataUpdated.update((v: number) => v + 1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(wasLoadingDuringReload).toBe(false);
+    expect(component.loading()).toBe(false);
   });
 
   it('should fallback to api.listOutfits when storage is not available', async () => {

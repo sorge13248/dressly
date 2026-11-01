@@ -136,6 +136,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly pendingActionIds = signal<Set<string>>(new Set());
+  private initialLoaded = false;
 
   readonly brandOptions = this.referenceStore.brands;
   readonly fitOptions = this.referenceStore.fits;
@@ -273,7 +274,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       const query = this.query();
       // Track sync updates to reload from IndexedDB
       this.syncService?.dataUpdated();
-      void this.load(query);
+      void this.load(query, { silent: this.initialLoaded });
     });
   }
 
@@ -876,41 +877,50 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     return this.extractItemNames(items).join(', ');
   }
 
-  async load(query: ClothesFilters) {
-    this.loading.set(true);
+  async load(query: ClothesFilters, options?: { silent?: boolean }) {
+    const isSilent = options?.silent ?? this.initialLoaded;
+    if (!isSilent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
 
-    if (this.storage) {
-      const res = await this.storage.queryClothes(query);
-      if (res.total > 0 || res.items.length > 0) {
-        this.items.set(res.items);
-        this.total.set(res.total);
-        this.loading.set(false);
+    try {
+      if (this.storage) {
+        const res = await this.storage.queryClothes(query);
+        if (res.total > 0 || res.items.length > 0) {
+          this.items.set(res.items);
+          this.total.set(res.total);
+          this.initialLoaded = true;
+          return;
+        }
+
+        // If local storage is empty and online, run initial sync to pull everything from server
+        if (this.syncService && !this.syncService.checkIsOffline()) {
+          try {
+            await this.syncService.sync(true);
+            this.syncService.showStartupToastIfFirst();
+            const refreshed = await this.storage.queryClothes(query);
+            this.items.set(refreshed.items);
+            this.total.set(refreshed.total);
+            this.initialLoaded = true;
+            return;
+          } catch {
+            // Graceful fallback
+          }
+        }
+
+        this.items.set([]);
+        this.total.set(0);
+        this.initialLoaded = true;
         return;
       }
-
-      // If local storage is empty and online, run initial sync to pull everything from server
-      if (this.syncService && !this.syncService.checkIsOffline()) {
-        try {
-          await this.syncService.sync(true);
-          this.syncService.showStartupToastIfFirst();
-          const refreshed = await this.storage.queryClothes(query);
-          this.items.set(refreshed.items);
-          this.total.set(refreshed.total);
-          this.loading.set(false);
-          return;
-        } catch {
-          // Graceful fallback
-        }
+    } catch (err) {
+      if (!this.initialLoaded) {
+        this.error.set(err instanceof Error ? err.message : 'Errore nel caricamento del guardaroba');
       }
-
-      this.items.set([]);
-      this.total.set(0);
+    } finally {
       this.loading.set(false);
-      return;
     }
-
-    this.loading.set(false);
   }
 
   private closeFiltersOnMobile() {
