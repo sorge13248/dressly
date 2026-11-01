@@ -10,103 +10,79 @@
   flex-direction: column;
   flex: 1;
   width: 100%;
+  padding-bottom: 96px; /* Spazio per non coprire il contenuto con il pulsante fluttuante ancorato in fondo */
 }
 
-.ironing-header {
+/* Pulsante fluttuante trasparente e ombreggiato ancorato in fondo alla pagina al centro */
+.floating-dock {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 18px;
-  background: linear-gradient(180deg, #235da2 0%, #133f76 100%);
-  border-color: #0f3360;
-  border-radius: 0 0 8px 8px;
-  margin: -1px 0 0;
-  color: #fff;
+  justify-content: center;
+  padding: 6px 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(230, 243, 255, 0.68) 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  outline: 1px solid rgba(60, 130, 215, 0.28);
+  border-radius: 999px;
+  box-shadow:
+    0 12px 36px rgba(10, 35, 80, 0.22),
+    0 4px 12px rgba(10, 35, 80, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  animation: dock-fade-in 180ms ease-out;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+@keyframes dock-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .clear-btn {
-  min-height: 32px;
-  padding: 4px 14px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 140, 140, 0.5);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(220, 50, 50, 0.2) 50%, rgba(200, 30, 30, 0.35) 100%),
-    rgba(180, 20, 20, 0.5);
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.86rem;
-  transition: all 140ms ease;
-
-  &:hover {
-    background: rgba(220, 38, 38, 0.85);
-    border-color: rgba(255, 255, 255, 0.6);
-  }
-}
-
-.back-btn {
-  min-height: 32px;
-  padding: 4px 14px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.08) 100%),
-    rgba(255, 255, 255, 0.14);
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.86rem;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  text-decoration: none;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(195, 40, 40, 0.75);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(140, 20, 20, 0.22) 100%),
+    linear-gradient(180deg, #ea4335 0%, #d93025 50%, #b31412 100%);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(180, 25, 25, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 1px rgba(50, 0, 0, 0.4);
   transition: all 140ms ease;
 
+  .clear-icon {
+    width: 16px;
+    height: 16px;
+  }
+
   &:hover {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.14) 100%),
-      rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.65);
-    transform: translateX(-2px);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(180, 25, 25, 0.45), inset 0 1px 0 #ffffff;
+    filter: brightness(1.06);
   }
-}
 
-.title-cluster {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0;
-    letter-spacing: -0.01em;
+  &:active {
+    transform: translateY(0);
   }
-}
-
-.count-pill {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #eef6ff;
-  font-size: 0.82rem;
-  font-weight: 600;
 }
 
 .ironing-content {
@@ -436,21 +412,14 @@
 }
 
 @media (max-width: 640px) {
-  .ironing-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+  .floating-dock {
+    bottom: 12px;
   }
 
-  .header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .back-btn {
-    width: 100%;
-    justify-content: center;
+  .clear-btn {
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 0.86rem;
   }
 
   .clothes-grid {

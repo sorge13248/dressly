@@ -1,14 +1,4 @@
 <section class="washing-shell">
-  <header class="washing-header">
-    @if (!loading() && items().length > 0) {
-      <div class="header-right">
-        <button type="button" class="danger clear-btn" (click)="onClearList()">
-          Svuota lista
-        </button>
-      </div>
-    }
-  </header>
-
   <main class="washing-content">
     @if (loading()) {
       <div class="state-card">Caricamento capi a lavare...</div>
@@ -306,5 +296,20 @@
       </div>
     }
   </main>
+
+  <!-- Pulsante fluttuante trasparente e ombreggiato ancorato in fondo alla pagina al centro -->
+  @if (!loading() && items().length > 0) {
+    <div class="floating-dock" role="region" aria-label="Azioni lista">
+      <button type="button" class="danger clear-btn" (click)="onClearList()">
+        <svg class="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+        <span>Svuota lista</span>
+      </button>
+    </div>
+  }
 </section>
 

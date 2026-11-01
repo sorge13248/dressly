@@ -1,4 +1,10 @@
-<section class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="create-name-title">
+<form
+  class="modal-shell"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="create-name-title"
+  (ngSubmit)="confirm()"
+>
   <header>
     <h2 id="create-name-title">{{ data.title }}</h2>
     <p>{{ data.description }}</p>
@@ -14,6 +20,6 @@
 
   <footer>
     <button type="button" class="ghost" (click)="close()">{{ data.cancelLabel || 'Annulla' }}</button>
-    <button type="button" class="primary" (click)="confirm()">{{ data.confirmLabel || 'Crea' }}</button>
+    <button type="submit" class="primary">{{ data.confirmLabel || 'Crea' }}</button>
   </footer>
-</section>
+</form>
