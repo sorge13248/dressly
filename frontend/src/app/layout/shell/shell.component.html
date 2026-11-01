@@ -1,7 +1,7 @@
 <div class="shell">
   <app-toast-stack />
 
-  <header class="main-topbar">
+  <header class="main-topbar" [class.menu-open]="mobileNavOpen()">
     <!-- Logo dell'app allineato a sinistra -->
     <div class="topbar-left">
       <a class="brand-block" routerLink="/wardrobe" (click)="closeNavMenu()" aria-label="Vai alla home page">
@@ -22,6 +22,8 @@
             (click)="closeNavMenu()"
             class="nav-pill-item"
             [attr.data-nav-path]="item.path"
+            [attr.title]="item.label"
+            [attr.aria-label]="item.label"
           >
             @if (item.path === 'wardrobe') {
               <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -40,7 +42,7 @@
                 <rect x="3" y="14" width="7" height="7" rx="1.5" />
               </svg>
             }
-            <span>{{ item.label }}</span>
+            <span class="nav-pill-label">{{ item.label }}</span>
             @if (item.badgeState; as badge) {
               @if (badge.displayedCount > 0 || badge.animating === 'slide-down' || badge.animating === 'slide-out-zero') {
                 <span
@@ -69,7 +71,9 @@
           <div class="identity">
             <p class="welcome">Benvenuto</p>
             <p class="name-line">{{ firstName() }} {{ lastName() }}</p>
-            <p class="email-line">{{ email() || loginMode() }}</p>
+            @if (email()) {
+              <p class="email-line">{{ email() }}</p>
+            }
           </div>
 
           <div class="avatar" [title]="displayName()">
@@ -163,7 +167,9 @@
       <div class="mobile-user-row">
         <div class="mobile-identity">
           <p class="name-line">{{ firstName() }} {{ lastName() }}</p>
-          <p class="email-line">{{ email() || loginMode() }}</p>
+          @if (email()) {
+            <p class="email-line">{{ email() }}</p>
+          }
         </div>
         <button
           class="logout-btn mobile-logout"

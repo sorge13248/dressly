@@ -9,6 +9,16 @@ import { ReferenceDataService, ReferenceDataType } from '../services/reference-d
 export class ReferenceDataController {
   constructor(private readonly referenceDataService: ReferenceDataService) {}
 
+  @Get('reference-data')
+  listAll(@CurrentUser() user: AuthUser) {
+    return this.referenceDataService.listAll(user);
+  }
+
+  @Get('domains')
+  listDomains(@CurrentUser() user: AuthUser) {
+    return this.referenceDataService.listAll(user);
+  }
+
   @Get('colors')
   listColors(@CurrentUser() user: AuthUser) {
     return this.referenceDataService.list('colors', user);

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, OnInit, computed, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth.service';
 import { AeroSpinnerComponent } from '../../../../shared/components/spinner/spinner.component';
@@ -9,7 +9,7 @@ import { AeroSpinnerComponent } from '../../../../shared/components/spinner/spin
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
@@ -31,5 +31,11 @@ export class LoginPageComponent {
         void this.authService.login();
       }
     });
+  }
+
+  ngOnInit() {
+    if (!this.authService.oidcMetadata()) {
+      void this.authService.loadOidcConfig();
+    }
   }
 }

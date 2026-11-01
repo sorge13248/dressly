@@ -155,6 +155,20 @@ export class ApiService {
     });
   }
 
+  getAllReferenceData() {
+    return this.http.get<{
+      colors: ColorItem[];
+      brands: BrandItem[];
+      seasons: SeasonItem[];
+      temperatures: TemperatureItem[];
+      'use-cases': UseCaseItem[];
+      fits: FitItem[];
+      materials: MaterialItem[];
+      types: TypeItem[];
+      tags: TagItem[];
+    }>('/api/reference-data');
+  }
+
   listReference(kind: ReferenceKind) {
     return this.http.get<Array<ColorItem | BrandItem | SeasonItem | TemperatureItem | UseCaseItem | FitItem | MaterialItem | TypeItem | TagItem>>(`/api/${kind}`);
   }

@@ -12,7 +12,7 @@ import { IroningPageComponent } from './features/wardrobe/pages/ironing/ironing.
 import { WashingPageComponent } from './features/wardrobe/pages/washing/washing.component';
 
 export const routes: Routes = [
-	{ path: '', pathMatch: 'full', redirectTo: 'login' },
+	{ path: '', pathMatch: 'full', redirectTo: 'wardrobe' },
 	{ path: 'login', component: LoginPageComponent },
 	{ path: 'auth/callback', component: CallbackPageComponent },
 	{

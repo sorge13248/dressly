@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { FormField, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
@@ -94,6 +94,24 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   });
   readonly searchForm = form(this.searchModel);
   readonly debouncedSearch = signal('');
+
+  @ViewChild('filtersSidebar') filtersSidebar?: ElementRef<HTMLElement>;
+  @ViewChild('filtersBackdrop') filtersBackdrop?: ElementRef<HTMLElement>;
+
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private touchCurrentX = 0;
+  private touchStartTime = 0;
+  private isTouchTracking = false;
+  private isDraggingFilters = false;
+  private dragDirectionLocked: 'horizontal' | 'vertical' | null = null;
+  private sidebarDragInitialState: 'open' | 'closed' = 'closed';
+  private snapTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  private readonly touchStartListener = (e: TouchEvent) => this.onTouchStart(e);
+  private readonly touchMoveListener = (e: TouchEvent) => this.onTouchMove(e);
+  private readonly touchEndListener = (e: TouchEvent) => this.onTouchEnd(e);
+  private readonly touchCancelListener = () => this.onTouchCancel();
 
   readonly filters = signal(initialFilters(Object.fromEntries(new URLSearchParams(window.location.search))));
   readonly filtersOpen = signal(false);
@@ -242,17 +260,24 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-      this.routeSubscription = this.route.queryParamMap.subscribe((queryParamMap) => {
-        const query = Object.fromEntries(queryParamMap.keys.map((key) => [key, queryParamMap.get(key) ?? '']));
-        const nextFilters = initialFilters(query);
-        const nextSearch = query['search'] ?? '';
+    this.routeSubscription = this.route.queryParamMap.subscribe((queryParamMap) => {
+      const query = Object.fromEntries(queryParamMap.keys.map((key) => [key, queryParamMap.get(key) ?? '']));
+      const nextFilters = initialFilters(query);
+      const nextSearch = query['search'] ?? '';
 
-        this.isHydratingFromUrl = true;
-        this.filters.set(nextFilters);
-        this.searchForm.text().value.set(nextSearch);
-        this.debouncedSearch.set(nextSearch);
-        this.isHydratingFromUrl = false;
-      });
+      this.isHydratingFromUrl = true;
+      this.filters.set(nextFilters);
+      this.searchForm.text().value.set(nextSearch);
+      this.debouncedSearch.set(nextSearch);
+      this.isHydratingFromUrl = false;
+    });
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('touchstart', this.touchStartListener, { passive: true });
+      window.addEventListener('touchmove', this.touchMoveListener, { passive: false });
+      window.addEventListener('touchend', this.touchEndListener, { passive: true });
+      window.addEventListener('touchcancel', this.touchCancelListener, { passive: true });
+    }
   }
 
   ngOnDestroy() {
@@ -260,7 +285,19 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       clearTimeout(this.debounceHandle);
     }
 
-      this.routeSubscription?.unsubscribe();
+    this.routeSubscription?.unsubscribe();
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('touchstart', this.touchStartListener);
+      window.removeEventListener('touchmove', this.touchMoveListener);
+      window.removeEventListener('touchend', this.touchEndListener);
+      window.removeEventListener('touchcancel', this.touchCancelListener);
+    }
+
+    if (this.snapTimeout) {
+      clearTimeout(this.snapTimeout);
+      this.snapTimeout = null;
+    }
   }
 
   trackById = (_: number, item: ClothesItem) => item.id;
@@ -363,11 +400,291 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   }
 
   toggleFilters() {
-    this.filtersOpen.update((open) => !open);
+    if (this.filtersOpen()) {
+      this.closeFilters();
+    } else {
+      this.clearSidebarInlineStyles();
+      this.filtersOpen.set(true);
+    }
   }
 
   closeFilters() {
+    this.clearSidebarInlineStyles();
     this.filtersOpen.set(false);
+  }
+
+  private isMobileTablet(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+    return window.matchMedia('(max-width: 900px)').matches;
+  }
+
+  private isTouchCapable(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return (
+      'ontouchstart' in window ||
+      (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
+    );
+  }
+
+  private onTouchStart(e: TouchEvent) {
+    this.resetDragState();
+
+    if (!this.isMobileTablet() || !this.isTouchCapable()) {
+      return;
+    }
+    if (e.touches.length !== 1) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    const target = touch.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select')) {
+      return;
+    }
+
+    const isClosed = !this.filtersOpen();
+    const isRightThird = touch.clientX >= window.innerWidth * (2 / 3);
+    if (isClosed && !isRightThird) {
+      return;
+    }
+
+    if (this.snapTimeout) {
+      clearTimeout(this.snapTimeout);
+      this.snapTimeout = null;
+    }
+
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.touchCurrentX = touch.clientX;
+    this.touchStartTime = Date.now();
+    this.dragDirectionLocked = null;
+    this.isDraggingFilters = false;
+    this.sidebarDragInitialState = this.filtersOpen() ? 'open' : 'closed';
+    this.isTouchTracking = true;
+  }
+
+  private onTouchMove(e: TouchEvent) {
+    if (!this.isTouchTracking) {
+      return;
+    }
+
+    if (!this.isMobileTablet() || !this.isTouchCapable()) {
+      this.resetDragState();
+      return;
+    }
+    if (e.touches.length !== 1) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - this.touchStartX;
+    const deltaY = touch.clientY - this.touchStartY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+
+    if (!this.dragDirectionLocked) {
+      if (absDeltaX < 8 && absDeltaY < 8) {
+        return;
+      }
+      if (absDeltaY >= absDeltaX) {
+        this.dragDirectionLocked = 'vertical';
+        return;
+      }
+
+      if (this.sidebarDragInitialState === 'closed') {
+        // Dragging from right to left (deltaX < 0) opens filters only if started from the right 1/3
+        const isRightThird = this.touchStartX >= window.innerWidth * (2 / 3);
+        if (deltaX < 0 && isRightThird) {
+          this.dragDirectionLocked = 'horizontal';
+          this.isDraggingFilters = true;
+        } else {
+          this.dragDirectionLocked = 'vertical';
+          return;
+        }
+      } else {
+        // When open, dragging left to right (deltaX > 0) closes filters
+        if (deltaX > 0) {
+          this.dragDirectionLocked = 'horizontal';
+          this.isDraggingFilters = true;
+        } else {
+          this.dragDirectionLocked = 'vertical';
+          return;
+        }
+      }
+    }
+
+    if (!this.isDraggingFilters) {
+      return;
+    }
+
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    this.touchCurrentX = touch.clientX;
+    this.updateSidebarPositionDuringDrag();
+  }
+
+  private updateSidebarPositionDuringDrag() {
+    const sidebarEl = this.filtersSidebar?.nativeElement;
+    const backdropEl = this.filtersBackdrop?.nativeElement;
+    if (!sidebarEl || !backdropEl) {
+      return;
+    }
+
+    const windowWidth = window.innerWidth;
+    const sidebarWidth = sidebarEl.offsetWidth || Math.min(360, windowWidth * 0.88);
+    const restingLeft = windowWidth - sidebarWidth;
+
+    let translateX = sidebarWidth;
+
+    if (this.sidebarDragInitialState === 'closed') {
+      const startX = this.touchStartX;
+      const currentX = this.touchCurrentX;
+      const dragDistance = Math.max(0, startX - currentX);
+      const edgeOffset = Math.max(0, windowWidth - startX);
+      const catchUpDistance = Math.max(30, edgeOffset);
+      const progressToFinger = Math.min(1, dragDistance / catchUpDistance);
+      const sidebarLeft = (windowWidth - dragDistance) * (1 - progressToFinger) + currentX * progressToFinger;
+      const rawTranslateX = sidebarLeft - restingLeft;
+      translateX = Math.max(0, Math.min(sidebarWidth, rawTranslateX));
+    } else {
+      const startX = this.touchStartX;
+      const currentX = this.touchCurrentX;
+      const dragDistance = Math.max(0, currentX - startX);
+      translateX = Math.max(0, Math.min(sidebarWidth, dragDistance));
+    }
+
+    const progress = Math.max(0, Math.min(1, 1 - translateX / sidebarWidth));
+
+    sidebarEl.style.transition = 'none';
+    sidebarEl.style.transform = `translateX(${translateX}px)`;
+
+    backdropEl.style.transition = 'none';
+    backdropEl.style.visibility = progress > 0.005 ? 'visible' : 'hidden';
+    backdropEl.style.opacity = progress.toFixed(3);
+    backdropEl.style.pointerEvents = 'auto';
+  }
+
+  private onTouchEnd(e: TouchEvent) {
+    if (!this.isTouchTracking) {
+      return;
+    }
+    this.isTouchTracking = false;
+
+    if (!this.isMobileTablet() || !this.isTouchCapable()) {
+      this.resetDragState();
+      return;
+    }
+
+    if (!this.isDraggingFilters) {
+      this.resetDragState();
+      return;
+    }
+
+    const sidebarEl = this.filtersSidebar?.nativeElement;
+    const sidebarWidth = sidebarEl?.offsetWidth || Math.min(360, window.innerWidth * 0.88);
+
+    const elapsed = Math.max(1, Date.now() - this.touchStartTime);
+    const deltaX = this.touchCurrentX - this.touchStartX;
+    const velocityX = deltaX / elapsed;
+
+    if (this.sidebarDragInitialState === 'closed') {
+      const dragDistance = this.touchStartX - this.touchCurrentX;
+      const shouldOpen = dragDistance > sidebarWidth * 0.25 || (velocityX < -0.35 && dragDistance > 20);
+      this.snapFilters(shouldOpen, sidebarWidth);
+    } else {
+      const dragDistance = this.touchCurrentX - this.touchStartX;
+      const shouldClose = dragDistance > sidebarWidth * 0.25 || (velocityX > 0.35 && dragDistance > 20);
+      this.snapFilters(!shouldClose, sidebarWidth);
+    }
+  }
+
+  private onTouchCancel() {
+    if (!this.isTouchTracking) {
+      return;
+    }
+    this.isTouchTracking = false;
+
+    if (!this.isDraggingFilters) {
+      this.resetDragState();
+      return;
+    }
+    const sidebarEl = this.filtersSidebar?.nativeElement;
+    const sidebarWidth = sidebarEl?.offsetWidth || Math.min(360, window.innerWidth * 0.88);
+    this.snapFilters(this.sidebarDragInitialState === 'open', sidebarWidth);
+  }
+
+  private snapFilters(toOpen: boolean, sidebarWidth: number) {
+    const sidebarEl = this.filtersSidebar?.nativeElement;
+    const backdropEl = this.filtersBackdrop?.nativeElement;
+
+    if (!sidebarEl || !backdropEl) {
+      this.filtersOpen.set(toOpen);
+      this.resetDragState();
+      return;
+    }
+
+    const transitionTiming = 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)';
+    const backdropTiming = 'opacity 240ms ease';
+
+    sidebarEl.style.transition = transitionTiming;
+    backdropEl.style.transition = backdropTiming;
+
+    if (toOpen) {
+      sidebarEl.style.transform = 'translateX(0)';
+      backdropEl.style.visibility = 'visible';
+      backdropEl.style.opacity = '1';
+    } else {
+      sidebarEl.style.transform = `translateX(${sidebarWidth}px)`;
+      backdropEl.style.opacity = '0';
+    }
+
+    this.snapTimeout = setTimeout(() => {
+      this.filtersOpen.set(toOpen);
+      sidebarEl.style.transition = '';
+      sidebarEl.style.transform = '';
+      backdropEl.style.transition = '';
+      backdropEl.style.opacity = '';
+      backdropEl.style.visibility = '';
+      backdropEl.style.pointerEvents = '';
+      this.resetDragState();
+      this.snapTimeout = null;
+    }, 250);
+  }
+
+  private resetDragState() {
+    this.isTouchTracking = false;
+    this.isDraggingFilters = false;
+    this.dragDirectionLocked = null;
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+    this.touchCurrentX = 0;
+    this.sidebarDragInitialState = 'closed';
+  }
+
+  private clearSidebarInlineStyles() {
+    if (this.snapTimeout) {
+      clearTimeout(this.snapTimeout);
+      this.snapTimeout = null;
+    }
+    this.resetDragState();
+    const sidebarEl = this.filtersSidebar?.nativeElement;
+    const backdropEl = this.filtersBackdrop?.nativeElement;
+    if (sidebarEl) {
+      sidebarEl.style.transition = '';
+      sidebarEl.style.transform = '';
+    }
+    if (backdropEl) {
+      backdropEl.style.transition = '';
+      backdropEl.style.opacity = '';
+      backdropEl.style.visibility = '';
+      backdropEl.style.pointerEvents = '';
+    }
   }
 
   toggleSelection(id: string, event?: Event) {

@@ -30,7 +30,8 @@ export class CallbackPageComponent implements OnInit {
     try {
       await this.authService.completeCallback(window.location.href);
       this.status.set('done');
-      await this.router.navigateByUrl('/wardrobe');
+      const returnUrl = this.authService.consumeReturnUrl() || '/wardrobe';
+      await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.status.set('error');
       this.errorMessage.set(error instanceof Error ? error.message : 'Errore sconosciuto');

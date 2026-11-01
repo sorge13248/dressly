@@ -105,7 +105,7 @@ export class AuthController {
     authorize.searchParams.set('response_type', 'code');
     authorize.searchParams.set('client_id', config.clientId);
     authorize.searchParams.set('redirect_uri', config.redirectUri);
-    authorize.searchParams.set('scope', 'openid profile email');
+    authorize.searchParams.set('scope', 'openid profile email offline_access');
     authorize.searchParams.set('state', state);
     authorize.searchParams.set('nonce', nonce);
     authorize.searchParams.set('code_challenge', challenge);
@@ -172,13 +172,69 @@ export class AuthController {
     response.redirect(this.frontendRedirectUrl('/auth/callback?status=ok'));
   }
 
+  @Post('refresh')
+  async refresh(
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ) {
+    const cookies = parseCookieHeader(request.headers.cookie);
+    const refreshToken = cookies[COOKIE_REFRESH_TOKEN];
+
+    if (!refreshToken) {
+      this.clearSessionCookies(response);
+      throw new UnauthorizedException('Missing refresh token');
+    }
+
+    const metadata = await this.getMetadata();
+    const config = this.getOidcConfigOrThrow();
+
+    const tokenResponse = await fetch(metadata.token_endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        refresh_token: refreshToken,
+      }).toString(),
+    });
+
+    if (!tokenResponse.ok) {
+      this.clearSessionCookies(response);
+      throw new UnauthorizedException(`OIDC refresh token failed (${tokenResponse.status})`);
+    }
+
+    const tokens = (await tokenResponse.json()) as TokenResponse;
+    if (!tokens.access_token) {
+      this.clearSessionCookies(response);
+      throw new UnauthorizedException('OIDC token response is missing access_token');
+    }
+
+    response.cookie(COOKIE_ACCESS_TOKEN, tokens.access_token, this.sessionCookieOptions(tokens.expires_in));
+
+    if (tokens.id_token) {
+      response.cookie(COOKIE_ID_TOKEN, tokens.id_token, this.sessionCookieOptions(tokens.expires_in));
+    } else {
+      response.clearCookie(COOKIE_ID_TOKEN, this.sessionCookieOptions());
+    }
+
+    const activeRefreshToken = tokens.refresh_token ?? refreshToken;
+    response.cookie(COOKIE_REFRESH_TOKEN, activeRefreshToken, this.refreshCookieOptions());
+
+    return { refreshed: true, expiresIn: tokens.expires_in };
+  }
+
   @Post('logout')
   logout(@Res({ passthrough: true }) response: HttpResponse) {
     this.clearPkceCookies(response);
+    this.clearSessionCookies(response);
+    return { loggedOut: true };
+  }
+
+  private clearSessionCookies(response: HttpResponse) {
     response.clearCookie(COOKIE_ACCESS_TOKEN, this.sessionCookieOptions());
     response.clearCookie(COOKIE_ID_TOKEN, this.sessionCookieOptions());
     response.clearCookie(COOKIE_REFRESH_TOKEN, this.refreshCookieOptions());
-    return { loggedOut: true };
   }
 
   private getOidcConfigOrThrow() {

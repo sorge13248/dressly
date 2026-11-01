@@ -1,9 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { DestroyRef, Injectable, NgZone, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
-import { Dialog } from '@angular/cdk/dialog';
 import { catchError, firstValueFrom, of } from 'rxjs';
-import { ConfirmModalComponent } from '../shared/components/confirm-modal/confirm-modal.component';
 import { ApiService } from './api.service';
 import { AuthUser, OidcConfig } from './models';
 
@@ -14,12 +12,19 @@ interface OidcMetadata {
   userinfo_endpoint?: string;
 }
 
+interface MinimalCachedUser {
+  displayName: string;
+  pictureUrl?: string | null;
+}
+
+const AUTH_STORAGE_KEY = 'dressly_auth_user';
+const RETURN_URL_STORAGE_KEY = 'dressly_auth_return_url';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
-  private readonly dialog = inject(Dialog);
   private readonly ngZone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -30,9 +35,12 @@ export class AuthService {
   readonly error = signal<string | null>(null);
   private metadataRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private sessionPingTimer: ReturnType<typeof setTimeout> | null = null;
-  private sessionExpiredModalOpen = false;
+  private isRenewingSession = false;
+  private silentRefreshPromise: Promise<boolean> | null = null;
+  private lastRefreshedAt = Date.now();
 
   sessionPingIntervalMs = 30_000;
+  proactiveRefreshIntervalMs = 4 * 60_000;
 
   readonly isAuthenticated = computed(() => Boolean(this.profile()));
   readonly displayName = computed(() => this.profile()?.displayName ?? 'Ospite');
@@ -50,6 +58,12 @@ export class AuthService {
   readonly loginMode = computed(() => (this.oidcMetadata() ? 'OIDC' : 'OIDC non pronto'));
 
   constructor() {
+    const cached = this.getCachedProfile();
+    if (cached) {
+      this.profile.set(cached);
+      this.loading.set(false);
+    }
+
     effect(() => {
       const authenticated = this.isAuthenticated();
       untracked(() => {
@@ -66,19 +80,41 @@ export class AuthService {
       this.clearMetadataRetry();
     });
 
+    // Proactive refresh check on tab visibility change or window focus
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const onVisibilityOrFocus = () => {
+        if (document.visibilityState === 'visible' && this.isAuthenticated()) {
+          const elapsed = Date.now() - this.lastRefreshedAt;
+          if (elapsed >= this.proactiveRefreshIntervalMs) {
+            void this.silentRefresh();
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', onVisibilityOrFocus);
+      window.addEventListener('focus', onVisibilityOrFocus);
+
+      this.destroyRef.onDestroy(() => {
+        document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+        window.removeEventListener('focus', onVisibilityOrFocus);
+      });
+    }
+
     void this.initialize();
   }
 
   async initialize() {
-    this.loading.set(true);
+    if (!this.profile()) {
+      this.loading.set(true);
+    }
     try {
-      await this.loadOidcConfig();
       await this.loadProfile();
-
       this.scheduleMetadataRetryIfNeeded();
     } finally {
       this.loading.set(false);
     }
+
+    void this.loadOidcConfig();
   }
 
   async waitUntilInitialized(timeoutMs = 5000) {
@@ -157,6 +193,7 @@ export class AuthService {
 
   logout() {
     this.stopSessionPing();
+    this.setCachedProfile(null);
     void firstValueFrom(this.http.post('/api/auth/logout', {}).pipe(catchError(() => of(null)))).finally(() => {
       this.profile.set(null);
       try {
@@ -173,7 +210,7 @@ export class AuthService {
   startSessionPing(): void {
     this.stopSessionPing();
 
-    if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+    if (!this.isAuthenticated() || this.isRenewingSession) {
       return;
     }
 
@@ -181,7 +218,7 @@ export class AuthService {
       this.sessionPingTimer = setTimeout(async () => {
         this.sessionPingTimer = null;
         await this.checkSession();
-        if (this.isAuthenticated() && !this.sessionExpiredModalOpen) {
+        if (this.isAuthenticated() && !this.isRenewingSession) {
           this.startSessionPing();
         }
       }, this.sessionPingIntervalMs);
@@ -196,19 +233,29 @@ export class AuthService {
   }
 
   async checkSession(): Promise<boolean> {
-    if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+    if (!this.isAuthenticated() || this.isRenewingSession) {
       return false;
+    }
+
+    // Rinnovo proattivo continuo: se l'intervallo è trascorso, rinnova prima che il token scada!
+    const elapsed = Date.now() - this.lastRefreshedAt;
+    if (elapsed >= this.proactiveRefreshIntervalMs) {
+      const refreshed = await this.silentRefresh();
+      if (refreshed) {
+        return true;
+      }
     }
 
     try {
       const profile = await firstValueFrom(this.http.get<AuthUser>('/api/me'));
-      if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+      if (!this.isAuthenticated() || this.isRenewingSession) {
         return false;
       }
 
       if (profile) {
         this.ngZone.run(() => {
           this.profile.set(profile);
+          this.setCachedProfile(profile);
         });
         return true;
       }
@@ -216,7 +263,7 @@ export class AuthService {
       this.handleSessionExpired();
       return false;
     } catch (err: unknown) {
-      if (!this.isAuthenticated() || this.sessionExpiredModalOpen) {
+      if (!this.isAuthenticated() || this.isRenewingSession) {
         return false;
       }
 
@@ -231,48 +278,138 @@ export class AuthService {
 
   handleSessionExpired(): void {
     this.stopSessionPing();
+    this.setCachedProfile(null);
+    this.profile.set(null);
 
-    this.ngZone.run(() => {
-      this.profile.set(null);
-
-      if (this.sessionExpiredModalOpen) {
-        return;
-      }
-      this.sessionExpiredModalOpen = true;
-
-      const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
-        disableClose: true,
-        data: {
-          title: 'Sessione scaduta',
-          message: 'La sessione di autenticazione è scaduta. Ricarica la pagina per rinnovare la sessione e continuare a usare Dressly.',
-          confirmLabel: 'Ricarica pagina',
-          showCancel: false,
-          confirmVariant: 'primary',
-        },
-      });
-
-      dialogRef.closed.subscribe(() => {
-        this.sessionExpiredModalOpen = false;
-        this.reloadPage();
-      });
-    });
+    void this.renewSession();
   }
 
-  reloadPage(): void {
-    if (typeof window !== 'undefined' && window.location) {
-      try {
-        window.location.reload();
-      } catch {
-        // Ignored in non-browser or test environments
+  async renewSession(): Promise<boolean> {
+    if (this.isRenewingSession) {
+      return false;
+    }
+    this.isRenewingSession = true;
+    this.stopSessionPing();
+
+    try {
+      // 1. Prova prima il refresh silenzioso con token endpoint (/api/auth/refresh)
+      const refreshed = await this.silentRefresh();
+      if (refreshed && this.isAuthenticated()) {
+        this.startSessionPing();
+        return true;
       }
+
+      // 2. Se il refresh token non è presente o è scaduto, rinnova immediatamente la sessione via OIDC SSO
+      this.setCachedProfile(null);
+      this.profile.set(null);
+      this.rememberCurrentUrl();
+      await this.login();
+      return true;
+    } catch {
+      this.setCachedProfile(null);
+      this.profile.set(null);
+      void this.router.navigateByUrl('/login');
+      return false;
+    } finally {
+      this.isRenewingSession = false;
     }
   }
 
-  private async loadProfile() {
+  silentRefresh(): Promise<boolean> {
+    if (this.silentRefreshPromise) {
+      return this.silentRefreshPromise;
+    }
+
+    this.silentRefreshPromise = this.doSilentRefresh().finally(() => {
+      this.silentRefreshPromise = null;
+    });
+
+    return this.silentRefreshPromise;
+  }
+
+  private async doSilentRefresh(): Promise<boolean> {
     try {
-      const profile = await firstValueFrom(this.http.get<AuthUser>('/api/me').pipe(catchError(() => of(null))));
+      const res = await firstValueFrom(
+        this.http.post<{ refreshed: boolean; expiresIn?: number }>('/api/auth/refresh', {}).pipe(
+          catchError(() => of(null)),
+        ),
+      );
+
+      if (res?.refreshed) {
+        this.lastRefreshedAt = Date.now();
+        if (res.expiresIn && res.expiresIn > 60) {
+          this.proactiveRefreshIntervalMs = Math.max(60_000, (res.expiresIn - 60) * 1000);
+        }
+        await this.loadProfileSilently();
+        return true;
+      }
+    } catch {
+      // Refresh failed
+    }
+    return false;
+  }
+
+  private async loadProfileSilently(): Promise<boolean> {
+    try {
+      const profile = await firstValueFrom(
+        this.http.get<AuthUser>('/api/me').pipe(catchError(() => of(null))),
+      );
+      if (profile) {
+        this.ngZone.run(() => {
+          this.profile.set(profile);
+          this.setCachedProfile(profile);
+        });
+        return true;
+      }
+    } catch {
+      // Ignored
+    }
+    return false;
+  }
+
+  rememberCurrentUrl(): void {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const path = window.location.pathname + window.location.search;
+        if (path && path !== '/login' && !path.startsWith('/auth/callback')) {
+          window.sessionStorage.setItem(RETURN_URL_STORAGE_KEY, path);
+        }
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
+  consumeReturnUrl(): string | null {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const url = window.sessionStorage.getItem(RETURN_URL_STORAGE_KEY);
+        window.sessionStorage.removeItem(RETURN_URL_STORAGE_KEY);
+        return url;
+      }
+    } catch {
+      // Ignored
+    }
+    return null;
+  }
+
+  private async loadProfile() {
+    const hadCachedProfile = Boolean(this.profile());
+    try {
+      const profile = await firstValueFrom(
+        this.http.get<AuthUser>('/api/me').pipe(
+          catchError((err: unknown) => {
+            if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403)) {
+              return of(null);
+            }
+            return of(this.profile());
+          }),
+        ),
+      );
+
       if (profile) {
         this.profile.set(profile);
+        this.setCachedProfile(profile);
         return;
       }
     } catch {
@@ -280,6 +417,53 @@ export class AuthService {
     }
 
     this.profile.set(null);
+    this.setCachedProfile(null);
+
+    if (hadCachedProfile) {
+      this.handleSessionExpired();
+    }
+  }
+
+  private getCachedProfile(): AuthUser | null {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<MinimalCachedUser>;
+          if (parsed && typeof parsed.displayName === 'string' && parsed.displayName.trim()) {
+            return {
+              id: '',
+              subject: '',
+              displayName: parsed.displayName,
+              email: null, // Mail non salvata in localStorage, viene caricata da /me all'avvio
+              pictureUrl: typeof parsed.pictureUrl === 'string' ? parsed.pictureUrl : null,
+            };
+          }
+        }
+      }
+    } catch {
+      // Ignored
+    }
+    return null;
+  }
+
+  private setCachedProfile(profile: AuthUser | null): void {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (profile?.displayName) {
+          // La mail NON va salvata in localStorage: solo displayName e pictureUrl
+          const minimal: MinimalCachedUser = {
+            displayName: profile.displayName,
+            pictureUrl: profile.pictureUrl ?? null,
+          };
+          window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(minimal));
+        } else {
+          window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+      }
+    } catch {
+      // Ignored
+    }
   }
 
   private scheduleMetadataRetryIfNeeded() {

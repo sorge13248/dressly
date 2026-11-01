@@ -48,6 +48,32 @@ export class ReferenceDataService {
     });
   }
 
+  async listAll(user: AuthUser) {
+    const [colors, brands, seasons, temperatures, useCases, fits, materials, types, tags] = await Promise.all([
+      this.list('colors', user),
+      this.list('brands', user),
+      this.list('seasons', user),
+      this.list('temperatures', user),
+      this.list('use-cases', user),
+      this.list('fits', user),
+      this.list('materials', user),
+      this.list('types', user),
+      this.list('tags', user),
+    ]);
+
+    return {
+      colors,
+      brands,
+      seasons,
+      temperatures,
+      'use-cases': useCases,
+      fits,
+      materials,
+      types,
+      tags,
+    };
+  }
+
   async create(type: ReferenceDataType, user: AuthUser, body: Record<string, unknown>) {
     const repository = this.repository(type);
     const entity = repository.create(this.mapPayload(type, user.id, body));
