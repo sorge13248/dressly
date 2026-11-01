@@ -1,9 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth.service';
+import { ButtonComponent } from '../../../../shared/components/button';
 
 @Component({
   standalone: true,
+  imports: [ButtonComponent],
   templateUrl: './callback.component.html',
   styleUrl: './callback.component.scss',
 })
@@ -28,7 +30,8 @@ export class CallbackPageComponent implements OnInit {
     try {
       await this.authService.completeCallback(window.location.href);
       this.status.set('done');
-      await this.router.navigateByUrl('/wardrobe');
+      const returnUrl = this.authService.consumeReturnUrl() || '/wardrobe';
+      await this.router.navigateByUrl(returnUrl);
     } catch (error) {
       this.status.set('error');
       this.errorMessage.set(error instanceof Error ? error.message : 'Errore sconosciuto');

@@ -11,6 +11,8 @@
 
         <button
           type="button"
+          appButton
+          variant="ghost"
           class="ghost toolbar-btn"
           (click)="clearSelection()"
           title="Deseleziona tutti i vestiti selezionati"
@@ -27,22 +29,7 @@
             (click)="onAddToWashing()"
             title="Metti a lavare i vestiti selezionati"
           >
-            <svg
-              class="action-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="12" cy="13" r="5" />
-              <path d="M12 10a3 3 0 0 1 3 3" />
-              <circle cx="7" cy="6" r=".5" fill="currentColor" />
-              <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
-            </svg>
+            <app-washing-icon class="action-icon" [size]="18" />
             <span>Metti a lavare</span>
           </button>
 
@@ -52,20 +39,7 @@
             (click)="onIron()"
             title="Stira i capi selezionati"
           >
-            <svg
-              class="action-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-              <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-              <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-            </svg>
+            <app-ironing-icon class="action-icon" [size]="18" />
             <span>Stira</span>
           </button>
         </div>
@@ -74,18 +48,18 @@
   }
 
   <section class="layout-grid">
-    <div class="filters-backdrop" [class.open]="filtersOpen()" (click)="closeFilters()"></div>
+    <div #filtersBackdrop class="filters-backdrop" [class.open]="filtersOpen()" (click)="closeFilters()"></div>
 
-    <aside class="filters-sidebar" [class.open]="filtersOpen()">
+    <aside #filtersSidebar class="filters-sidebar" [class.open]="filtersOpen()">
       <div class="filters-mobile-head">
         <h2>Filtri</h2>
-        <button type="button" class="ghost" (click)="closeFilters()">Chiudi</button>
+        <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="closeFilters()">Chiudi</button>
       </div>
 
       @if (hasActiveFilters()) {
         <div class="filters-toolbar">
           <div class="count-pill">{{ activeFilterCount() }} filtri attivi</div>
-          <button type="button" class="ghost" (click)="clearFilters()">Azzera</button>
+          <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="clearFilters()">Azzera</button>
         </div>
       }
 
@@ -177,22 +151,12 @@
                   <div class="card-status-badges">
                     @if (item.isInWashing) {
                       <span class="status-badge status-badge--washing" title="In lavatrice" aria-label="In lavatrice">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="status-icon">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="12" cy="13" r="5" />
-                          <path d="M12 10a3 3 0 0 1 3 3" />
-                          <circle cx="7" cy="6" r=".5" fill="currentColor" />
-                          <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
-                        </svg>
+                        <app-washing-icon [size]="14" [strokeWidth]="2" />
                       </span>
                     }
                     @if (item.isInIroning) {
                       <span class="status-badge status-badge--ironing" title="Da stirare" aria-label="Da stirare">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="status-icon">
-                          <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                          <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                          <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-                        </svg>
+                        <app-ironing-icon [size]="14" [strokeWidth]="2" />
                       </span>
                     }
                   </div>
@@ -279,13 +243,7 @@
                     [title]="item.isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare'"
                     [attr.aria-label]="item.isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare'"
                   >
-                    <svg class="quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="12" cy="13" r="5" />
-                      <path d="M12 10a3 3 0 0 1 3 3" />
-                      <circle cx="7" cy="6" r=".5" fill="currentColor" />
-                      <circle cx="9.5" cy="6" r=".5" fill="currentColor" />
-                    </svg>
+                    <app-washing-icon class="quick-icon" [size]="18" />
                   </button>
                   <button
                     type="button"
@@ -296,11 +254,7 @@
                     [title]="item.isInIroning ? 'Togli da stirare' : 'Metti a stirare'"
                     [attr.aria-label]="item.isInIroning ? 'Togli da stirare' : 'Metti a stirare'"
                   >
-                    <svg class="quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                      <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                      <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-                    </svg>
+                    <app-ironing-icon class="quick-icon" [size]="18" />
                   </button>
                 </div>
               </div>
@@ -308,54 +262,12 @@
           }
         </section>
       }
-
-      @if (items().length > 0) {
-        <footer class="pager">
-          <div class="pager-status">
-            <span class="pager-label">Pagina {{ filters().page }} di {{ totalPages() }}</span>
-            <small>{{ total() }} capi</small>
-          </div>
-
-          <div class="pager-size">
-            <label for="per-page-select" class="pager-size-label">Elementi per pagina:</label>
-            <select
-              id="per-page-select"
-              class="pager-size-select"
-              [value]="filters().per_page"
-              (change)="onPerPageChange($event)"
-              aria-label="Elementi per pagina"
-            >
-              @for (size of pageSizeOptions(); track size) {
-                <option [value]="size" [selected]="size === filters().per_page">{{ size }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="pager-actions">
-            <button
-              type="button"
-              class="ghost"
-              [disabled]="filters().page <= 1"
-              (click)="setPage(filters().page - 1)"
-            >
-              Precedente
-            </button>
-            <button
-              type="button"
-              class="ghost"
-              [disabled]="filters().page >= totalPages()"
-              (click)="setPage(filters().page + 1)"
-            >
-              Successiva
-            </button>
-          </div>
-        </footer>
-      }
     </div>
   </section>
 
   <!-- Pannello fluttuante trasparente e ombreggiato ancorato in fondo alla pagina -->
-  <aside class="search-banner floating-dock" role="search" aria-label="Ricerca e aggiunta vestiti">
+  <aside class="search-banner floating-dock" role="search" aria-label="Ricerca e navigazione vestiti">
+    <!-- Casella di ricerca -->
     <div class="search-input-wrap">
       <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="8.5" cy="8.5" r="5.5" />
@@ -368,16 +280,82 @@
       />
     </div>
 
-    <button type="button" class="ghost filter-toggle" (click)="toggleFilters()" aria-label="Apri filtri">
+    <!-- Pulsante filtri (mobile / tablet) -->
+    <button type="button" appButton variant="ghost" class="ghost filter-toggle" (click)="toggleFilters()" aria-label="Apri filtri">
       <svg class="filter-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M3 5h14M5 10h10M7 15h6" stroke-linecap="round" />
       </svg>
       <span>Filtri</span>
     </button>
 
+    <!-- Controlli di paginazione nella barra inferiore -->
+    @if (items().length > 0) {
+      <span class="banner-separator dock-pager-sep" aria-hidden="true"></span>
+
+      <div class="dock-pager pager" role="navigation" aria-label="Controlli di paginazione">
+        <div class="pager-actions">
+          <button
+            type="button"
+            appButton
+            variant="ghost"
+            size="sm"
+            class="ghost pager-btn"
+            [disabled]="filters().page <= 1"
+            (click)="setPage(filters().page - 1)"
+            aria-label="Pagina precedente"
+            title="Pagina precedente"
+          >
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="pager-icon" aria-hidden="true">
+              <polyline points="12 15 7 10 12 5" />
+            </svg>
+            <span class="pager-btn-text">Prec</span>
+          </button>
+
+          <div class="pager-status" title="{{ total() }} capi totali">
+            <span class="pager-label">Pagina {{ filters().page }} di {{ totalPages() }}</span>
+            <small class="pager-count">({{ total() }})</small>
+          </div>
+
+          <button
+            type="button"
+            appButton
+            variant="ghost"
+            size="sm"
+            class="ghost pager-btn"
+            [disabled]="filters().page >= totalPages()"
+            (click)="setPage(filters().page + 1)"
+            aria-label="Pagina successiva"
+            title="Pagina successiva"
+          >
+            <span class="pager-btn-text">Succ</span>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="pager-icon" aria-hidden="true">
+              <polyline points="8 5 13 10 8 15" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="pager-size">
+          <label for="per-page-select" class="pager-size-label sr-only">Elementi per pagina:</label>
+          <select
+            id="per-page-select"
+            class="pager-size-select"
+            [value]="filters().per_page"
+            (change)="onPerPageChange($event)"
+            aria-label="Elementi per pagina"
+            title="Elementi per pagina"
+          >
+            @for (size of pageSizeOptions(); track size) {
+              <option [value]="size" [selected]="size === filters().per_page">{{ size }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+
     <span class="banner-separator" aria-hidden="true"></span>
 
-    <a class="primary new-item-btn" [routerLink]="['new']">
+    <!-- Pulsante nuovo vestito -->
+    <a appButton variant="primary" class="primary new-item-btn" [routerLink]="['new']">
       <svg class="plus-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
         <line x1="10" y1="4" x2="10" y2="16" stroke-linecap="round" />
         <line x1="4" y1="10" x2="16" y2="10" stroke-linecap="round" />

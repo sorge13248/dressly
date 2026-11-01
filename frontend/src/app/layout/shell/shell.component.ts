@@ -5,11 +5,20 @@ import { AuthService } from '../../core/auth.service';
 import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { ToastStackComponent } from '../../shared/components/toast-stack/toast-stack.component';
+import { WashingIconComponent, IroningIconComponent } from '../../shared/components/icons';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [NgOptimizedImage, RouterLink, RouterLinkActive, RouterOutlet, ToastStackComponent],
+  imports: [
+    NgOptimizedImage,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ToastStackComponent,
+    WashingIconComponent,
+    IroningIconComponent,
+  ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
@@ -23,7 +32,7 @@ export class AppShellComponent implements OnInit {
     const ironingState = this.laundryService.ironingState ? this.laundryService.ironingState() : { count: this.laundryService.ironingCount(), displayedCount: this.laundryService.ironingCount(), animating: 'idle' as const };
 
     return [
-      { label: 'Il mio guardaroba', path: 'wardrobe', exact: true, badge: null, badgeState: null },
+      { label: 'Guardaroba', path: 'wardrobe', exact: true, badge: null, badgeState: null },
       { label: 'Lavatrice', path: 'wardrobe/washing', exact: true, badge: washingState.count, badgeState: washingState },
       { label: 'Stiratura', path: 'wardrobe/ironing', exact: true, badge: ironingState.count, badgeState: ironingState },
       { label: 'Domini', path: 'categories', exact: false, badge: null, badgeState: null },

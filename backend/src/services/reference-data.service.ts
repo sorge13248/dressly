@@ -38,7 +38,7 @@ export class ReferenceDataService {
 
   async list(type: ReferenceDataType, user: AuthUser) {
     const order =
-      type === 'brands' || type === 'types' || type === 'tags'
+      type === 'brands' || type === 'types' || type === 'tags' || type === 'colors'
         ? ({ name: 'ASC' } as const)
         : ({ sortOrder: 'ASC', name: 'ASC' } as const);
 
@@ -46,6 +46,32 @@ export class ReferenceDataService {
       where: { userId: user.id },
       order: order as never,
     });
+  }
+
+  async listAll(user: AuthUser) {
+    const [colors, brands, seasons, temperatures, useCases, fits, materials, types, tags] = await Promise.all([
+      this.list('colors', user),
+      this.list('brands', user),
+      this.list('seasons', user),
+      this.list('temperatures', user),
+      this.list('use-cases', user),
+      this.list('fits', user),
+      this.list('materials', user),
+      this.list('types', user),
+      this.list('tags', user),
+    ]);
+
+    return {
+      colors,
+      brands,
+      seasons,
+      temperatures,
+      'use-cases': useCases,
+      fits,
+      materials,
+      types,
+      tags,
+    };
   }
 
   async create(type: ReferenceDataType, user: AuthUser, body: Record<string, unknown>) {
@@ -117,7 +143,7 @@ export class ReferenceDataService {
 
     const payload: Record<string, unknown> = { userId };
     if (body.name !== undefined) payload.name = name;
-    if (!['brands', 'types', 'tags'].includes(type) && body.sortOrder !== undefined) payload.sortOrder = Number(body.sortOrder);
+    if (!['brands', 'types', 'tags', 'colors'].includes(type) && body.sortOrder !== undefined) payload.sortOrder = Number(body.sortOrder);
 
     if (type === 'colors' && body.hexCode !== undefined) payload.hexCode = body.hexCode === null ? null : String(body.hexCode).trim();
     if (type === 'brands' && body.logoUrl !== undefined) payload.logoUrl = body.logoUrl === null ? null : String(body.logoUrl).trim();

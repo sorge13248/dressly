@@ -40,4 +40,30 @@ describe('AppShellComponent', () => {
     expect(brandLink).toBeTruthy();
     expect(brandLink?.getAttribute('href')).toBe('/wardrobe');
   });
+
+  it('should render nav-pill with items containing nav-item-icon and nav-pill-label', () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    const navPillItems = fixture.nativeElement.querySelectorAll('.main-nav.nav-pill .nav-pill-item');
+    expect(navPillItems.length).toBe(4);
+
+    const labels = fixture.nativeElement.querySelectorAll('.main-nav.nav-pill .nav-pill-label');
+    expect(labels.length).toBe(4);
+  });
+
+  it('should toggle menu-open class on main-topbar when mobile menu is toggled', () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    const topbar: HTMLElement = fixture.nativeElement.querySelector('.main-topbar');
+    expect(topbar.classList.contains('menu-open')).toBe(false);
+
+    fixture.componentInstance.toggleNavMenu();
+    fixture.detectChanges();
+    expect(topbar.classList.contains('menu-open')).toBe(true);
+
+    fixture.componentInstance.closeNavMenu();
+    fixture.detectChanges();
+    expect(topbar.classList.contains('menu-open')).toBe(false);
+  });
 });

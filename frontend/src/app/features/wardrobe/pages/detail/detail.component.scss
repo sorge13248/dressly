@@ -228,20 +228,21 @@ h1 {
 }
 
 .hero-action-btn {
-  min-height: 26px;
-  border-radius: 4px;
-  padding: 3px 12px;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 14px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.18) 50%, rgba(220,235,255,0.1) 50%, rgba(200,225,255,0.18) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.18) 50%, rgba(220, 235, 255, 0.1) 50%, rgba(200, 225, 255, 0.18) 100%),
     rgba(215, 232, 255, 0.25);
   border: 1px solid rgba(100, 140, 210, 0.5);
   cursor: pointer;
-  font-weight: 400;
-  font-size: 0.9rem;
+  font-weight: 500;
+  font-size: 0.88rem;
   color: var(--text);
+  box-shadow: 0 1px 3px rgba(15, 45, 90, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition: all 120ms ease;
 
   .hero-btn-icon {
@@ -250,55 +251,40 @@ h1 {
   }
 
   &:hover {
+    transform: translateY(-1px);
     border-color: rgba(60, 120, 220, 0.8);
     background: rgba(215, 232, 255, 0.5);
+    box-shadow: 0 2px 6px rgba(15, 45, 90, 0.12), inset 0 1px 0 #ffffff;
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &.active-washing {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(224, 242, 254, 0.4) 50%, rgba(186, 230, 253, 0.5) 100%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(224, 242, 254, 0.4) 50%, rgba(186, 230, 253, 0.5) 100%),
       #e0f2fe;
     border-color: #38bdf8;
     color: #0369a1;
-    font-weight: 500;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.25), inset 0 1px 0 #ffffff;
   }
 
   &.active-ironing {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(254, 249, 195, 0.4) 50%, rgba(253, 224, 71, 0.5) 100%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(254, 249, 195, 0.4) 50%, rgba(253, 224, 71, 0.5) 100%),
       #fef9c3;
     border-color: #eab308;
     color: #854d0e;
-    font-weight: 500;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(202, 138, 4, 0.25), inset 0 1px 0 #ffffff;
   }
 }
 
 .hero-notes {
   color: var(--muted);
   line-height: 1.5;
-}
-
-.ghost,
-.danger {
-  min-height: 26px;
-  border-radius: 4px;
-  padding: 3px 12px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.18) 50%, rgba(220,235,255,0.1) 50%, rgba(200,225,255,0.18) 100%),
-    rgba(215, 232, 255, 0.25);
-  border: 1px solid rgba(100, 140, 210, 0.5);
-  cursor: pointer;
-  font-weight: 400;
-  font-size: 0.9rem;
-  color: var(--text);
-}
-
-.danger {
-  color: var(--danger);
-  border-color: rgba(192, 48, 64, 0.35);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.12) 50%, rgba(255,230,235,0.1) 50%, rgba(255,200,210,0.15) 100%),
-    rgba(255, 220, 225, 0.25);
 }
 
 .content-halves {

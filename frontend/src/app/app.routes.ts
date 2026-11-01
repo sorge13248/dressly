@@ -7,12 +7,12 @@ import { LoginPageComponent } from './features/auth/pages/login/login.component'
 import { NotFoundPageComponent } from './features/errors/pages/not-found/not-found.component';
 import { WardrobeDetailPageComponent } from './features/wardrobe/pages/detail/detail.component';
 import { WardrobePageComponent } from './features/wardrobe/pages/main/main.component';
-import { WardrobeWizardPageComponent } from './features/wardrobe/pages/editor/editor.component';
+import { WardrobeWizardPageComponent, canDeactivateWardrobeWizard } from './features/wardrobe/pages/editor/editor.component';
 import { IroningPageComponent } from './features/wardrobe/pages/ironing/ironing.component';
 import { WashingPageComponent } from './features/wardrobe/pages/washing/washing.component';
 
 export const routes: Routes = [
-	{ path: '', pathMatch: 'full', redirectTo: 'login' },
+	{ path: '', pathMatch: 'full', redirectTo: 'wardrobe' },
 	{ path: 'login', component: LoginPageComponent },
 	{ path: 'auth/callback', component: CallbackPageComponent },
 	{
@@ -21,11 +21,11 @@ export const routes: Routes = [
 		canActivate: [authGuard],
 		children: [
 			{ path: 'wardrobe', component: WardrobePageComponent },
-			{ path: 'wardrobe/new', component: WardrobeWizardPageComponent },
+			{ path: 'wardrobe/new', component: WardrobeWizardPageComponent, canDeactivate: [canDeactivateWardrobeWizard] },
 			{ path: 'wardrobe/washing', component: WashingPageComponent },
 			{ path: 'wardrobe/ironing', component: IroningPageComponent },
 			{ path: 'wardrobe/:id', component: WardrobeDetailPageComponent },
-			{ path: 'wardrobe/:id/edit', component: WardrobeWizardPageComponent },
+			{ path: 'wardrobe/:id/edit', component: WardrobeWizardPageComponent, canDeactivate: [canDeactivateWardrobeWizard] },
 			{ path: 'categories', component: DomainManagementPageComponent },
 		],
 	},

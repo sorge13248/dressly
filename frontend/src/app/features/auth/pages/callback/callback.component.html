@@ -8,7 +8,7 @@
 
     @if (status() === 'error') {
       <div class="error-box">{{ errorMessage() }}</div>
-      <button type="button" class="primary" (click)="retry()">Torna al login</button>
+      <button type="button" appButton variant="primary" class="primary" (click)="retry()">Torna al login</button>
     }
   </div>
 </section>

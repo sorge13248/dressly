@@ -132,6 +132,19 @@ export class ApiService {
     return this.http.post<AttachmentItem>(`/api/clothes/${clothesId}/attachments`, formData);
   }
 
+  uploadAttachmentWithProgress(clothesId: string, file: File, kind = 'photo', originalName?: string | null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('kind', kind);
+    if (originalName !== undefined) {
+      formData.append('originalName', originalName ?? '');
+    }
+    return this.http.post<AttachmentItem>(`/api/clothes/${clothesId}/attachments`, formData, {
+      reportProgress: true,
+      observe: 'events',
+    });
+  }
+
   deleteAttachment(clothesId: string, attachmentId: string) {
     return this.http.delete<{ deleted: boolean }>(`/api/clothes/${clothesId}/attachments/${attachmentId}`);
   }
@@ -140,6 +153,20 @@ export class ApiService {
     return this.http.patch<AttachmentItem[]>(`/api/clothes/${clothesId}/attachments/order`, {
       attachment_ids: attachmentIds,
     });
+  }
+
+  getAllReferenceData() {
+    return this.http.get<{
+      colors: ColorItem[];
+      brands: BrandItem[];
+      seasons: SeasonItem[];
+      temperatures: TemperatureItem[];
+      'use-cases': UseCaseItem[];
+      fits: FitItem[];
+      materials: MaterialItem[];
+      types: TypeItem[];
+      tags: TagItem[];
+    }>('/api/reference-data');
   }
 
   listReference(kind: ReferenceKind) {

@@ -56,8 +56,8 @@
   </div>
 
   <footer>
-    <button type="button" class="ghost" (click)="close()">Annulla</button>
-    <button type="submit" class="primary">
+    <button type="button" appButton variant="ghost" class="ghost" (click)="close()">Annulla</button>
+    <button type="submit" appButton variant="primary" class="primary">
       {{ data.mode === 'create' ? 'Crea' : 'Aggiorna' }}
     </button>
   </footer>

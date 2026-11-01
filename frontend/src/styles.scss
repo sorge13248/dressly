@@ -2,6 +2,7 @@
 
 :root {
   color-scheme: light;
+  --topbar-height: 73px;
   --bg: #1a3d7a;
   --surface: rgba(205, 226, 255, 0.75);
   --surface-strong: rgba(238, 247, 255, 0.96);
@@ -23,6 +24,18 @@
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
+}
+
+@media (max-width: 960px) {
+  :root {
+    --topbar-height: 63px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --topbar-height: 53px;
+  }
 }
 
 html,

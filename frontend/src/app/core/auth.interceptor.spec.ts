@@ -55,7 +55,8 @@ describe('authInterceptor', () => {
     req.flush({});
   });
 
-  it('should call handleSessionExpired when authenticated and API returns 401', () => {
+  it('should call handleSessionExpired when authenticated, API returns 401 and refresh fails', async () => {
+    vi.spyOn(authService, 'silentRefresh').mockResolvedValue(false);
     const expiredSpy = vi.spyOn(authService, 'handleSessionExpired').mockImplementation(() => {});
     authService.profile.set({
       id: '123',
@@ -75,8 +76,43 @@ describe('authInterceptor', () => {
     const req = httpTesting.expectOne('/api/clothes');
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
+    // Allow promise resolution
+    await Promise.resolve();
+
     expect(errorReceived).toBe(true);
     expect(expiredSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should silently refresh and retry request when API returns 401 and refresh succeeds', async () => {
+    vi.spyOn(authService, 'silentRefresh').mockResolvedValue(true);
+    const expiredSpy = vi.spyOn(authService, 'handleSessionExpired').mockImplementation(() => {});
+    authService.profile.set({
+      id: '123',
+      subject: 'sub-123',
+      displayName: 'Test User',
+      email: 'test@example.com',
+      pictureUrl: null,
+    });
+
+    let successResponse: unknown = null;
+    http.get('/api/clothes').subscribe({
+      next: (val) => {
+        successResponse = val;
+      },
+    });
+
+    const req1 = httpTesting.expectOne('/api/clothes');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    // Allow promise resolution
+    await Promise.resolve();
+
+    // Verify request was retried
+    const req2 = httpTesting.expectOne('/api/clothes');
+    req2.flush({ items: ['shirt-1'] });
+
+    expect(successResponse).toEqual({ items: ['shirt-1'] });
+    expect(expiredSpy).not.toHaveBeenCalled();
   });
 
   it('should not call handleSessionExpired when unauthenticated', () => {

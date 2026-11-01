@@ -365,4 +365,309 @@ describe('WardrobePageComponent', () => {
     expect(removeIroningSpy).toHaveBeenCalledWith('item-iron-1');
     expect(component.items()[0].isInIroning).toBe(false);
   });
+
+  describe('touch-only mobile/tablet filter sidebar drag', () => {
+    function createTouchEvent(type: string, touches: Array<{ clientX: number; clientY: number; target?: EventTarget }>) {
+      const touchList = touches.map((t, idx) => ({
+        identifier: idx,
+        target: t.target ?? document.body,
+        clientX: t.clientX,
+        clientY: t.clientY,
+        pageX: t.clientX,
+        pageY: t.clientY,
+        screenX: t.clientX,
+        screenY: t.clientY,
+        radiusX: 1,
+        radiusY: 1,
+        rotationAngle: 0,
+        force: 1,
+      }));
+
+      const event = new Event(type, { bubbles: true, cancelable: true }) as any;
+      event.touches = touchList;
+      event.targetTouches = touchList;
+      event.changedTouches = touchList;
+      return event as TouchEvent;
+    }
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'ontouchstart', { value: {}, writable: true, configurable: true });
+      Object.defineProperty(navigator, 'maxTouchPoints', { value: 1, writable: true, configurable: true });
+      Object.defineProperty(window, 'innerWidth', { value: 400, writable: true, configurable: true });
+    });
+
+    it('should not trigger touch dragging on desktop (width > 900px)', () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.filtersOpen()).toBe(false);
+
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 380, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 200, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 200, clientY: 200 }]));
+
+      expect(component.filtersOpen()).toBe(false);
+    });
+
+    it('should track sidebar under the finger during touch dragging on mobile/tablet', () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      fixture.detectChanges();
+
+      const sidebar = fixture.nativeElement.querySelector('.filters-sidebar') as HTMLElement;
+      expect(sidebar).not.toBeNull();
+
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 380, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 280, clientY: 200 }]));
+
+      expect(sidebar.style.transform).toContain('translateX');
+      expect(sidebar.style.transition).toBe('none');
+    });
+
+    it('should open filters when dragging from right to left past threshold on mobile/tablet', async () => {
+      vi.useFakeTimers();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.filtersOpen()).toBe(false);
+
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 380, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 200, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 200, clientY: 200 }]));
+
+      vi.advanceTimersByTime(300);
+      expect(component.filtersOpen()).toBe(true);
+
+      vi.useRealTimers();
+    });
+
+    it('should snap closed if dragged less than threshold on mobile/tablet', async () => {
+      vi.useFakeTimers();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.filtersOpen()).toBe(false);
+
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 380, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 360, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 360, clientY: 200 }]));
+
+      vi.advanceTimersByTime(300);
+      expect(component.filtersOpen()).toBe(false);
+
+      vi.useRealTimers();
+    });
+
+    it('should close filters when dragging from left to right while open on mobile/tablet', async () => {
+      vi.useFakeTimers();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      component.filtersOpen.set(true);
+      fixture.detectChanges();
+      expect(component.filtersOpen()).toBe(true);
+
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 100, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 280, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 280, clientY: 200 }]));
+
+      vi.advanceTimersByTime(300);
+      expect(component.filtersOpen()).toBe(false);
+
+      vi.useRealTimers();
+    });
+
+    it('should not trigger drag for vertical scrolling gestures', () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const sidebar = fixture.nativeElement.querySelector('.filters-sidebar') as HTMLElement;
+
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 380, clientY: 200 }]));
+      // Vertical movement greater than horizontal
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 375, clientY: 300 }]));
+
+      expect(sidebar.style.transform).toBe('');
+      expect(component.filtersOpen()).toBe(false);
+    });
+
+    it('should ignore drag-to-open if touch starts outside the right 1/3 of the screen', async () => {
+      vi.useFakeTimers();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const sidebar = fixture.nativeElement.querySelector('.filters-sidebar') as HTMLElement;
+      expect(component.filtersOpen()).toBe(false);
+
+      // Window width is 400px. Right 1/3 starts at 266.67px.
+      // Touch starts at 200px (outside the right 1/3)
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 200, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 50, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 50, clientY: 200 }]));
+
+      vi.advanceTimersByTime(300);
+      expect(sidebar.style.transform).toBe('');
+      expect(component.filtersOpen()).toBe(false);
+
+      vi.useRealTimers();
+    });
+
+    it('should allow drag-to-open if touch starts inside the right 1/3 of the screen', async () => {
+      vi.useFakeTimers();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.filtersOpen()).toBe(false);
+
+      // Window width is 400px. Right 1/3 starts at 266.67px.
+      // Touch starts at 300px (inside the right 1/3)
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 300, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 100, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 100, clientY: 200 }]));
+
+      vi.advanceTimersByTime(300);
+      expect(component.filtersOpen()).toBe(true);
+
+      vi.useRealTimers();
+    });
+
+    it('should strictly require right 1/3 even after sidebar has been opened and closed', async () => {
+      vi.useFakeTimers();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('max-width: 900px'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      // 1. Open sidebar by dragging from right 1/3
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 350, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 100, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 100, clientY: 200 }]));
+      vi.advanceTimersByTime(300);
+      expect(component.filtersOpen()).toBe(true);
+
+      // 2. Close sidebar by dragging left to right
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 100, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 350, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 350, clientY: 200 }]));
+      vi.advanceTimersByTime(300);
+      expect(component.filtersOpen()).toBe(false);
+
+      // 3. Now touch in the left 2/3 (e.g. clientX = 150) and drag left
+      const sidebar = fixture.nativeElement.querySelector('.filters-sidebar') as HTMLElement;
+      window.dispatchEvent(createTouchEvent('touchstart', [{ clientX: 150, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchmove', [{ clientX: 50, clientY: 200 }]));
+      window.dispatchEvent(createTouchEvent('touchend', [{ clientX: 50, clientY: 200 }]));
+      vi.advanceTimersByTime(300);
+
+      // Must remain closed and no transform applied!
+      expect(sidebar.style.transform).toBe('');
+      expect(component.filtersOpen()).toBe(false);
+
+      vi.useRealTimers();
+    });
+  });
 });

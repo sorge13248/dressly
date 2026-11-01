@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:alpine AS frontend-build
+FROM --platform=$BUILDPLATFORM node:alpine AS frontend-build
 WORKDIR /app
 
 COPY frontend/package*.json frontend/
-RUN npm ci --prefix frontend --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm npm ci --prefix frontend --no-audit --no-fund
 
 COPY frontend/ ./frontend/
 RUN npm --prefix frontend run build -- --configuration production

@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Component, inject, signal } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormField, form, required } from '@angular/forms/signals';
+import { ButtonComponent } from '../button';
 
 export type CreateNameModalData = {
   title: string;
@@ -16,7 +18,7 @@ export type CreateNameModalData = {
 @Component({
   selector: 'app-create-name-modal',
   standalone: true,
-  imports: [CommonModule, FormField],
+  imports: [CommonModule, FormsModule, FormField, ButtonComponent],
   templateUrl: './create-name-modal.component.html',
   styleUrl: './create-name-modal.component.scss',
 })

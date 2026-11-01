@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpEventType } from '@angular/common/http';
 import {
   Component,
   ElementRef,
@@ -12,18 +13,30 @@ import {
   signal,
 } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
+import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormField, form, max, min, minLength, pattern } from '@angular/forms/signals';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
-import { ClothesItem, WizardAttachmentDraft } from '../../../../core/models';
+import { ClothesItem } from '../../../../core/models';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { SelectDropdownComponent, SelectDropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 import { CreateNameModalComponent } from '../../../../shared/components/create-name-modal/create-name-modal.component';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { WashingIconComponent, DryingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 
-type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
+export type StepIndex = 1 | 2 | 3 | 4 | 5;
+
+export type WizardPhotoItem = {
+  id: string;
+  source: 'existing' | 'pending';
+  file?: File;
+  previewUrl: string;
+  name: string;
+};
 
 type WizardWashingForm = {
   wash_type: 'do_not_wash' | 'hand_wash_only' | 'washer_ok';
@@ -146,12 +159,11 @@ const createInitialWizardModel = (): WizardFormModel => ({
 });
 
 const steps = [
-  { index: 1 as StepIndex, label: 'Base', hint: 'Dati essenziali' },
+  { index: 1 as StepIndex, label: 'Base', hint: 'Dati essenziali e acquisto' },
   { index: 2 as StepIndex, label: 'Stile', hint: 'Colori, materiali e tags' },
   { index: 3 as StepIndex, label: 'Contesto', hint: 'Stagioni e usi' },
   { index: 4 as StepIndex, label: 'Cura', hint: 'Lavaggio, asciugatura e stiratura' },
-  { index: 5 as StepIndex, label: 'Acquisto', hint: 'Negozio e data' },
-  { index: 6 as StepIndex, label: 'Foto', hint: 'Upload e allegati' },
+  { index: 5 as StepIndex, label: 'Foto', hint: 'Upload e foto' },
 ];
 
 const washTypeOptions: SelectDropdownOption[] = [
@@ -191,7 +203,18 @@ const ironingTemperatureOptions: SelectDropdownOption[] = [
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormField, SelectDropdownComponent],
+  imports: [
+    CommonModule,
+    FormField,
+    SelectDropdownComponent,
+    CdkDropList,
+    CdkDrag,
+    CdkDragPlaceholder,
+    ButtonComponent,
+    WashingIconComponent,
+    DryingIconComponent,
+    IroningIconComponent,
+  ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.scss',
 })
@@ -211,10 +234,16 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly editingId = signal<string | null>(null);
-  readonly existingAttachments = signal<ClothesItem['attachments']>([]);
-  readonly pendingAttachments = signal<WizardAttachmentDraft[]>([]);
-  readonly draggedPendingId = signal<string | null>(null);
-  readonly draggedExistingId = signal<string | null>(null);
+
+  readonly allPhotos = signal<WizardPhotoItem[]>([]);
+  readonly attachmentsToDelete = signal<string[]>([]);
+  readonly uploadProgress = signal<{
+    total: number;
+    current: number;
+    percent: number;
+    currentFileName: string;
+  } | null>(null);
+
   readonly quickBrandBusy = signal(false);
   readonly quickColorBusy = signal(false);
   readonly quickMaterialBusy = signal(false);
@@ -248,7 +277,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly isEditMode = computed(() => Boolean(this.editingId()));
   readonly title = computed(() => (this.isEditMode() ? 'Modifica capo' : 'Nuovo capo'));
   readonly saveLabel = computed(() => (this.isEditMode() ? 'Aggiorna' : 'Salva'));
-  readonly photoCount = computed(() => (this.existingAttachments()?.length ?? 0) + this.pendingAttachments().length);
+  readonly photoCount = computed(() => this.allPhotos().length);
   readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() =>
     this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),
   );
@@ -281,7 +310,51 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     return this.isStepValid(this.currentStep());
   });
 
+  private readonly initialSnapshot = signal<string>('');
+  private skipUnsavedGuard = false;
+
+  takeSnapshot(): string {
+    return JSON.stringify({
+      model: this.wizardModel(),
+      photos: this.allPhotos().map((p) => ({ id: p.id, source: p.source, name: p.name })),
+      deleted: this.attachmentsToDelete(),
+    });
+  }
+
+  hasUnsavedChanges(): boolean {
+    if (this.saving() || this.loading()) {
+      return false;
+    }
+    const initial = this.initialSnapshot();
+    if (!initial) {
+      return false;
+    }
+    return this.takeSnapshot() !== initial;
+  }
+
+  async confirmDiscardChanges(): Promise<boolean> {
+    const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
+      data: {
+        title: 'Modifiche non salvate',
+        message: 'Ci sono modifiche non salvate nel wizard. Sei sicuro di voler uscire e annullare le modifiche?',
+        confirmLabel: 'Esci',
+        cancelLabel: 'Annulla',
+        confirmVariant: 'danger',
+      },
+    });
+    const confirmed = await firstValueFrom(dialogRef.closed);
+    return Boolean(confirmed);
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    if (this.skipUnsavedGuard || !this.hasUnsavedChanges()) {
+      return true;
+    }
+    return this.confirmDiscardChanges();
+  }
+
   constructor() {
+    this.initialSnapshot.set(this.takeSnapshot());
     effect(() => {
       void this.referenceStore.loadAll();
     });
@@ -297,21 +370,30 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     const stepParam = this.route.snapshot.queryParamMap.get('step');
     if (stepParam) {
       const stepNum = Number(stepParam);
-      if (stepNum >= 1 && stepNum <= 6) {
+      if (stepNum >= 1 && stepNum <= 5) {
         this.currentStep.set(stepNum as StepIndex);
       }
     }
   }
 
   ngOnDestroy() {
-    for (const attachment of this.pendingAttachments()) {
-      URL.revokeObjectURL(attachment.previewUrl);
+    for (const photo of this.allPhotos()) {
+      if (photo.source === 'pending') {
+        URL.revokeObjectURL(photo.previewUrl);
+      }
+    }
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  handleBeforeUnload(event: BeforeUnloadEvent) {
+    if (this.hasUnsavedChanges()) {
+      event.preventDefault();
     }
   }
 
   @HostListener('paste', ['$event'])
   handlePaste(event: ClipboardEvent) {
-    if (this.currentStep() !== 6) {
+    if (this.currentStep() !== 5) {
       return;
     }
 
@@ -346,7 +428,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   }
 
   nextStep() {
-    const target = Math.min(6, this.currentStep() + 1) as StepIndex;
+    const target = Math.min(5, this.currentStep() + 1) as StepIndex;
     this.blockedStep.set(null);
     this.currentStep.set(target);
   }
@@ -375,25 +457,59 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         throw new Error('Impossibile recuperare l id del capo salvato');
       }
 
-      const uploadedAttachmentIds: string[] = [];
-      for (const attachment of this.pendingAttachments()) {
+      // 1. Delete removed existing attachments
+      for (const attachmentId of this.attachmentsToDelete()) {
         try {
-          const uploaded = await firstValueFrom(
-            this.api.uploadAttachment(clothesId, attachment.file, 'photo', attachment.originalNameOverride),
-          );
-          if (uploaded?.id) {
-            uploadedAttachmentIds.push(uploaded.id);
-          }
+          await firstValueFrom(this.api.deleteAttachment(clothesId, attachmentId));
         } catch {
-          this.toast.error(`Upload fallito per ${this.attachmentLabel(attachment) ?? 'foto'}`);
+          // ignore error if attachment already gone
         }
       }
 
-      const existingAttachmentIds = (this.existingAttachments() ?? []).map((attachment) => attachment.id);
-      const orderedAttachmentIds = [...existingAttachmentIds, ...uploadedAttachmentIds];
-      if (orderedAttachmentIds.length > 0) {
-        await firstValueFrom(this.api.reorderAttachments(clothesId, orderedAttachmentIds));
+      // 2. Upload pending attachments with progress
+      const pendingPhotos = this.allPhotos().filter((photo) => photo.source === 'pending' && photo.file);
+      const uploadedMap = new Map<string, string>();
+
+      if (pendingPhotos.length > 0) {
+        this.uploadProgress.set({
+          total: pendingPhotos.length,
+          current: 0,
+          percent: 0,
+          currentFileName: '',
+        });
+
+        for (let i = 0; i < pendingPhotos.length; i++) {
+          const photo = pendingPhotos[i];
+          this.uploadProgress.set({
+            total: pendingPhotos.length,
+            current: i + 1,
+            percent: 0,
+            currentFileName: photo.name,
+          });
+
+          const uploadedId = await this.uploadSinglePhoto(clothesId, photo);
+          if (uploadedId) {
+            uploadedMap.set(photo.id, uploadedId);
+          }
+        }
       }
+
+      // 3. Reorder attachments according to current allPhotos() order
+      const finalOrderedIds: string[] = [];
+      for (const photo of this.allPhotos()) {
+        if (photo.source === 'existing') {
+          finalOrderedIds.push(photo.id);
+        } else if (uploadedMap.has(photo.id)) {
+          finalOrderedIds.push(uploadedMap.get(photo.id)!);
+        }
+      }
+
+      if (finalOrderedIds.length > 0) {
+        await firstValueFrom(this.api.reorderAttachments(clothesId, finalOrderedIds));
+      }
+
+      this.uploadProgress.set(null);
+      this.skipUnsavedGuard = true;
 
       const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
       if (callbackUrl) {
@@ -405,10 +521,50 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.error.set(error instanceof Error ? error.message : 'Errore durante il salvataggio del capo');
     } finally {
       this.saving.set(false);
+      this.uploadProgress.set(null);
     }
   }
 
-  cancelOrClose() {
+  private uploadSinglePhoto(clothesId: string, photo: WizardPhotoItem): Promise<string | null> {
+    return new Promise((resolve) => {
+      if (!photo.file) {
+        resolve(null);
+        return;
+      }
+
+      this.api.uploadAttachmentWithProgress(clothesId, photo.file, 'photo', photo.name).subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            const filePercent = Math.round((event.loaded / event.total) * 100);
+            const current = this.uploadProgress();
+            if (current) {
+              this.uploadProgress.set({
+                ...current,
+                percent: filePercent,
+              });
+            }
+          } else if (event.type === HttpEventType.Response) {
+            const body = event.body;
+            resolve(body?.id ?? null);
+          }
+        },
+        error: () => {
+          this.toast.error(`Upload fallito per ${photo.name}`);
+          resolve(null);
+        },
+      });
+    });
+  }
+
+  async cancelOrClose() {
+    if (this.hasUnsavedChanges()) {
+      const confirmed = await this.confirmDiscardChanges();
+      if (!confirmed) {
+        return;
+      }
+      this.skipUnsavedGuard = true;
+    }
+
     const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
     if (callbackUrl) {
       void this.router.navigateByUrl(callbackUrl);
@@ -427,147 +583,50 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     (event.target as HTMLInputElement).value = '';
   }
 
-  removePending(id: string) {
-    const nextAttachments = this.pendingAttachments().filter((attachment) => attachment.id !== id);
-    const removed = this.pendingAttachments().find((attachment) => attachment.id === id);
-    if (removed) {
-      URL.revokeObjectURL(removed.previewUrl);
-    }
-    this.pendingAttachments.set(nextAttachments);
+  onDragOverDropzone(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
   }
 
-  movePending(id: string, direction: -1 | 1) {
-    const current = this.pendingAttachments();
-    const fromIndex = current.findIndex((attachment) => attachment.id === id);
-    if (fromIndex < 0) {
-      return;
+  onDropDropzone(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (files.length > 0) {
+      this.addPendingFiles(files, 'picker');
     }
-
-    const toIndex = fromIndex + direction;
-    if (toIndex < 0 || toIndex >= current.length) {
-      return;
-    }
-
-    const next = [...current];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    this.pendingAttachments.set(next);
   }
 
-  canMovePending(id: string, direction: -1 | 1) {
-    const current = this.pendingAttachments();
-    const index = current.findIndex((attachment) => attachment.id === id);
-    if (index < 0) {
-      return false;
+  removePhoto(id: string) {
+    const photo = this.allPhotos().find((p) => p.id === id);
+    if (!photo) return;
+
+    if (photo.source === 'pending') {
+      URL.revokeObjectURL(photo.previewUrl);
+    } else {
+      this.attachmentsToDelete.update((ids) => [...ids, id]);
     }
 
+    this.allPhotos.set(this.allPhotos().filter((p) => p.id !== id));
+  }
+
+  movePhoto(id: string, direction: -1 | 1) {
+    const photos = this.allPhotos();
+    const index = photos.findIndex((p) => p.id === id);
+    if (index < 0) return;
     const targetIndex = index + direction;
-    return targetIndex >= 0 && targetIndex < current.length;
+    if (targetIndex < 0 || targetIndex >= photos.length) return;
+
+    const next = [...photos];
+    const [moved] = next.splice(index, 1);
+    next.splice(targetIndex, 0, moved);
+    this.allPhotos.set(next);
   }
 
-  onPendingDragStart(event: DragEvent, id: string) {
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', id);
-    }
-    this.draggedPendingId.set(id);
-  }
-
-  onPendingDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  onPendingDrop(event: DragEvent, targetId: string) {
-    event.preventDefault();
-    const sourceId = this.draggedPendingId() || event.dataTransfer?.getData('text/plain') || null;
-    this.draggedPendingId.set(null);
-
-    if (!sourceId || sourceId === targetId) {
-      return;
-    }
-
-    const current = this.pendingAttachments();
-    const fromIndex = current.findIndex((attachment) => attachment.id === sourceId);
-    const toIndex = current.findIndex((attachment) => attachment.id === targetId);
-    if (fromIndex < 0 || toIndex < 0) {
-      return;
-    }
-
-    const next = [...current];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    this.pendingAttachments.set(next);
-  }
-
-  onPendingDragEnd() {
-    this.draggedPendingId.set(null);
-  }
-
-  moveExisting(id: string, direction: -1 | 1) {
-    const current = this.existingAttachments() ?? [];
-    const fromIndex = current.findIndex((attachment) => attachment.id === id);
-    if (fromIndex < 0) {
-      return;
-    }
-
-    const toIndex = fromIndex + direction;
-    if (toIndex < 0 || toIndex >= current.length) {
-      return;
-    }
-
-    const next = [...current];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    this.existingAttachments.set(next);
-  }
-
-  canMoveExisting(id: string, direction: -1 | 1) {
-    const current = this.existingAttachments() ?? [];
-    const index = current.findIndex((attachment) => attachment.id === id);
-    if (index < 0) {
-      return false;
-    }
-
-    const targetIndex = index + direction;
-    return targetIndex >= 0 && targetIndex < current.length;
-  }
-
-  onExistingDragStart(event: DragEvent, id: string) {
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', id);
-    }
-    this.draggedExistingId.set(id);
-  }
-
-  onExistingDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  onExistingDrop(event: DragEvent, targetId: string) {
-    event.preventDefault();
-    const sourceId = this.draggedExistingId() || event.dataTransfer?.getData('text/plain') || null;
-    this.draggedExistingId.set(null);
-
-    if (!sourceId || sourceId === targetId) {
-      return;
-    }
-
-    const current = this.existingAttachments() ?? [];
-    const fromIndex = current.findIndex((attachment) => attachment.id === sourceId);
-    const toIndex = current.findIndex((attachment) => attachment.id === targetId);
-    if (fromIndex < 0 || toIndex < 0) {
-      return;
-    }
-
-    const next = [...current];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    this.existingAttachments.set(next);
-  }
-
-  onExistingDragEnd() {
-    this.draggedExistingId.set(null);
+  onDropPhoto(event: CdkDragDrop<WizardPhotoItem[]>) {
+    const photos = [...this.allPhotos()];
+    moveItemInArray(photos, event.previousIndex, event.currentIndex);
+    this.allPhotos.set(photos);
   }
 
   isImageAttachment(mimeType: string | null | undefined) {
@@ -581,16 +640,6 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     }
 
     return `/api/clothes/${clothesId}/attachments/${attachmentId}/file`;
-  }
-
-  async removeExisting(id: string) {
-    const clothesId = this.editingId();
-    if (!clothesId) {
-      return;
-    }
-
-    await firstValueFrom(this.api.deleteAttachment(clothesId, id));
-    await this.loadClothes(clothesId);
   }
 
   async openCreateBrandModal() {
@@ -991,7 +1040,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   }
 
   hasStepError(step: StepIndex) {
-    if (step === 6) {
+    if (step === 5) {
       return false;
     }
 
@@ -1002,7 +1051,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   private isStepValid(step: StepIndex) {
     switch (step) {
       case 1:
-        return !this.wizardForm.base.size().invalid();
+        return !this.wizardForm.base.size().invalid() && !this.wizardForm.buy.detail.shop_url().invalid();
       case 2:
         return !this.wizardForm.style.color_ids().invalid();
       case 3:
@@ -1010,14 +1059,14 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       case 4:
         return this.isCareStepValid();
       case 5:
-        return !this.wizardForm.buy.detail.shop_url().invalid();
+        return true;
       default:
         return true;
     }
   }
 
   private getFirstInvalidStep(): StepIndex | null {
-    const validationOrder: StepIndex[] = [1, 2, 3, 4, 5];
+    const validationOrder: StepIndex[] = [1, 2, 3, 4];
     for (const step of validationOrder) {
       if (!this.isStepValid(step)) {
         return step;
@@ -1064,6 +1113,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       const clothes = await firstValueFrom(this.api.getClothes(id));
       if (clothes) {
         this.patchForms(clothes);
+        this.initialSnapshot.set(this.takeSnapshot());
       }
     } finally {
       this.loading.set(false);
@@ -1143,7 +1193,17 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       },
     });
 
-    this.existingAttachments.set(item.attachments ?? []);
+    const initialPhotos: WizardPhotoItem[] = (item.attachments ?? [])
+      .filter((attachment) => this.isImageAttachment(attachment.mimeType))
+      .map((attachment) => ({
+        id: attachment.id,
+        source: 'existing' as const,
+        previewUrl: this.getExistingAttachmentUrl(attachment.id),
+        name: attachment.originalName || 'Foto allegata',
+      }));
+
+    this.allPhotos.set(initialPhotos);
+    this.attachmentsToDelete.set([]);
   }
 
   private buildPayload() {
@@ -1213,16 +1273,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     };
   }
 
-  attachmentLabel(attachment: WizardAttachmentDraft) {
-    if (attachment.displayName !== undefined) {
-      return attachment.displayName;
-    }
-
-    return this.normalizeAttachmentName(attachment.file.name);
-  }
-
   private addPendingFiles(files: File[], source: 'picker' | 'paste') {
-    const nextFiles = [...this.pendingAttachments()];
+    const nextPhotos = [...this.allPhotos()];
 
     for (const file of files) {
       if (!file.type.startsWith('image/')) {
@@ -1231,17 +1283,18 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
       const isFromPaste = source === 'paste';
       const normalizedName = this.normalizeAttachmentName(file.name);
+      const displayName = isFromPaste || !normalizedName ? 'Nuova foto' : normalizedName;
 
-      nextFiles.push({
+      nextPhotos.push({
         id: crypto.randomUUID(),
+        source: 'pending',
         file,
         previewUrl: URL.createObjectURL(file),
-        displayName: isFromPaste ? null : normalizedName,
-        originalNameOverride: isFromPaste ? null : normalizedName,
+        name: displayName,
       });
     }
 
-    this.pendingAttachments.set(nextFiles);
+    this.allPhotos.set(nextPhotos);
   }
 
   private normalizeAttachmentName(name: string | null | undefined) {
@@ -1252,5 +1305,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
     return isDefaultAttachmentName(normalized) ? null : normalized;
   }
-
 }
+
+export const canDeactivateWardrobeWizard: CanDeactivateFn<WardrobeWizardPageComponent> = (component) => {
+  return component.canDeactivate();
+};

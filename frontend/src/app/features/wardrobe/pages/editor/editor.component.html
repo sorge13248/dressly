@@ -2,8 +2,30 @@
   <div class="wizard-window">
     <header class="window-titlebar">
       <div class="title-wrap">
-        <h1>{{ title() }}</h1>
+        <div class="title-icon-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+            <path d="M2 18h20" />
+          </svg>
+        </div>
+        <div class="title-text-group">
+          <h1>{{ title() }}</h1>
+          <span class="step-pill-badge">Passo {{ currentStep() }} di {{ steps.length }}</span>
+        </div>
       </div>
+
+      <button
+        type="button"
+        class="window-close-btn"
+        (click)="cancelOrClose()"
+        title="Chiudi e torna al guardaroba"
+        aria-label="Chiudi e torna al guardaroba"
+      >
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="3" x2="11" y2="11" />
+          <line x1="11" y1="3" x2="3" y2="11" />
+        </svg>
+      </button>
     </header>
 
     <section class="stepper-card">
@@ -15,8 +37,8 @@
           [class.error]="hasStepError(step.index)"
           (click)="selectStep(step.index)"
         >
-          <span>{{ step.index }}</span>
-          <div>
+          <span class="step-number">{{ step.index }}</span>
+          <div class="step-text">
             <strong>{{ step.label }}</strong>
             <small>{{ step.hint }}</small>
           </div>
@@ -34,12 +56,51 @@
           <section class="step-grid">
             <div class="panel">
               <h2>Base</h2>
-              <div class="field-grid">
-                <label>
+              <div class="base-row-grid">
+                <label class="field-name">
                   <span>Nome</span>
                   <input [formField]="wizardForm.base.name" placeholder="Camicia lino" />
                 </label>
-                <label>
+                <label class="field-type">
+                  <span>Tipo</span>
+                  <app-select-dropdown
+                    placeholder="Seleziona"
+                    [searchable]="true"
+                    [options]="typeDropdownOptions()"
+                    [selectedId]="wizardForm.base.type_id().value()"
+                    (selectedIdChange)="setSelectValue(wizardForm.base.type_id, $event)"
+                  />
+                </label>
+                <label class="field-brand">
+                  <span>Brand</span>
+                  <div class="inline-select-add">
+                    <app-select-dropdown
+                      placeholder="Seleziona"
+                      [searchable]="true"
+                      [options]="brandDropdownOptions()"
+                      [selectedId]="wizardForm.base.brand_id().value()"
+                      [invalid]="showFieldError(wizardForm.base.brand_id(), 1)"
+                      (selectedIdChange)="setSelectValue(wizardForm.base.brand_id, $event)"
+                    />
+                    <button
+                      type="button"
+                      appButton
+                      variant="primary"
+                      size="icon"
+                      class="mini-add-btn"
+                      [disabled]="quickBrandBusy()"
+                      (click)="openCreateBrandModal()"
+                    >
+                      +
+                    </button>
+                  </div>
+                  @if (showFieldError(wizardForm.base.brand_id(), 1)) {
+                    <small class="field-error-text">{{
+                      fieldError(wizardForm.base.brand_id(), 'Il brand è obbligatorio')
+                    }}</small>
+                  }
+                </label>
+                <label class="field-size">
                   <span>Taglia</span>
                   <input
                     [formField]="wizardForm.base.size"
@@ -47,7 +108,7 @@
                     (input)="onSizeInput($event)"
                   />
                 </label>
-                <label>
+                <label class="field-fit">
                   <span>Fit</span>
                   <app-select-dropdown
                     placeholder="Seleziona"
@@ -63,45 +124,36 @@
                     }}</small>
                   }
                 </label>
-                <label>
-                  <span>Brand</span>
-                  <div class="inline-select-add">
-                    <app-select-dropdown
-                      placeholder="Seleziona"
-                      [searchable]="true"
-                      [options]="brandDropdownOptions()"
-                      [selectedId]="wizardForm.base.brand_id().value()"
-                      [invalid]="showFieldError(wizardForm.base.brand_id(), 1)"
-                      (selectedIdChange)="setSelectValue(wizardForm.base.brand_id, $event)"
-                    />
-                    <button
-                      type="button"
-                      class="mini-add-btn"
-                      [disabled]="quickBrandBusy()"
-                      (click)="openCreateBrandModal()"
-                    >
-                      +
-                    </button>
-                  </div>
-                  @if (showFieldError(wizardForm.base.brand_id(), 1)) {
+              </div>
+
+              <label class="full-width notes-field">
+                <span>Note</span>
+                <textarea [formField]="wizardForm.base.notes" rows="3" placeholder="Note aggiuntive, composizione, vestibilità..."></textarea>
+              </label>
+
+              <h3 class="subsection-title">Dati di acquisto</h3>
+              <div class="buy-row-grid">
+                <label class="field-shop">
+                  <span>Negozio</span>
+                  <input [formField]="wizardForm.buy.detail.shop_name" placeholder="Zara" />
+                </label>
+                <label class="field-url">
+                  <span>URL negozio</span>
+                  <input
+                    [formField]="wizardForm.buy.detail.shop_url"
+                    type="url"
+                    placeholder="https://example.com"
+                    [class.field-error]="showFieldError(wizardForm.buy.detail.shop_url(), 1)"
+                  />
+                  @if (showFieldError(wizardForm.buy.detail.shop_url(), 1)) {
                     <small class="field-error-text">{{
-                      fieldError(wizardForm.base.brand_id(), 'Il brand è obbligatorio')
+                      fieldError(wizardForm.buy.detail.shop_url(), 'URL non valido')
                     }}</small>
                   }
                 </label>
-                <label>
-                  <span>Tipo</span>
-                  <app-select-dropdown
-                    placeholder="Seleziona"
-                    [searchable]="true"
-                    [options]="typeDropdownOptions()"
-                    [selectedId]="wizardForm.base.type_id().value()"
-                    (selectedIdChange)="setSelectValue(wizardForm.base.type_id, $event)"
-                  />
-                </label>
-                <label class="full-width">
-                  <span>Note</span>
-                  <textarea [formField]="wizardForm.base.notes" rows="4"></textarea>
+                <label class="field-date">
+                  <span>Data acquisto</span>
+                  <input [formField]="wizardForm.buy.detail.purchase_date" type="date" />
                 </label>
               </div>
             </div>
@@ -115,18 +167,20 @@
                 <h3>Colori *</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickColorBusy()"
                   (click)="openCreateColorModal()"
                 >
                   + Nuovo colore
                 </button>
               </div>
-              <div class="pill-list">
+              <div class="chip-cloud">
                 @for (color of referenceStore.colors(); track color.id) {
                   <button
                     type="button"
-                    class="pill"
+                    class="chip"
                     [class.active]="wizardForm.style.color_ids().value().includes(color.id)"
                     (click)="toggleArray(wizardForm.style.color_ids, color.id)"
                   >
@@ -149,18 +203,20 @@
                 <h3>Materiali</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickMaterialBusy()"
                   (click)="openCreateMaterialModal()"
                 >
                   + Nuovo materiale
                 </button>
               </div>
-              <div class="pill-list">
+              <div class="chip-cloud">
                 @for (material of referenceStore.materials(); track material.id) {
                   <button
                     type="button"
-                    class="pill"
+                    class="chip"
                     [class.active]="wizardForm.style.material_ids().value().includes(material.id)"
                     (click)="toggleArray(wizardForm.style.material_ids, material.id)"
                   >
@@ -170,20 +226,24 @@
                 }
               </div>
 
-              <h3 style="margin-top: 18px;">Tag</h3>
-              <div class="pill-list">
+              <div class="section-head" style="margin-top: 18px;">
+                <h3>Tag</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickTagBusy()"
                   (click)="openCreateTagModal()"
                 >
                   + Nuovo tag
                 </button>
+              </div>
+              <div class="chip-cloud">
                 @for (tag of referenceStore.tags(); track tag.id) {
                   <button
                     type="button"
-                    class="pill"
+                    class="chip"
                     [class.active]="wizardForm.style.tag_ids().value().includes(tag.id)"
                     (click)="toggleArray(wizardForm.style.tag_ids, tag.id)"
                   >
@@ -203,7 +263,9 @@
                 <h3>Stagioni *</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickSeasonBusy()"
                   (click)="openCreateSeasonModal()"
                 >
@@ -232,7 +294,9 @@
                 <h3>Temperature *</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickTemperatureBusy()"
                   (click)="openCreateTemperatureModal()"
                 >
@@ -266,7 +330,9 @@
                 <h3>Occasioni</h3>
                 <button
                   type="button"
-                  class="pill pill-create"
+                  appButton
+                  variant="secondary"
+                  size="sm"
                   [disabled]="quickUseCaseBusy()"
                   (click)="openCreateUseCaseModal()"
                 >
@@ -297,11 +363,15 @@
           <section class="step-grid care-islands">
             <article class="panel care-island">
               <div class="island-head">
-                <h3>Lavaggio</h3>
+                <div class="island-title-group">
+                  <app-washing-icon [size]="22" />
+                  <h3>Lavaggio</h3>
+                </div>
                 <button
                   type="button"
-                  class="toggle-button"
-                  [class.active]="wizardForm.care.washingEnabled().value()"
+                  appButton
+                  [variant]="wizardForm.care.washingEnabled().value() ? 'primary' : 'ghost'"
+                  size="sm"
                   (click)="toggleWashingEnabled()"
                 >
                   {{ wizardForm.care.washingEnabled().value() ? 'Attivo' : 'Disattivo' }}
@@ -435,11 +505,15 @@
 
             <article class="panel care-island">
               <div class="island-head">
-                <h3>Asciugatura</h3>
+                <div class="island-title-group">
+                  <app-drying-icon [size]="22" />
+                  <h3>Asciugatura</h3>
+                </div>
                 <button
                   type="button"
-                  class="toggle-button"
-                  [class.active]="wizardForm.care.dryingEnabled().value()"
+                  appButton
+                  [variant]="wizardForm.care.dryingEnabled().value() ? 'primary' : 'ghost'"
+                  size="sm"
                   (click)="toggleDryingEnabled()"
                 >
                   {{ wizardForm.care.dryingEnabled().value() ? 'Attivo' : 'Disattivo' }}
@@ -486,11 +560,15 @@
 
             <article class="panel care-island">
               <div class="island-head">
-                <h3>Stiraggio</h3>
+                <div class="island-title-group">
+                  <app-ironing-icon [size]="22" />
+                  <h3>Stiraggio</h3>
+                </div>
                 <button
                   type="button"
-                  class="toggle-button"
-                  [class.active]="wizardForm.care.ironingEnabled().value()"
+                  appButton
+                  [variant]="wizardForm.care.ironingEnabled().value() ? 'primary' : 'ghost'"
+                  size="sm"
                   (click)="toggleIroningEnabled()"
                 >
                   {{ wizardForm.care.ironingEnabled().value() ? 'Attivo' : 'Disattivo' }}
@@ -551,37 +629,7 @@
         }
         @case (5) {
           <section class="step-grid">
-            <div class="panel">
-              <div class="field-grid">
-                <label>
-                  <span>Negozio</span>
-                  <input [formField]="wizardForm.buy.detail.shop_name" placeholder="Zara" />
-                </label>
-                <label>
-                  <span>URL negozio</span>
-                  <input
-                    [formField]="wizardForm.buy.detail.shop_url"
-                    type="url"
-                    placeholder="https://example.com"
-                    [class.field-error]="showFieldError(wizardForm.buy.detail.shop_url(), 5)"
-                  />
-                  @if (showFieldError(wizardForm.buy.detail.shop_url(), 5)) {
-                    <small class="field-error-text">{{
-                      fieldError(wizardForm.buy.detail.shop_url(), 'URL non valido')
-                    }}</small>
-                  }
-                </label>
-                <label>
-                  <span>Data acquisto</span>
-                  <input [formField]="wizardForm.buy.detail.purchase_date" type="date" />
-                </label>
-              </div>
-            </div>
-          </section>
-        }
-        @case (6) {
-          <section class="step-grid">
-            <div class="panel">
+            <div class="panel photo-step-panel">
               <input
                 #fileInput
                 type="file"
@@ -590,103 +638,115 @@
                 hidden
                 (change)="onFilesSelected($event)"
               />
-              <div class="photo-actions">
-                <button type="button" class="primary" (click)="openFilePicker()">
-                  Aggiungi foto
-                </button>
-                <span class="muted"
-                  >Puoi anche incollare immagini con Ctrl+V</span
-                >
+
+              <div class="photo-top-bar">
+                <div class="photo-top-left">
+                  <button type="button" appButton variant="primary" size="sm" class="upload-btn" (click)="openFilePicker()">
+                    📷 Aggiungi foto
+                  </button>
+                  <span class="muted photo-hint">
+                    Puoi anche incollare immagini con Ctrl+V o trascinarle qui
+                  </span>
+                </div>
+                @if (allPhotos().length > 0) {
+                  <span class="photo-count-badge">{{ allPhotos().length }} {{ allPhotos().length === 1 ? 'foto' : 'foto' }}</span>
+                }
               </div>
 
-              @if (pendingAttachments().length > 0) {
-                <p class="muted reorder-help">Riordina le foto caricate trascinandole o con Su/Giu.</p>
-                <div class="attachments-grid">
-                  @for (attachment of pendingAttachments(); track attachment.id) {
-                    <article
-                      class="attachment-card"
-                      draggable="true"
-                      (dragstart)="onPendingDragStart($event, attachment.id)"
-                      (dragover)="onPendingDragOver($event)"
-                      (drop)="onPendingDrop($event, attachment.id)"
-                      (dragend)="onPendingDragEnd()"
-                    >
-                      <img [src]="attachment.previewUrl" [alt]="attachmentLabel(attachment) || 'Foto allegata'" />
-                      <div class="attachment-footer">
-                        @if (attachmentLabel(attachment); as label) {
-                          <span>{{ label }}</span>
-                        }
-                        <div class="attachment-actions">
-                          <button
-                            type="button"
-                            class="ghost"
-                            [disabled]="!canMovePending(attachment.id, -1)"
-                            (click)="movePending(attachment.id, -1)"
-                          >
-                            Su
-                          </button>
-                          <button
-                            type="button"
-                            class="ghost"
-                            [disabled]="!canMovePending(attachment.id, 1)"
-                            (click)="movePending(attachment.id, 1)"
-                          >
-                            Giu
-                          </button>
-                          <button type="button" class="ghost" (click)="removePending(attachment.id)">
-                            Rimuovi
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  }
+              @if (uploadProgress(); as prog) {
+                <div class="upload-progress-card">
+                  <div class="progress-info">
+                    <strong>Salvataggio e caricamento foto...</strong>
+                    <span>Foto {{ prog.current }} di {{ prog.total }}: {{ prog.currentFileName }} ({{ prog.percent }}%)</span>
+                  </div>
+                  <div class="progress-bar-track">
+                    <div class="progress-bar-fill" [style.width.%]="prog.percent"></div>
+                  </div>
                 </div>
               }
 
-              @if (existingAttachments()?.length) {
-                <p class="muted reorder-help">Riordina anche le foto salvate con drag and drop o Su/Giu.</p>
-                <div class="attachments-grid">
-                  @for (attachment of existingAttachments() ?? []; track attachment.id) {
+              @if (allPhotos().length === 0) {
+                <div
+                  class="photo-empty-dropzone"
+                  (click)="openFilePicker()"
+                  (dragover)="onDragOverDropzone($event)"
+                  (drop)="onDropDropzone($event)"
+                >
+                  <div class="dropzone-icon">🖼️</div>
+                  <h3>Nessuna foto caricata</h3>
+                  <p>Trascina le foto qui o fai clic per selezionarle dal dispositivo.</p>
+                  <p class="dropzone-sub">La prima foto caricata sarà la <strong>foto di copertina</strong> usata nelle card del guardaroba.</p>
+                </div>
+              } @else {
+                <p class="muted reorder-guide">
+                  💡 Trascina le foto per riordinarle. La <strong>foto principale</strong> (nel riquadro grande) è quella che verrà mostrata nelle anteprime delle card.
+                </p>
+
+                <div
+                  class="photo-gallery-grid"
+                  cdkDropList
+                  cdkDropListOrientation="mixed"
+                  [cdkDropListData]="allPhotos()"
+                  (cdkDropListDropped)="onDropPhoto($event)"
+                >
+                  @for (photo of allPhotos(); track photo.id; let idx = $index) {
                     <article
-                      class="attachment-card"
-                      draggable="true"
-                      (dragstart)="onExistingDragStart($event, attachment.id)"
-                      (dragover)="onExistingDragOver($event)"
-                      (drop)="onExistingDrop($event, attachment.id)"
-                      (dragend)="onExistingDragEnd()"
+                      class="photo-card"
+                      [class.hero-photo]="idx === 0"
+                      cdkDrag
                     >
-                      @if (isImageAttachment(attachment.mimeType)) {
+                      <div class="photo-drop-placeholder" *cdkDragPlaceholder>
+                        <div class="placeholder-inner">
+                          <span>{{ idx === 0 ? '★ Rilascia qui come Principale' : 'Posiziona qui' }}</span>
+                        </div>
+                      </div>
+
+                      <div class="photo-preview-wrap">
                         <img
-                          [src]="getExistingAttachmentUrl(attachment.id)"
-                          [alt]="attachment.originalName || 'Foto allegata'"
+                          [src]="photo.previewUrl"
+                          [alt]="photo.name || 'Foto del capo'"
                           loading="lazy"
                         />
-                      } @else {
-                        <div class="saved-preview">{{ attachment.originalName || 'Allegato' }}</div>
-                      }
-                      <div class="attachment-footer">
-                        @if (attachment.kind && attachment.kind !== 'photo') {
-                          <span>{{ attachment.kind }}</span>
-                        }
-                        <div class="attachment-actions">
+
+                        <div class="photo-badge" [class.hero-badge]="idx === 0">
+                          @if (idx === 0) {
+                            <span>★ Foto principale (Card)</span>
+                          } @else {
+                            <span>#{{ idx + 1 }}</span>
+                          }
+                        </div>
+
+                        <button
+                          type="button"
+                          class="photo-delete-btn"
+                          (click)="removePhoto(photo.id)"
+                          title="Rimuovi foto"
+                          aria-label="Rimuovi foto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div class="photo-info-bar">
+                        <span class="photo-name" [title]="photo.name">{{ photo.name }}</span>
+                        <div class="photo-move-actions">
                           <button
                             type="button"
-                            class="ghost"
-                            [disabled]="!canMoveExisting(attachment.id, -1)"
-                            (click)="moveExisting(attachment.id, -1)"
+                            class="ghost btn-mini"
+                            [disabled]="idx === 0"
+                            (click)="movePhoto(photo.id, -1)"
+                            title="Sposta prima"
                           >
-                            Su
+                            ◀
                           </button>
                           <button
                             type="button"
-                            class="ghost"
-                            [disabled]="!canMoveExisting(attachment.id, 1)"
-                            (click)="moveExisting(attachment.id, 1)"
+                            class="ghost btn-mini"
+                            [disabled]="idx === allPhotos().length - 1"
+                            (click)="movePhoto(photo.id, 1)"
+                            title="Sposta dopo"
                           >
-                            Giu
-                          </button>
-                          <button type="button" class="ghost" (click)="removeExisting(attachment.id)">
-                            Elimina
+                            ▶
                           </button>
                         </div>
                       </div>
@@ -699,30 +759,50 @@
         }
       }
     </section>
-
-    <footer class="wizard-footer">
-      <button type="button" class="dialog-btn" (click)="cancelOrClose()">Chiudi</button>
-      <button
-        type="button"
-        class="dialog-btn"
-        [disabled]="currentStep() === 1"
-        (click)="previousStep()"
-      >
-        Indietro
-      </button>
-      @if (currentStep() < 6) {
-        <button type="button" class="dialog-btn dialog-btn-primary" (click)="nextStep()">
-          Avanti
-        </button>
-      }
-      <button
-        type="button"
-        class="dialog-btn dialog-btn-primary"
-        [disabled]="saving()"
-        (click)="save()"
-      >
-        {{ saveLabel() }}
-      </button>
-    </footer>
   </div>
+
+  <!-- Floating Dock Action Island: ancorata in basso al centro, stile Aero glass -->
+  <aside class="wizard-dock floating-dock" role="region" aria-label="Azioni del wizard">
+    <button type="button" appButton variant="ghost" size="md" (click)="cancelOrClose()">
+      Chiudi
+    </button>
+    <span class="dock-separator" aria-hidden="true"></span>
+    <button
+      type="button"
+      appButton
+      variant="secondary"
+      size="md"
+      [disabled]="currentStep() === 1"
+      (click)="previousStep()"
+    >
+      <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12.5 15L7.5 10L12.5 5"/>
+      </svg>
+      <span>Indietro</span>
+    </button>
+    @if (currentStep() < 5) {
+      <button type="button" appButton variant="primary" size="md" (click)="nextStep()">
+        <span>Avanti</span>
+        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7.5 15L12.5 10L7.5 5"/>
+        </svg>
+      </button>
+    }
+    <button
+      type="button"
+      appButton
+      variant="primary"
+      size="md"
+      [disabled]="saving()"
+      [loading]="saving()"
+      (click)="save()"
+    >
+      <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M16 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10l4 4v10a2 2 0 0 1-2 2z"/>
+        <polyline points="14 3 14 7 6 7"/>
+        <rect x="6" y="12" width="8" height="5"/>
+      </svg>
+      <span>{{ saveLabel() }}</span>
+    </button>
+  </aside>
 </section>

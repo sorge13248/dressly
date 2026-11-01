@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom, forkJoin } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from './api.service';
+import { sortColorsByHex } from '../shared/utils/color.utils';
 import {
   BaseReferenceItem,
   BrandItem,
@@ -48,7 +49,7 @@ export class ReferenceStoreService {
   private readonly state = signal<ReferenceState>({ ...emptyState });
   readonly loading = signal(false);
 
-  private readonly sortableKinds: ReferenceKind[] = ['colors', 'seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
+  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
 
   private isSortableKind(kind: ReferenceKind) {
     return this.sortableKinds.includes(kind);
@@ -75,7 +76,7 @@ export class ReferenceStoreService {
       : items.slice().sort((left, right) => this.byName(left, right));
   }
 
-  readonly colors = computed(() => this.sortForKind('colors', this.state().colors));
+  readonly colors = computed(() => sortColorsByHex(this.state().colors));
   readonly brands = computed(() => this.sortForKind('brands', this.state().brands));
   readonly seasons = computed(() => this.sortForKind('seasons', this.state().seasons));
   readonly temperatures = computed(() => this.sortForKind('temperatures', this.state().temperatures));
@@ -103,28 +104,18 @@ export class ReferenceStoreService {
   async loadAll() {
     this.loading.set(true);
     try {
-      const { colors, brands, seasons, temperatures, useCases, fits, materials, types, tags } = await firstValueFrom(forkJoin({
-        colors: this.api.listReference('colors'),
-        brands: this.api.listReference('brands'),
-        seasons: this.api.listReference('seasons'),
-        temperatures: this.api.listReference('temperatures'),
-        useCases: this.api.listReference('use-cases'),
-        fits: this.api.listReference('fits'),
-        materials: this.api.listReference('materials'),
-        types: this.api.listReference('types'),
-        tags: this.api.listReference('tags'),
-      }));
+      const data = await firstValueFrom(this.api.getAllReferenceData());
 
       this.state.set({
-        colors: (colors ?? []) as ColorItem[],
-        brands: (brands ?? []) as BrandItem[],
-        seasons: (seasons ?? []) as SeasonItem[],
-        temperatures: (temperatures ?? []) as TemperatureItem[],
-        'use-cases': (useCases ?? []) as UseCaseItem[],
-        fits: (fits ?? []) as FitItem[],
-        materials: (materials ?? []) as MaterialItem[],
-        types: (types ?? []) as TypeItem[],
-        tags: (tags ?? []) as TagItem[],
+        colors: (data.colors ?? []) as ColorItem[],
+        brands: (data.brands ?? []) as BrandItem[],
+        seasons: (data.seasons ?? []) as SeasonItem[],
+        temperatures: (data.temperatures ?? []) as TemperatureItem[],
+        'use-cases': (data['use-cases'] ?? []) as UseCaseItem[],
+        fits: (data.fits ?? []) as FitItem[],
+        materials: (data.materials ?? []) as MaterialItem[],
+        types: (data.types ?? []) as TypeItem[],
+        tags: (data.tags ?? []) as TagItem[],
       });
     } finally {
       this.loading.set(false);

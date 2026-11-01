@@ -1,14 +1,4 @@
 <section class="washing-shell">
-  <header class="washing-header">
-    @if (!loading() && items().length > 0) {
-      <div class="header-right">
-        <button type="button" class="danger clear-btn" (click)="onClearList()">
-          Svuota lista
-        </button>
-      </div>
-    }
-  </header>
-
   <main class="washing-content">
     @if (loading()) {
       <div class="state-card">Caricamento capi a lavare...</div>
@@ -18,7 +8,7 @@
       <div class="state-card empty-card">
         <h2>Nessun capo da lavare</h2>
         <p>Aggiungi capi alla lavatrice dal guardaroba o dalla pagina di dettaglio.</p>
-        <button type="button" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
+        <button type="button" appButton variant="primary" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
       </div>
     } @else {
       <div class="cards-layout">
@@ -79,11 +69,7 @@
                       (click)="onWashedAndIron(item, $event)"
                       title="Segna come lavato e aggiungi ai capi da stirare"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
-                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-                      </svg>
+                      <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
                       <span>Lavato e da stirare</span>
                     </button>
                   </div>
@@ -151,11 +137,7 @@
                       (click)="onWashedAndIron(item, $event)"
                       title="Segna come lavato e aggiungi ai capi da stirare"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
-                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-                      </svg>
+                      <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
                       <span>Lavato e da stirare</span>
                     </button>
                   </div>
@@ -290,11 +272,7 @@
                       (click)="onWashedAndIron(item, $event)"
                       title="Segna come lavato e aggiungi ai capi da stirare"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
-                        <path d="M5 8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2" />
-                        <path d="M3 17h17a2 2 0 0 0 1.8-2.9L19 9H4a2 2 0 0 0-2 2v5a1 1 0 0 0 1 1z" />
-                        <line x1="2" y1="20" x2="22" y2="20" stroke-width="2" />
-                      </svg>
+                      <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
                       <span>Lavato e da stirare</span>
                     </button>
                   </div>
@@ -306,5 +284,20 @@
       </div>
     }
   </main>
+
+  <!-- Pulsante fluttuante trasparente e ombreggiato ancorato in fondo alla pagina al centro -->
+  @if (!loading() && items().length > 0) {
+    <div class="floating-dock" role="region" aria-label="Azioni lista">
+      <button type="button" class="danger clear-btn" (click)="onClearList()">
+        <svg class="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+        <span>Svuota lista</span>
+      </button>
+    </div>
+  }
 </section>
 
