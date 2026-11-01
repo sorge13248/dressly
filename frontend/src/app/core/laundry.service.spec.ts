@@ -1,20 +1,19 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
-import { ApiService } from './api.service';
+import { OfflineStorageService } from './offline-storage.service';
 import { LaundryService } from './laundry.service';
 
 describe('LaundryService', () => {
   let service: LaundryService;
-  let apiSpy: { getLaundryCounts: ReturnType<typeof vi.fn> };
+  let storageSpy: { getLaundry: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.useFakeTimers();
-    apiSpy = {
-      getLaundryCounts: vi.fn().mockReturnValue(of({ washingCount: 3, ironingCount: 5 })),
+    storageSpy = {
+      getLaundry: vi.fn().mockResolvedValue({ washing: ['1', '2', '3'], ironing: ['a', 'b', 'c', 'd', 'e'] }),
     };
 
     TestBed.configureTestingModule({
-      providers: [LaundryService, { provide: ApiService, useValue: apiSpy }],
+      providers: [LaundryService, { provide: OfflineStorageService, useValue: storageSpy }],
     });
 
     service = TestBed.inject(LaundryService);
@@ -41,7 +40,7 @@ describe('LaundryService', () => {
   });
 
   it('should handle decrement with slide-down animation and reset to idle after timer', () => {
-    service.setWashingCount(5);
+    service.updateWashingCount(5);
     vi.advanceTimersByTime(500);
     expect(service.washingState().animating).toBe('idle');
 
@@ -57,7 +56,7 @@ describe('LaundryService', () => {
   });
 
   it('should handle decrement to 0 with slide-out-zero animation', () => {
-    service.setWashingCount(1);
+    service.updateWashingCount(1);
     vi.advanceTimersByTime(500);
 
     service.updateWashingCount(0);
@@ -70,7 +69,7 @@ describe('LaundryService', () => {
   });
 
   it('should handle increment with pop-up animation', () => {
-    service.setIroningCount(2);
+    service.updateIroningCount(2);
     vi.advanceTimersByTime(500);
 
     service.updateIroningCount(3);
@@ -82,8 +81,8 @@ describe('LaundryService', () => {
   });
 
   it('should handle error in refreshCounts gracefully', async () => {
-    apiSpy.getLaundryCounts.mockReturnValue(throwError(() => new Error('Network error')));
-    service.setWashingCount(2);
+    storageSpy.getLaundry.mockRejectedValue(new Error('Storage error'));
+    service.updateWashingCount(2);
 
     await service.refreshCounts();
     expect(service.washingCount()).toBe(2);

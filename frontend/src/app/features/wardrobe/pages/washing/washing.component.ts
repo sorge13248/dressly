@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WashingClothesItem } from '../../../../core/models';
@@ -25,7 +26,8 @@ export interface WashingTemperatureGroup {
   styleUrl: './washing.component.scss',
 })
 export class WashingPageComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService);
+  private readonly syncService = inject(SyncService);
   private readonly router = inject(Router);
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
@@ -78,6 +80,13 @@ export class WashingPageComponent implements OnInit {
 
   readonly totalCount = computed(() => this.items().length);
 
+  constructor() {
+    effect(() => {
+      this.syncService.dataUpdated();
+      void this.load();
+    });
+  }
+
   ngOnInit() {
     void this.load();
   }
@@ -87,8 +96,7 @@ export class WashingPageComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const response = await firstValueFrom(this.api.getClothesForWashing());
-      const loadedItems = response?.items ?? [];
+      const loadedItems = await this.storage.getClothesForWashing();
       this.items.set(loadedItems);
       this.laundryService.setWashingCount(loadedItems.length);
     } catch (err) {
@@ -106,7 +114,8 @@ export class WashingPageComponent implements OnInit {
     void this.laundryService.animateFlyToNav(targetEl, 'washing', 'remove');
 
     try {
-      await firstValueFrom(this.api.removeFromWashing(item.id));
+      await this.storage.removeFromWashing(item.id);
+      await this.syncService.queueLaundryChange('washing', item.id, 'delete');
       this.items.update((list) => list.filter((i) => i.id !== item.id));
       void this.laundryService.refreshCounts('washing', 'remove');
       this.toast.success('Capo segnato come lavato');
@@ -123,7 +132,9 @@ export class WashingPageComponent implements OnInit {
     void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'add');
 
     try {
-      await firstValueFrom(this.api.moveWashingToIroning(item.id));
+      await this.storage.moveWashingToIroning(item.id);
+      await this.syncService.queueLaundryChange('washing', item.id, 'delete');
+      await this.syncService.queueLaundryChange('ironing', item.id, 'create');
       this.items.update((list) => list.filter((i) => i.id !== item.id));
       this.laundryService.updateWashingCount(this.items().length, 'slide-down');
       void this.laundryService.refreshCounts('ironing', 'add');
@@ -149,7 +160,15 @@ export class WashingPageComponent implements OnInit {
     }
 
     try {
-      await firstValueFrom(this.api.clearWashing());
+      const laundry = await this.storage.getLaundry();
+      await this.storage.clearWashing();
+      if (this.syncService.queueLaundryChanges) {
+        await this.syncService.queueLaundryChanges('washing', laundry.washing, 'delete');
+      } else {
+        for (const id of laundry.washing) {
+          await this.syncService.queueLaundryChange('washing', id, 'delete');
+        }
+      }
       this.items.set([]);
       this.laundryService.updateWashingCount(0, 'slide-down');
       this.toast.success('Lavatrice svuotata');

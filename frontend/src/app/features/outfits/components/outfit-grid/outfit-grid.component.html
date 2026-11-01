@@ -1,0 +1,189 @@
+<div class="outfit-grid-container" [class.is-modal]="mode() === 'modal'" [class.is-page]="mode() === 'page'">
+  @if (loading()) {
+    <div class="state-card">Caricamento abbinamenti...</div>
+  } @else if (error()) {
+    <div class="state-card error-state">
+      <p>{{ error() }}</p>
+      <button type="button" class="retry-btn" (click)="loadOutfits()">Riprova</button>
+    </div>
+  } @else if (mode() === 'page' && outfits().length === 0) {
+    <div class="empty-page-state">
+      <div class="empty-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+        </svg>
+      </div>
+      <h2>Nessun abbinamento presente</h2>
+      <p>Per creare un abbinamento, seleziona uno o più vestiti dal guardaroba e clicca sul pulsante <strong>Abbina...</strong>.</p>
+      <a routerLink="/wardrobe" class="go-wardrobe-btn">
+        Vai al guardaroba
+      </a>
+    </div>
+  } @else {
+    <div class="outfits-grid">
+      <!-- 1st card: Placeholder per creare un nuovo abbinamento (SOLO IN MODALE) -->
+      @if (mode() === 'modal') {
+        <button
+          type="button"
+          class="outfit-card placeholder-card"
+          [disabled]="actionBusy()"
+          (click)="openCreateOutfitModal()"
+          aria-label="Crea nuovo abbinamento"
+        >
+          <div class="placeholder-inner">
+            <div class="placeholder-icon-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </div>
+            <span class="placeholder-title">Nuovo abbinamento</span>
+            <span class="placeholder-hint">Crea con i capi selezionati</span>
+          </div>
+        </button>
+      }
+
+      <!-- Existing outfits cards -->
+      @for (outfit of outfits(); track outfit.id) {
+        @if (mode() === 'modal') {
+          <!-- Layout card per modale (2 card per riga, dettagliate con anteprime) -->
+          <div
+            class="outfit-card existing-card modal-card"
+            [class.busy]="actionBusy()"
+            (click)="handleCardClick(outfit)"
+            (keydown.enter)="handleCardClick(outfit)"
+            (keydown.space)="handleCardClick(outfit)"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="outfit.name + ', ' + outfit.clothesCount + ' capi'"
+          >
+            <div class="card-header">
+              <div class="header-text">
+                <h3 class="outfit-title" [title]="outfit.name">{{ outfit.name }}</h3>
+                <span class="clothes-count-badge">
+                  {{ outfit.clothesCount }} {{ outfit.clothesCount === 1 ? 'capo' : 'capi' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-previews-area">
+              @if (outfit.clothes && outfit.clothes.length > 0) {
+                <div class="mini-thumbnails-grid">
+                  @for (cloth of outfit.clothes.slice(0, 6); track cloth.id) {
+                    <div
+                      class="mini-thumb"
+                      [title]="cloth.fullTitle || cloth.name || 'Capo del guardaroba'"
+                    >
+                      @if (cloth.primaryAttachment; as att) {
+                        <img
+                          [src]="getAttachmentUrl(cloth.id, att)"
+                          [alt]="cloth.fullTitle || cloth.name || 'Capo'"
+                          loading="lazy"
+                        />
+                      } @else {
+                        <div class="mini-thumb-fallback">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+                            <path d="M2 18h20" />
+                          </svg>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (outfit.clothes.length > 6) {
+                    <div class="mini-thumb mini-thumb-overflow" title="Altri {{ outfit.clothes.length - 6 }} capi">
+                      +{{ outfit.clothes.length - 6 }}
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="empty-outfit-hint">
+                  <span>Nessun capo inserito</span>
+                </div>
+              }
+            </div>
+
+            <div class="modal-card-action">
+              <span class="action-label">Aggiungi a questo abbinamento</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </div>
+        } @else {
+          <!-- Layout card per pagina: Icona stile Windows Aero (molti abbinamenti per riga) -->
+          <div
+            class="outfit-card existing-card page-icon-card"
+            [class.busy]="actionBusy()"
+            (click)="handleCardClick(outfit)"
+            (keydown.enter)="handleCardClick(outfit)"
+            (keydown.space)="handleCardClick(outfit)"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="outfit.name + ', ' + outfit.clothesCount + ' capi'"
+          >
+            <button
+              type="button"
+              class="delete-outfit-btn"
+              (click)="deleteOutfit(outfit, $event)"
+              title="Elimina abbinamento"
+              aria-label="Elimina abbinamento"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            <!-- Icona quadrata con collage delle miniature dei capi -->
+            <div class="icon-frame">
+              @if (outfit.clothes && outfit.clothes.length > 0) {
+                <div
+                  class="icon-collage"
+                  [attr.data-count]="outfit.clothes.length === 1 ? '1' : outfit.clothes.length === 2 ? '2' : outfit.clothes.length === 3 ? '3' : 'many'"
+                >
+                  @for (cloth of outfit.clothes.slice(0, 4); track cloth.id; let idx = $index) {
+                    <div
+                      class="mini-thumb collage-item"
+                      [title]="cloth.fullTitle || cloth.name || 'Capo'"
+                    >
+                      @if (idx === 3 && outfit.clothes.length > 4) {
+                        <div class="mini-thumb-overflow collage-overflow">+{{ outfit.clothes.length - 3 }}</div>
+                      } @else if (cloth.primaryAttachment; as att) {
+                        <img
+                          [src]="getAttachmentUrl(cloth.id, att)"
+                          [alt]="cloth.fullTitle || cloth.name || 'Capo'"
+                          loading="lazy"
+                        />
+                      } @else {
+                        <div class="mini-thumb-fallback">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+                          </svg>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="icon-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+                  </svg>
+                </div>
+              }
+            </div>
+
+            <!-- Didascalia sotto l'icona stile Windows -->
+            <div class="icon-caption">
+              <span class="outfit-title" [title]="outfit.name">{{ outfit.name }}</span>
+              <span class="clothes-count-badge">
+                {{ outfit.clothesCount }} {{ outfit.clothesCount === 1 ? 'capo' : 'capi' }}
+              </span>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

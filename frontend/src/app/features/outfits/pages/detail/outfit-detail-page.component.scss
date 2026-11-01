@@ -1,0 +1,893 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+.outfit-detail-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+.outfit-detail-content {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Navigazione superiore / Breadcrumb */
+.top-nav-bar {
+  display: flex;
+  align-items: center;
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent, #1e6dcf);
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(230, 242, 255, 0.7) 100%);
+    border: 1px solid rgba(80, 140, 220, 0.28);
+    box-shadow: 0 2px 6px rgba(20, 60, 120, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition: all 180ms ease;
+
+    .back-icon {
+      width: 16px;
+      height: 16px;
+      transition: transform 180ms ease;
+    }
+
+    &:hover {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(220, 238, 255, 0.9) 100%);
+      color: var(--accent-strong, #0f49a8);
+      border-color: rgba(40, 110, 200, 0.45);
+      box-shadow: 0 4px 12px rgba(20, 60, 120, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1);
+      transform: translateX(-2px);
+
+      .back-icon {
+        transform: translateX(-2px);
+      }
+    }
+  }
+}
+
+/* Stato caricamento / errore standard */
+.state-card {
+  padding: 24px;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--surface-strong, #ffffff);
+  border: 1px solid var(--line, rgba(100, 146, 214, 0.25));
+  color: var(--muted, #5a6880);
+  box-shadow: 0 4px 14px rgba(23, 62, 116, 0.08);
+
+  &.error {
+    color: var(--danger, #c03040);
+    background: rgba(192, 48, 64, 0.06);
+    border-color: rgba(192, 48, 64, 0.22);
+  }
+}
+
+.retry-btn {
+  margin-top: 10px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  background: var(--accent, #1e6dcf);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 150ms ease;
+
+  &:hover {
+    background: var(--accent-strong, #0f49a8);
+  }
+}
+
+/* Layout a due colonne per la riga superiore (Intestazione & Descrizione/Contesto) */
+.outfit-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Banner Hero Frutiger Aero (Colonna 1 della riga superiore) */
+.hero-banner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(80, 140, 220, 0.35);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(226, 241, 255, 0.5) 100%),
+    linear-gradient(135deg, rgba(90, 160, 245, 0.2) 0%, rgba(50, 110, 210, 0.06) 100%),
+    var(--surface-strong, #ffffff);
+  box-shadow:
+    0 12px 32px rgba(20, 60, 120, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(100, 150, 220, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  min-height: 220px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+  }
+}
+
+.hero-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hero-header-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent, #1e6dcf);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-strong, #0f49a8);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(215, 235, 255, 0.85));
+    border: 1px solid rgba(40, 110, 200, 0.28);
+    box-shadow: 0 2px 6px rgba(20, 60, 120, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+}
+
+.hero-title {
+  margin: 2px 0 0;
+  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text, #182030);
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.hero-description {
+  margin: 6px 0 2px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text, #182030);
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.hero-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--muted, #5a6b82);
+
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.hero-actions-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .hero-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    border-radius: 8px;
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+  }
+}
+
+/* Scheda Visualizzazione Dettagli & Contesto (Colonna 2 della riga superiore) */
+.details-summary-card {
+  padding: 22px 26px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 250, 255, 0.88) 100%),
+    var(--surface-strong, #ffffff);
+  border: 1px solid rgba(80, 140, 220, 0.32);
+  box-shadow:
+    0 8px 24px rgba(20, 60, 120, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+
+  .summary-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .summary-card-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text, #182030);
+    }
+
+    .summary-edit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+  }
+
+  .outfit-description-text {
+    margin: 0;
+    font-size: 0.96rem;
+    line-height: 1.55;
+    color: var(--text, #182030);
+  }
+
+  .outfit-description-empty,
+  .outfit-context-empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted, #5a6880);
+  }
+
+  .context-badges-cluster {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(100, 146, 214, 0.18);
+  }
+
+  .badge-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    .badge-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted, #5a6880);
+      min-width: 90px;
+    }
+
+    .badges-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  }
+
+  .context-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: rgba(235, 245, 255, 0.85);
+    border: 1px solid rgba(100, 146, 214, 0.35);
+    color: var(--text, #182030);
+
+    .pill-icon {
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+
+    &.season-pill {
+      background: rgba(230, 245, 255, 0.9);
+      border-color: rgba(60, 140, 220, 0.35);
+    }
+
+    &.temp-pill {
+      background: rgba(255, 245, 235, 0.9);
+      border-color: rgba(220, 120, 60, 0.35);
+    }
+
+    &.usecase-pill {
+      background: rgba(240, 235, 255, 0.9);
+      border-color: rgba(130, 80, 220, 0.35);
+    }
+  }
+}
+
+/* Form unico di Modifica Dettagli Abbinamento (Riga Superiore in 2 Card) */
+form.outfit-edit-form {
+  margin: 0;
+  padding: 0;
+}
+
+.edit-mode-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 260px;
+}
+
+.edit-card-left {
+  .edit-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .close-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(100, 146, 214, 0.28);
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--muted, #5a6880);
+    cursor: pointer;
+    padding: 0;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    &:hover {
+      background: rgba(230, 240, 255, 0.95);
+      color: var(--text, #182030);
+      border-color: rgba(60, 120, 210, 0.5);
+    }
+  }
+
+  .edit-fields-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .required-star {
+    color: var(--danger, #d9383a);
+    font-weight: 700;
+  }
+
+  .edit-shortcut-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--muted, #5a6b82);
+    margin-top: auto;
+    padding-top: 8px;
+
+    .hint-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(80, 140, 220, 0.15);
+      border: 1px solid rgba(80, 140, 220, 0.25);
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--accent, #1e6dcf);
+    }
+  }
+}
+
+.edit-card-right {
+  .context-selector-wrapper {
+    flex: 1;
+  }
+
+  .edit-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(100, 146, 214, 0.2);
+  }
+}
+
+.form-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text, #182030);
+  }
+
+  .text-input,
+  .textarea-input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(100, 146, 214, 0.38);
+    background: #ffffff;
+    padding: 9px 12px;
+    font-size: 0.95rem;
+    color: var(--text, #182030);
+    box-sizing: border-box;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent, #1e6dcf);
+      box-shadow: 0 0 0 3px rgba(30, 109, 207, 0.2);
+    }
+  }
+
+  .textarea-input {
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.45;
+  }
+}
+
+/* Layout a due colonne per la riga centrale (Canvas & Foto affiancati) */
+.outfit-middle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sezione Canvas */
+.section-canvas-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Card panel per le sezioni inferiori in stile Frutiger Aero */
+.outfit-panel-card {
+  padding: 22px 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(80, 140, 220, 0.3);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 250, 255, 0.88) 100%),
+    var(--surface-strong, #ffffff);
+  box-shadow:
+    0 8px 24px rgba(20, 60, 120, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Intestazioni di sezione condivise */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  .section-titles {
+    display: flex;
+    flex-direction: column;
+
+    .section-heading {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text, #182030);
+    }
+
+    .section-subheading {
+      margin: 3px 0 0;
+      font-size: 0.85rem;
+      color: var(--muted, #5a6880);
+    }
+  }
+}
+
+/* Batch laundry actions (A lavare / A stirare per tutti i capi) */
+.batch-laundry-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .batch-laundry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 180ms ease;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(235, 245, 255, 0.85) 100%);
+    border: 1px solid rgba(80, 140, 220, 0.35);
+    color: var(--text, #182030);
+    box-shadow: 0 2px 6px rgba(20, 60, 120, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 14px rgba(20, 60, 120, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1);
+    }
+  }
+}
+
+.wash-batch-btn,
+.iron-batch-btn {
+  app-washing-icon,
+  app-ironing-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    transition: transform 180ms ease;
+  }
+
+  &:hover:not(:disabled) {
+    app-washing-icon,
+    app-ironing-icon {
+      transform: scale(1.15);
+    }
+  }
+}
+
+.wash-batch-btn {
+  app-washing-icon {
+    color: #0284c7;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: rgba(2, 132, 199, 0.5);
+    color: #0369a1;
+  }
+
+  &.active-batch {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    color: #ffffff;
+    border-color: #0369a1;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+
+    app-washing-icon {
+      color: #ffffff;
+    }
+
+    .batch-count-pill {
+      background: rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+    }
+  }
+}
+
+.iron-batch-btn {
+  app-ironing-icon {
+    color: #d97706;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: rgba(217, 119, 6, 0.5);
+    color: #b45309;
+  }
+
+  &.active-batch {
+    background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+    border-color: #b45309;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+
+    app-ironing-icon {
+      color: #ffffff;
+    }
+
+    .batch-count-pill {
+      background: rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+    }
+  }
+}
+
+.batch-count-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(30, 80, 160, 0.12);
+  color: var(--accent-strong, #0f49a8);
+  transition: all 180ms ease;
+}
+
+/* Sezione Foto Indossate */
+.outfit-photos-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.photos-empty-state {
+  flex: 1;
+  min-height: 380px;
+  padding: 32px 20px;
+  border-radius: 14px;
+  border: 2px dashed rgba(100, 146, 214, 0.38);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(240, 248, 255, 0.7));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 160ms ease;
+
+  &:hover {
+    border-color: var(--accent, #1e6dcf);
+    background: rgba(235, 246, 255, 0.95);
+    transform: translateY(-1px);
+  }
+
+  .photo-empty-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(30, 109, 207, 0.1);
+    color: var(--accent, #1e6dcf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  .photos-empty-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text, #182030);
+  }
+
+  .photos-empty-hint {
+    font-size: 0.88rem;
+    color: var(--muted, #5a6880);
+    text-align: center;
+  }
+}
+
+.outfit-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  flex: 1;
+  align-content: start;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 2px 2px 8px 2px;
+}
+
+.outfit-photo-card {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(80, 140, 220, 0.35);
+  background: #000;
+  box-shadow: 0 6px 18px rgba(20, 50, 100, 0.14);
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 240ms ease;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(20, 50, 100, 0.22);
+
+    img {
+      transform: scale(1.05);
+    }
+
+    .photo-delete-btn {
+      opacity: 1;
+    }
+  }
+
+  .photo-delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(180, 30, 40, 0.9);
+    color: #ffffff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 140ms ease, transform 140ms ease;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background: #c02030;
+      transform: scale(1.1);
+    }
+  }
+}
+
+/* Sezione Capi Inclusi (Riga unica a tutta larghezza sotto a tutto) */
+.included-clothes-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Griglia vestiti inclusi in riga singola / wrap ordinato */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 300px));
+  gap: 16px;
+  justify-content: start;
+  align-content: start;
+  overflow: visible;
+  padding-bottom: 12px;
+}
+
+/* Stato abbinamento vuoto */
+.empty-state-box {
+  padding: 48px 24px;
+  text-align: center;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(240, 248, 255, 0.86) 100%),
+    var(--surface-strong, #ffffff);
+  border: 1px solid rgba(100, 146, 214, 0.28);
+  box-shadow: 0 10px 28px rgba(23, 62, 116, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  .empty-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(235, 245, 255, 0.95), rgba(215, 235, 255, 0.8));
+    border: 1px solid rgba(40, 110, 200, 0.24);
+    box-shadow: 0 4px 14px rgba(30, 109, 207, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    color: var(--accent, #1e6dcf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text, #182030);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--muted, #5a6880);
+    max-width: 460px;
+    line-height: 1.45;
+  }
+
+  .go-wardrobe-btn {
+    margin-top: 8px;
+    padding: 9px 20px;
+    border-radius: 999px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 20px;
+    gap: 16px;
+  }
+
+  .hero-actions-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+}
+
+@media (hover: none) {
+  .outfit-photo-card .photo-delete-btn {
+    opacity: 0.9;
+  }
+}

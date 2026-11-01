@@ -1,0 +1,169 @@
+<div class="canvas-container">
+  <!-- Toolbar superiore -->
+  <div class="canvas-toolbar">
+    <div class="toolbar-left">
+      <span class="toolbar-title">
+        <svg
+          class="toolbar-icon"
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="width: 18px; height: 18px; min-width: 18px; min-height: 18px; flex-shrink: 0;"
+          aria-hidden="true"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18" />
+          <path d="M9 21V9" />
+        </svg>
+        Canvas Outfit
+      </span>
+      <span class="toolbar-hint">
+        @if (selectedClothIds().length > 1) {
+          {{ selectedClothIds().length }} capi selezionati (trascinali per spostarli assieme)
+        } @else {
+          Trascina i capi o disegna un rettangolo per selezionarne più di uno
+        }
+      </span>
+    </div>
+
+    <div class="toolbar-actions">
+      <button
+        type="button"
+        class="toolbar-btn secondary-btn"
+        (click)="resetLayout()"
+        title="Ripristina la disposizione iniziale"
+      >
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px; flex-shrink: 0;" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+        <span>Reimposta</span>
+      </button>
+
+      <button
+        type="button"
+        class="toolbar-btn primary-btn"
+        [class.saved]="saveSuccess()"
+        [disabled]="isSaving()"
+        (click)="saveLayout()"
+        title="Centra automaticamente e salva la disposizione"
+      >
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px; flex-shrink: 0;" aria-hidden="true">
+          @if (saveSuccess()) {
+            <polyline points="20 6 9 17 4 12" />
+          } @else {
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          }
+        </svg>
+        <span>{{ saveSuccess() ? 'Salvato!' : isSaving() ? 'Salvataggio...' : 'Salva' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Area di lavoro del canvas (Tavolo) -->
+  <div
+    #canvasBoard
+    class="canvas-board"
+    (pointerdown)="onBoardPointerDown($event)"
+    (pointermove)="onBoardPointerMove($event)"
+    (pointerup)="onBoardPointerUp($event)"
+    (pointercancel)="onBoardPointerUp($event)"
+  >
+    <!-- Background a griglia blueprint -->
+    <div class="canvas-grid-bg"></div>
+
+    <!-- Rettangolo di selezione marquee per drag & drop di gruppo -->
+    @if (selectionBox(); as box) {
+      <div
+        class="canvas-selection-marquee"
+        [style.left.px]="box.left"
+        [style.top.px]="box.top"
+        [style.width.px]="box.width"
+        [style.height.px]="box.height"
+      ></div>
+    }
+
+    @if (clothes().length === 0) {
+      <div class="canvas-empty">
+        <div class="empty-icon-bubble">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+          </svg>
+        </div>
+        <p>Aggiungi capi all'abbinamento per vederli e disporli sul canvas</p>
+      </div>
+    } @else {
+      @for (cloth of clothes(); track cloth.id) {
+        @let layout = getClothLayout(cloth.id);
+        @let selected = isClothSelected(cloth.id);
+        <div
+          class="canvas-item"
+          [attr.data-cloth-id]="cloth.id"
+          [class.selected]="selected"
+          [class.dragging]="isDragging() && selected"
+          [style.left.%]="layout.x"
+          [style.top.%]="layout.y"
+          [style.z-index]="layout.zIndex || 1"
+          [style.transform]="'translate(-50%, -50%) scale(' + (layout.scale || 1) + ')'"
+          (pointerdown)="onItemPointerDown($event, cloth.id)"
+          (pointermove)="onItemPointerMove($event, cloth.id)"
+          (pointerup)="onItemPointerUp($event, cloth.id)"
+          (pointercancel)="onItemPointerUp($event, cloth.id)"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="'Capo: ' + (cloth.fullTitle || cloth.name || 'Senza nome')"
+        >
+          <!-- Frame dell'immagine: SOLO la foto del capo -->
+          <div class="item-visual">
+            @if (getPrimaryAttachment(cloth); as att) {
+              <img
+                [src]="getAttachmentUrl(cloth.id, att)"
+                [alt]="cloth.fullTitle || cloth.name || 'Capo'"
+                draggable="false"
+                loading="lazy"
+              />
+            } @else {
+              <div class="item-visual-fallback">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+                  <path d="M2 18h20" />
+                </svg>
+              </div>
+            }
+          </div>
+
+          <!-- Quick controls overlay per il capo selezionato: solo ingrandisci/rimpicciolisci -->
+          @if (selected && shouldShowItemControls(cloth.id)) {
+            <div class="item-controls" (pointerdown)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="control-btn"
+                (click)="scaleItem(cloth.id, -0.1)"
+                title="Rimpicciolisci"
+                aria-label="Rimpicciolisci capo"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                class="control-btn"
+                (click)="scaleItem(cloth.id, 0.1)"
+                title="Ingrandisci"
+                aria-label="Ingrandisci capo"
+              >
+                +
+              </button>
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+</div>

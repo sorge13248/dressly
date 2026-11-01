@@ -18,6 +18,8 @@ import { FormField, form, max, min, minLength, pattern } from '@angular/forms/si
 import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { ClothesItem } from '../../../../core/models';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
@@ -26,6 +28,7 @@ import { CreateNameModalComponent } from '../../../../shared/components/create-n
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { WashingIconComponent, DryingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
+import { ContextSelectorComponent } from '../../../../shared/components/context-selector/context-selector.component';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 
 export type StepIndex = 1 | 2 | 3 | 4 | 5;
@@ -189,6 +192,17 @@ function isDefaultAttachmentName(value: string) {
   return /^(?:photo|image|img|immagine|screenshot|pasted[ _-]?image|clipboard)(?:[ _-]*\d+)?(?:\.[a-z0-9]+)?$/i.test(value);
 }
 
+function generateUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 const ironingTypeOptions: SelectDropdownOption[] = [
   { id: 'yes', label: 'Sì' },
   { id: 'without_steam', label: 'Senza vapore' },
@@ -214,6 +228,7 @@ const ironingTemperatureOptions: SelectDropdownOption[] = [
     WashingIconComponent,
     DryingIconComponent,
     IroningIconComponent,
+    ContextSelectorComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.scss',
@@ -222,6 +237,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService, { optional: true });
+  private readonly syncService = inject(SyncService, { optional: true });
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(Dialog);
   readonly referenceStore = inject(ReferenceStoreService);
@@ -448,68 +465,122 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
     try {
       const payload = this.buildPayload();
-      const saved = this.editingId()
-        ? await firstValueFrom(this.api.updateClothes(this.editingId()!, payload))
-        : await firstValueFrom(this.api.createClothes(payload));
+      const isEdit = Boolean(this.editingId());
+      const isOnline = this.syncService ? !this.syncService.checkIsOffline() : (typeof navigator !== 'undefined' && navigator.onLine);
 
-      const clothesId = saved?.id;
-      if (!clothesId) {
-        throw new Error('Impossibile recuperare l id del capo salvato');
-      }
+      let clothesId: string;
 
-      // 1. Delete removed existing attachments
-      for (const attachmentId of this.attachmentsToDelete()) {
-        try {
-          await firstValueFrom(this.api.deleteAttachment(clothesId, attachmentId));
-        } catch {
-          // ignore error if attachment already gone
+      if (isOnline) {
+        // When online, persist immediately on server so the record exists before uploading attachments
+        if (isEdit) {
+          clothesId = this.editingId()!;
+          await firstValueFrom(this.api.updateClothes(clothesId, payload));
+        } else {
+          const saved = await firstValueFrom(this.api.createClothes(payload));
+          if (!saved?.id) {
+            throw new Error("Impossibile recuperare l'id del capo salvato");
+          }
+          clothesId = saved.id;
         }
-      }
 
-      // 2. Upload pending attachments with progress
-      const pendingPhotos = this.allPhotos().filter((photo) => photo.source === 'pending' && photo.file);
-      const uploadedMap = new Map<string, string>();
-
-      if (pendingPhotos.length > 0) {
-        this.uploadProgress.set({
-          total: pendingPhotos.length,
-          current: 0,
-          percent: 0,
-          currentFileName: '',
-        });
-
-        for (let i = 0; i < pendingPhotos.length; i++) {
-          const photo = pendingPhotos[i];
-          this.uploadProgress.set({
-            total: pendingPhotos.length,
-            current: i + 1,
-            percent: 0,
-            currentFileName: photo.name,
-          });
-
-          const uploadedId = await this.uploadSinglePhoto(clothesId, photo);
-          if (uploadedId) {
-            uploadedMap.set(photo.id, uploadedId);
+        // 1. Delete removed existing attachments
+        for (const attachmentId of this.attachmentsToDelete()) {
+          try {
+            await firstValueFrom(this.api.deleteAttachment(clothesId, attachmentId));
+          } catch {
+            // ignore
           }
         }
-      }
 
-      // 3. Reorder attachments according to current allPhotos() order
-      const finalOrderedIds: string[] = [];
-      for (const photo of this.allPhotos()) {
-        if (photo.source === 'existing') {
-          finalOrderedIds.push(photo.id);
-        } else if (uploadedMap.has(photo.id)) {
-          finalOrderedIds.push(uploadedMap.get(photo.id)!);
+        // 2. Upload pending attachments with progress
+        const pendingPhotos = this.allPhotos().filter((photo) => photo.source === 'pending' && photo.file);
+        const uploadedMap = new Map<string, string>();
+
+        if (pendingPhotos.length > 0) {
+          this.uploadProgress.set({
+            total: pendingPhotos.length,
+            current: 0,
+            percent: 0,
+            currentFileName: '',
+          });
+
+          for (let i = 0; i < pendingPhotos.length; i++) {
+            const photo = pendingPhotos[i];
+            this.uploadProgress.set({
+              total: pendingPhotos.length,
+              current: i + 1,
+              percent: 0,
+              currentFileName: photo.name,
+            });
+
+            const uploadedId = await this.uploadSinglePhoto(clothesId, photo);
+            if (uploadedId) {
+              uploadedMap.set(photo.id, uploadedId);
+            }
+          }
         }
-      }
 
-      if (finalOrderedIds.length > 0) {
-        await firstValueFrom(this.api.reorderAttachments(clothesId, finalOrderedIds));
+        // 3. Reorder attachments according to current allPhotos() order
+        const finalOrderedIds: string[] = [];
+        for (const photo of this.allPhotos()) {
+          if (photo.source === 'existing') {
+            finalOrderedIds.push(photo.id);
+          } else if (uploadedMap.has(photo.id)) {
+            finalOrderedIds.push(uploadedMap.get(photo.id)!);
+          }
+        }
+
+        if (finalOrderedIds.length > 0) {
+          try {
+            await firstValueFrom(this.api.reorderAttachments(clothesId, finalOrderedIds));
+          } catch {
+            // ignore
+          }
+        }
+
+        // 4. Update local storage with complete fresh item from API (including attachments)
+        if (this.storage) {
+          try {
+            const fresh = await firstValueFrom(this.api.getClothes(clothesId));
+            if (fresh) {
+              await this.storage.saveClothes([fresh]);
+            }
+          } catch {
+            // graceful fallback
+          }
+        }
+
+        if (this.syncService) {
+          this.syncService.notifyDataChanged();
+        }
+      } else {
+        // Offline: save to local IndexedDB and queue sync mutation
+        clothesId = this.editingId() || generateUuid();
+
+        if (this.storage) {
+          const existing = isEdit ? await this.storage.getClothes(clothesId) : null;
+          const localItem: ClothesItem = {
+            ...(existing ?? ({} as ClothesItem)),
+            id: clothesId,
+            name: (payload['name'] as string) ?? null,
+            size: (payload['size'] as string) ?? null,
+            notes: (payload['notes'] as string) ?? null,
+            updatedAt: new Date().toISOString(),
+            createdAt: existing?.createdAt ?? new Date().toISOString(),
+            userId: existing?.userId ?? '',
+          };
+          await this.storage.saveClothes([localItem]);
+        }
+
+        if (this.syncService) {
+          await this.syncService.queueClothesChange(clothesId, isEdit ? 'update' : 'create', payload);
+        }
       }
 
       this.uploadProgress.set(null);
       this.skipUnsavedGuard = true;
+      this.saving.set(false);
+      this.toast.success(isEdit ? 'Capo aggiornato!' : 'Capo salvato!');
 
       const callbackUrl = this.route.snapshot.queryParamMap.get('callbackUrl');
       if (callbackUrl) {
@@ -573,8 +644,12 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  openFilePicker() {
-    this.fileInput?.nativeElement.click();
+  openFilePicker(input?: HTMLInputElement) {
+    if (input) {
+      input.click();
+    } else {
+      this.fileInput?.nativeElement.click();
+    }
   }
 
   onFilesSelected(event: Event) {
@@ -1110,13 +1185,46 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   async loadClothes(id: string) {
     this.loading.set(true);
     try {
+      if (this.storage) {
+        const cached = await this.storage.getClothes(id);
+        if (cached) {
+          this.patchForms(cached);
+          this.initialSnapshot.set(this.takeSnapshot());
+          this.loading.set(false);
+          if (this.syncService && !this.syncService.checkIsOffline()) {
+            void this.refreshClothesFromServer(id);
+          }
+          return;
+        }
+      }
+
       const clothes = await firstValueFrom(this.api.getClothes(id));
       if (clothes) {
         this.patchForms(clothes);
         this.initialSnapshot.set(this.takeSnapshot());
+        if (this.storage) {
+          await this.storage.saveClothes([clothes]);
+        }
       }
+    } catch {
+      // graceful fallback
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async refreshClothesFromServer(id: string) {
+    try {
+      const clothes = await firstValueFrom(this.api.getClothes(id));
+      if (clothes && this.editingId() === id) {
+        this.patchForms(clothes);
+        this.initialSnapshot.set(this.takeSnapshot());
+        if (this.storage) {
+          await this.storage.saveClothes([clothes]);
+        }
+      }
+    } catch {
+      // background refresh fallback
     }
   }
 
@@ -1273,11 +1381,21 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     };
   }
 
+  private isImageFile(file: File): boolean {
+    if (file.type && file.type.startsWith('image/')) {
+      return true;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    return Boolean(ext && ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'bmp', 'heic', 'heif'].includes(ext));
+  }
+
   private addPendingFiles(files: File[], source: 'picker' | 'paste') {
     const nextPhotos = [...this.allPhotos()];
+    let skippedCount = 0;
 
     for (const file of files) {
-      if (!file.type.startsWith('image/')) {
+      if (!this.isImageFile(file)) {
+        skippedCount++;
         continue;
       }
 
@@ -1286,12 +1404,16 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       const displayName = isFromPaste || !normalizedName ? 'Nuova foto' : normalizedName;
 
       nextPhotos.push({
-        id: crypto.randomUUID(),
+        id: generateUuid(),
         source: 'pending',
         file,
         previewUrl: URL.createObjectURL(file),
         name: displayName,
       });
+    }
+
+    if (skippedCount > 0) {
+      this.toast.error('I file non supportati sono stati ignorati. Seleziona immagini valide.');
     }
 
     this.allPhotos.set(nextPhotos);

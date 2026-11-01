@@ -3,7 +3,8 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { Dialog } from '@angular/cdk/dialog';
-import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
 import { WashingClothesItem } from '../../../../core/models';
 import { WashingPageComponent } from './washing.component';
@@ -105,25 +106,36 @@ describe('WashingPageComponent', () => {
     },
   ];
 
-  let mockApiService: {
+  let mockStorageService: {
     getClothesForWashing: ReturnType<typeof vi.fn>;
     removeFromWashing: ReturnType<typeof vi.fn>;
     moveWashingToIroning: ReturnType<typeof vi.fn>;
     clearWashing: ReturnType<typeof vi.fn>;
+    getLaundry: ReturnType<typeof vi.fn>;
+  };
+  let mockSyncService: {
+    queueLaundryChange: ReturnType<typeof vi.fn>;
+    dataUpdated: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
-    mockApiService = {
-      getClothesForWashing: vi.fn().mockReturnValue(of({ items: fakeClothes })),
-      removeFromWashing: vi.fn().mockReturnValue(of({ removed: true })),
-      moveWashingToIroning: vi.fn().mockReturnValue(of({ moved: true, washingCount: 4, ironingCount: 1 })),
-      clearWashing: vi.fn().mockReturnValue(of({ cleared: true })),
+    mockStorageService = {
+      getClothesForWashing: vi.fn().mockResolvedValue(fakeClothes),
+      removeFromWashing: vi.fn().mockResolvedValue(undefined),
+      moveWashingToIroning: vi.fn().mockResolvedValue(undefined),
+      clearWashing: vi.fn().mockResolvedValue(undefined),
+      getLaundry: vi.fn().mockResolvedValue({ washing: ['cloth-temp30'], ironing: [] }),
+    };
+    mockSyncService = {
+      queueLaundryChange: vi.fn().mockResolvedValue(undefined),
+      dataUpdated: vi.fn().mockReturnValue(0),
     };
 
     await TestBed.configureTestingModule({
       imports: [WashingPageComponent, RouterTestingModule],
       providers: [
-        { provide: ApiService, useValue: mockApiService },
+        { provide: OfflineStorageService, useValue: mockStorageService },
+        { provide: SyncService, useValue: mockSyncService },
         {
           provide: LaundryService,
           useValue: {
@@ -178,7 +190,8 @@ describe('WashingPageComponent', () => {
     comp.items.set(fakeClothes);
     await comp.onWashed(fakeClothes[3]);
 
-    expect(mockApiService.removeFromWashing).toHaveBeenCalledWith('cloth-temp30');
+    expect(mockStorageService.removeFromWashing).toHaveBeenCalledWith('cloth-temp30');
+    expect(mockSyncService.queueLaundryChange).toHaveBeenCalledWith('washing', 'cloth-temp30', 'delete');
     expect(comp.items().some((i) => i.id === 'cloth-temp30')).toBe(false);
   });
 
@@ -189,7 +202,9 @@ describe('WashingPageComponent', () => {
     comp.items.set(fakeClothes);
     await comp.onWashedAndIron(fakeClothes[3]);
 
-    expect(mockApiService.moveWashingToIroning).toHaveBeenCalledWith('cloth-temp30');
+    expect(mockStorageService.moveWashingToIroning).toHaveBeenCalledWith('cloth-temp30');
+    expect(mockSyncService.queueLaundryChange).toHaveBeenCalledWith('washing', 'cloth-temp30', 'delete');
+    expect(mockSyncService.queueLaundryChange).toHaveBeenCalledWith('ironing', 'cloth-temp30', 'create');
     expect(comp.items().some((i) => i.id === 'cloth-temp30')).toBe(false);
   });
 

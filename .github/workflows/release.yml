@@ -161,7 +161,7 @@ jobs:
           
           gh release create "${TAG_NAME}" \
             --target main \
-            --title "Release ${TAG_NAME}" \
+            --title "${TAG_NAME}" \
             --generate-notes
           
           echo "Release ${TAG_NAME} creata con successo."

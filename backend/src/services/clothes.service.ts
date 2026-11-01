@@ -15,6 +15,7 @@ import { Fit } from '../entities/fit.entity';
 import { IroningInstruction } from '../entities/ironing-instruction.entity';
 import { Material } from '../entities/material.entity';
 import { Season } from '../entities/season.entity';
+import { SyncTombstone } from '../entities/sync-tombstone.entity';
 import { Tag } from '../entities/tag.entity';
 import { Temperature } from '../entities/temperature.entity';
 import { Type } from '../entities/type.entity';
@@ -531,7 +532,19 @@ export class ClothesService implements OnModuleInit {
     const repository = this.dataSource.getRepository(Clothes);
     const item = await repository.findOne({ where: { id, userId: user.id } as never });
     if (!item) throw new NotFoundException();
+    await this.dataSource
+      .createQueryBuilder()
+      .delete()
+      .from('outfit_clothes')
+      .where('clothesId = :id', { id })
+      .execute();
     await repository.remove(item);
+    await this.dataSource.getRepository(SyncTombstone).save({
+      userId: user.id,
+      entityType: 'clothes',
+      entityId: id,
+      deletedAt: new Date(),
+    });
     return { deleted: true };
   }
 

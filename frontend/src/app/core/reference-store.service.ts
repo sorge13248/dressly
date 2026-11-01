@@ -1,6 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { ApiService } from './api.service';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { OfflineStorageService } from './offline-storage.service';
+import { SyncService } from './sync.service';
 import { sortColorsByHex } from '../shared/utils/color.utils';
 import {
   BaseReferenceItem,
@@ -44,10 +44,21 @@ const emptyState: ReferenceState = {
 
 @Injectable({ providedIn: 'root' })
 export class ReferenceStoreService {
-  private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService, { optional: true });
+  private readonly syncService = inject(SyncService, { optional: true });
 
   private readonly state = signal<ReferenceState>({ ...emptyState });
   readonly loading = signal(false);
+
+  constructor() {
+    const sync = this.syncService;
+    if (sync) {
+      effect(() => {
+        sync.dataUpdated();
+        void this.loadAll();
+      });
+    }
+  }
 
   private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
 
@@ -104,48 +115,80 @@ export class ReferenceStoreService {
   async loadAll() {
     this.loading.set(true);
     try {
-      const data = await firstValueFrom(this.api.getAllReferenceData());
-
-      this.state.set({
-        colors: (data.colors ?? []) as ColorItem[],
-        brands: (data.brands ?? []) as BrandItem[],
-        seasons: (data.seasons ?? []) as SeasonItem[],
-        temperatures: (data.temperatures ?? []) as TemperatureItem[],
-        'use-cases': (data['use-cases'] ?? []) as UseCaseItem[],
-        fits: (data.fits ?? []) as FitItem[],
-        materials: (data.materials ?? []) as MaterialItem[],
-        types: (data.types ?? []) as TypeItem[],
-        tags: (data.tags ?? []) as TagItem[],
-      });
+      if (this.storage) {
+        const cached = await this.storage.getAllReferenceData();
+        this.state.set({
+          colors: (cached['colors'] ?? []) as ColorItem[],
+          brands: (cached['brands'] ?? []) as BrandItem[],
+          seasons: (cached['seasons'] ?? []) as SeasonItem[],
+          temperatures: (cached['temperatures'] ?? []) as TemperatureItem[],
+          'use-cases': (cached['use-cases'] ?? []) as UseCaseItem[],
+          fits: (cached['fits'] ?? []) as FitItem[],
+          materials: (cached['materials'] ?? []) as MaterialItem[],
+          types: (cached['types'] ?? []) as TypeItem[],
+          tags: (cached['tags'] ?? []) as TagItem[],
+        });
+      }
     } finally {
       this.loading.set(false);
     }
   }
 
   async load(kind: ReferenceKind) {
-    const items = await firstValueFrom(this.api.listReference(kind));
-    this.patch(kind, items ?? []);
+    if (this.storage) {
+      const cached = await this.storage.getReferenceData(kind);
+      this.patch(kind, cached);
+    }
   }
 
   async create(kind: ReferenceKind, payload: Record<string, unknown>) {
-    const item = await firstValueFrom(this.api.createReference(kind, payload));
-    if (item) {
-      this.patchAppend(kind, item as BaseReferenceItem);
+    const localId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `ref_${Date.now()}`;
+    const localItem: BaseReferenceItem = {
+      id: localId,
+      userId: '',
+      name: String(payload['name'] ?? ''),
+      sortOrder: Number(payload['sortOrder'] ?? 0),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...(kind === 'colors' ? { hexCode: (payload['hexCode'] as string) ?? null } : {}),
+    };
+    this.patchAppend(kind, localItem);
+    if (this.storage) {
+      await this.storage.saveReferenceData(kind, [localItem]);
     }
-    return item;
+    if (this.syncService) {
+      await this.syncService.queueReferenceChange(kind, localId, 'create', payload);
+    }
+    return localItem;
   }
 
   async update(kind: ReferenceKind, id: string, payload: Record<string, unknown>) {
-    const item = await firstValueFrom(this.api.updateReference(kind, id, payload));
-    if (item) {
-      this.patchReplace(kind, item as BaseReferenceItem);
+    const existing = this.state()[kind].find((x) => x.id === id);
+    const updated: BaseReferenceItem = {
+      ...(existing ?? ({} as BaseReferenceItem)),
+      id,
+      name: payload['name'] !== undefined ? String(payload['name']) : existing?.name ?? '',
+      sortOrder: payload['sortOrder'] !== undefined ? Number(payload['sortOrder']) : existing?.sortOrder ?? 0,
+      updatedAt: new Date().toISOString(),
+    };
+    this.patchReplace(kind, updated);
+    if (this.storage) {
+      await this.storage.saveReferenceData(kind, [updated]);
     }
-    return item;
+    if (this.syncService) {
+      await this.syncService.queueReferenceChange(kind, id, 'update', payload);
+    }
+    return updated;
   }
 
   async remove(kind: ReferenceKind, id: string) {
-    await firstValueFrom(this.api.deleteReference(kind, id));
     this.patchRemove(kind, id);
+    if (this.storage) {
+      await this.storage.removeReferenceData(kind, [id]);
+    }
+    if (this.syncService) {
+      await this.syncService.queueReferenceChange(kind, id, 'delete');
+    }
   }
 
   snapshot(kind: ReferenceKind) {

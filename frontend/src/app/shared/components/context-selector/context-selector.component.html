@@ -1,0 +1,131 @@
+<div class="context-selector-container">
+  <!-- Stagioni -->
+  <div class="section-group">
+    <div class="section-head">
+      <h3 class="section-title">
+        {{ seasonLabel() }}
+        @if (requiredSeasons()) {
+          <span class="required-asterisk">*</span>
+        }
+      </h3>
+      @if (allowCreation()) {
+        <button
+          type="button"
+          appButton
+          variant="secondary"
+          size="sm"
+          [disabled]="quickSeasonBusy()"
+          (click)="openCreateSeasonModal()"
+        >
+          + Nuova stagione
+        </button>
+      }
+    </div>
+    <div class="chip-cloud" role="group" [attr.aria-label]="seasonLabel()">
+      @for (season of referenceStore.seasons(); track season.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="seasonIds().includes(season.id)"
+          (click)="toggleSeason(season.id)"
+          [attr.aria-pressed]="seasonIds().includes(season.id)"
+        >
+          @if (season.icon) {
+            <span class="chip-icon">{{ season.icon }}</span>
+          }
+          <span>{{ season.name }}</span>
+        </button>
+      }
+    </div>
+    @if (showErrors() && seasonError()) {
+      <small class="field-error-text">{{ seasonError() }}</small>
+    }
+  </div>
+
+  <!-- Temperature -->
+  <div class="section-group">
+    <div class="section-head">
+      <h3 class="section-title">
+        {{ temperatureLabel() }}
+        @if (requiredTemperatures()) {
+          <span class="required-asterisk">*</span>
+        }
+      </h3>
+      @if (allowCreation()) {
+        <button
+          type="button"
+          appButton
+          variant="secondary"
+          size="sm"
+          [disabled]="quickTemperatureBusy()"
+          (click)="openCreateTemperatureModal()"
+        >
+          + Nuova temperatura
+        </button>
+      }
+    </div>
+    <div class="chip-cloud" role="group" [attr.aria-label]="temperatureLabel()">
+      @for (temperature of referenceStore.temperatures(); track temperature.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="temperatureIds().includes(temperature.id)"
+          (click)="toggleTemperature(temperature.id)"
+          [attr.aria-pressed]="temperatureIds().includes(temperature.id)"
+        >
+          @if (temperature.icon) {
+            <span class="chip-icon">{{ temperature.icon }}</span>
+          }
+          <span>{{ temperature.name }}</span>
+        </button>
+      }
+    </div>
+    @if (showErrors() && temperatureError()) {
+      <small class="field-error-text">{{ temperatureError() }}</small>
+    }
+  </div>
+
+  <!-- Occasioni -->
+  <div class="section-group">
+    <div class="section-head">
+      <h3 class="section-title">
+        {{ useCaseLabel() }}
+        @if (requiredUseCases()) {
+          <span class="required-asterisk">*</span>
+        }
+      </h3>
+      @if (allowCreation()) {
+        <button
+          type="button"
+          appButton
+          variant="secondary"
+          size="sm"
+          [disabled]="quickUseCaseBusy()"
+          (click)="openCreateUseCaseModal()"
+        >
+          + Nuova occasione
+        </button>
+      }
+    </div>
+    <div class="chip-cloud" role="group" [attr.aria-label]="useCaseLabel()">
+      @for (useCase of referenceStore.useCases(); track useCase.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="useCaseIds().includes(useCase.id)"
+          (click)="toggleUseCase(useCase.id)"
+          [attr.aria-pressed]="useCaseIds().includes(useCase.id)"
+        >
+          @if (useCase.icon) {
+            <span class="chip-icon">{{ useCase.icon }}</span>
+          }
+          <span>{{ useCase.name }}</span>
+        </button>
+      }
+    </div>
+    @if (showErrors() && useCaseError()) {
+      <small class="field-error-text">{{ useCaseError() }}</small>
+    }
+  </div>
+</div>
+

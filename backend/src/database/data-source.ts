@@ -17,8 +17,10 @@ import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
 import { User } from '../entities/user.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
+import { SyncTombstone } from '../entities/sync-tombstone.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { IroningItem } from '../entities/ironing-item.entity';
+import { Outfit } from '../entities/outfit.entity';
 
 export const AppDataSource = new DataSource({
   type: 'better-sqlite3',
@@ -42,6 +44,8 @@ export const AppDataSource = new DataSource({
     WashingInstruction,
     WashingItem,
     IroningItem,
+    Outfit,
+    SyncTombstone,
   ],
   synchronize: process.env.DB_SYNCHRONIZE !== 'false',
   logging: process.env.DB_LOGGING === 'true',

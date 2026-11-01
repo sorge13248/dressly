@@ -25,6 +25,11 @@ import {
   IroningClothesResponse,
   WashingClothesResponse,
   LaundryCountsResponse,
+  SyncPayloadDto,
+  SyncResponseDto,
+  OutfitItem,
+  OutfitDetailResponse,
+  CanvasItemLayout,
 } from './models';
 
 type OidcMetadata = {
@@ -48,6 +53,18 @@ export class ApiService {
 
   getMe() {
     return this.http.get<{ id: string; subject: string; email: string | null; displayName: string }>('/api/me');
+  }
+
+  sync(payload: SyncPayloadDto): Observable<SyncResponseDto> {
+    return this.http.post<SyncResponseDto>('/api/sync', payload);
+  }
+
+  getSyncState(since?: string | null): Observable<SyncResponseDto> {
+    const params: Record<string, string> = {};
+    if (since) {
+      params['since'] = since;
+    }
+    return this.http.get<SyncResponseDto>('/api/sync', { params });
   }
 
   listClothes(filters: Partial<ClothesFilters>) {
@@ -183,6 +200,74 @@ export class ApiService {
 
   deleteReference(kind: ReferenceKind, id: string) {
     return this.http.delete<{ deleted: boolean }>(`/api/${kind}/${id}`);
+  }
+
+  listOutfits(): Observable<OutfitItem[]> {
+    return this.http.get<OutfitItem[]>('/api/outfits');
+  }
+
+  getOutfit(id: string): Observable<OutfitDetailResponse> {
+    return this.http.get<OutfitDetailResponse>(`/api/outfits/${id}`);
+  }
+
+  createOutfit(payload: {
+    name: string;
+    description?: string | null;
+    clothesIds?: string[];
+    season_ids?: string[];
+    temperature_ids?: string[];
+    use_case_ids?: string[];
+    canvasLayout?: Record<string, CanvasItemLayout> | null;
+  }): Observable<OutfitDetailResponse> {
+    return this.http.post<OutfitDetailResponse>('/api/outfits', payload);
+  }
+
+  updateOutfit(
+    id: string,
+    payload: {
+      name?: string;
+      description?: string | null;
+      clothesIds?: string[];
+      season_ids?: string[];
+      temperature_ids?: string[];
+      use_case_ids?: string[];
+      canvasLayout?: Record<string, CanvasItemLayout> | null;
+    },
+  ): Observable<OutfitDetailResponse> {
+    return this.http.patch<OutfitDetailResponse>(`/api/outfits/${id}`, payload);
+  }
+
+  addClothesToOutfit(id: string, clothesIds: string[]): Observable<OutfitDetailResponse> {
+    return this.http.post<OutfitDetailResponse>(`/api/outfits/${id}/clothes`, { clothesIds });
+  }
+
+  removeClothesFromOutfit(id: string, clothesId: string): Observable<OutfitDetailResponse> {
+    return this.http.delete<OutfitDetailResponse>(`/api/outfits/${id}/clothes/${clothesId}`);
+  }
+
+  deleteOutfit(id: string): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(`/api/outfits/${id}`);
+  }
+
+  uploadOutfitAttachment(
+    outfitId: string,
+    file: File,
+    options?: { kind?: string; originalName?: string; sortOrder?: number },
+  ): Observable<AttachmentItem> {
+    const formData = new FormData();
+    formData.append('file', file, options?.originalName || file.name);
+    if (options?.kind) formData.append('kind', options.kind);
+    if (options?.sortOrder !== undefined) formData.append('sortOrder', String(options.sortOrder));
+    return this.http.post<AttachmentItem>(`/api/outfits/${outfitId}/attachments`, formData);
+  }
+
+  deleteOutfitAttachment(outfitId: string, attachmentId: string): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(`/api/outfits/${outfitId}/attachments/${attachmentId}`);
+  }
+
+  getOutfitAttachmentUrl(outfitId: string, attachment: AttachmentItem, variant?: 'preview' | 'original'): string {
+    const base = `/api/outfits/${outfitId}/attachments/${attachment.id}/file`;
+    return variant ? `${base}?variant=${variant}` : base;
   }
 
   private toParams(filters: Partial<ClothesFilters>) {

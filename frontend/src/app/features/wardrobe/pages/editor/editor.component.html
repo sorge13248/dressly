@@ -10,7 +10,6 @@
         </div>
         <div class="title-text-group">
           <h1>{{ title() }}</h1>
-          <span class="step-pill-badge">Passo {{ currentStep() }} di {{ steps.length }}</span>
         </div>
       </div>
 
@@ -259,103 +258,18 @@
           <section class="step-grid">
             <div class="panel">
               <h2>Contesto</h2>
-              <div class="section-head">
-                <h3>Stagioni *</h3>
-                <button
-                  type="button"
-                  appButton
-                  variant="secondary"
-                  size="sm"
-                  [disabled]="quickSeasonBusy()"
-                  (click)="openCreateSeasonModal()"
-                >
-                  + Nuova stagione
-                </button>
-              </div>
-              <div class="chip-cloud">
-                @for (season of referenceStore.seasons(); track season.id) {
-                  <button
-                    type="button"
-                    class="chip"
-                    [class.active]="wizardForm.context.season_ids().value().includes(season.id)"
-                    (click)="toggleArray(wizardForm.context.season_ids, season.id)"
-                  >
-                    {{ season.icon }} {{ season.name }}
-                  </button>
-                }
-              </div>
-              @if (showFieldError(wizardForm.context.season_ids(), 3)) {
-                <small class="field-error-text">{{
-                  fieldError(wizardForm.context.season_ids(), 'Seleziona almeno una stagione')
-                }}</small>
-              }
-
-              <div class="section-head" style="margin-top: 18px;">
-                <h3>Temperature *</h3>
-                <button
-                  type="button"
-                  appButton
-                  variant="secondary"
-                  size="sm"
-                  [disabled]="quickTemperatureBusy()"
-                  (click)="openCreateTemperatureModal()"
-                >
-                  + Nuova temperatura
-                </button>
-              </div>
-              <div class="chip-cloud">
-                @for (temperature of referenceStore.temperatures(); track temperature.id) {
-                  <button
-                    type="button"
-                    class="chip"
-                    [class.active]="
-                      wizardForm.context.temperature_ids().value().includes(temperature.id)
-                    "
-                    (click)="toggleArray(wizardForm.context.temperature_ids, temperature.id)"
-                  >
-                    {{ temperature.icon }} {{ temperature.name }}
-                  </button>
-                }
-              </div>
-              @if (showFieldError(wizardForm.context.temperature_ids(), 3)) {
-                <small class="field-error-text">{{
-                  fieldError(
-                    wizardForm.context.temperature_ids(),
-                    'Seleziona almeno una temperatura'
-                  )
-                }}</small>
-              }
-
-              <div class="section-head" style="margin-top: 18px;">
-                <h3>Occasioni</h3>
-                <button
-                  type="button"
-                  appButton
-                  variant="secondary"
-                  size="sm"
-                  [disabled]="quickUseCaseBusy()"
-                  (click)="openCreateUseCaseModal()"
-                >
-                  + Nuova occasione
-                </button>
-              </div>
-              <div class="chip-cloud">
-                @for (useCase of referenceStore.useCases(); track useCase.id) {
-                  <button
-                    type="button"
-                    class="chip"
-                    [class.active]="wizardForm.context.use_case_ids().value().includes(useCase.id)"
-                    (click)="toggleArray(wizardForm.context.use_case_ids, useCase.id)"
-                  >
-                    {{ useCase.icon }} {{ useCase.name }}
-                  </button>
-                }
-              </div>
-              @if (showFieldError(wizardForm.context.use_case_ids(), 3)) {
-                <small class="field-error-text">{{
-                  fieldError(wizardForm.context.use_case_ids(), 'Seleziona almeno una occasione')
-                }}</small>
-              }
+              <app-context-selector
+                [(seasonIds)]="wizardForm.context.season_ids().value"
+                [(temperatureIds)]="wizardForm.context.temperature_ids().value"
+                [(useCaseIds)]="wizardForm.context.use_case_ids().value"
+                [requiredSeasons]="true"
+                [requiredTemperatures]="true"
+                [requiredUseCases]="false"
+                [showErrors]="showFieldError(wizardForm.context.season_ids(), 3) || showFieldError(wizardForm.context.temperature_ids(), 3) || showFieldError(wizardForm.context.use_case_ids(), 3)"
+                [seasonError]="showFieldError(wizardForm.context.season_ids(), 3) ? fieldError(wizardForm.context.season_ids(), 'Seleziona almeno una stagione') : null"
+                [temperatureError]="showFieldError(wizardForm.context.temperature_ids(), 3) ? fieldError(wizardForm.context.temperature_ids(), 'Seleziona almeno una temperatura') : null"
+                [useCaseError]="showFieldError(wizardForm.context.use_case_ids(), 3) ? fieldError(wizardForm.context.use_case_ids(), 'Seleziona almeno una occasione') : null"
+              />
             </div>
           </section>
         }
@@ -629,19 +543,23 @@
         }
         @case (5) {
           <section class="step-grid">
-            <div class="panel photo-step-panel">
+            <div
+              class="panel photo-step-panel"
+              (dragover)="onDragOverDropzone($event)"
+              (drop)="onDropDropzone($event)"
+            >
               <input
                 #fileInput
                 type="file"
                 accept="image/*"
                 multiple
-                hidden
+                style="display: none"
                 (change)="onFilesSelected($event)"
               />
 
               <div class="photo-top-bar">
                 <div class="photo-top-left">
-                  <button type="button" appButton variant="primary" size="sm" class="upload-btn" (click)="openFilePicker()">
+                  <button type="button" appButton variant="primary" size="sm" class="upload-btn" (click)="openFilePicker(fileInput)">
                     📷 Aggiungi foto
                   </button>
                   <span class="muted photo-hint">
@@ -668,7 +586,7 @@
               @if (allPhotos().length === 0) {
                 <div
                   class="photo-empty-dropzone"
-                  (click)="openFilePicker()"
+                  (click)="openFilePicker(fileInput)"
                   (dragover)="onDragOverDropzone($event)"
                   (drop)="onDropDropzone($event)"
                 >

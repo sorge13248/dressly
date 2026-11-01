@@ -111,23 +111,23 @@
   }
 }
 
-/* 3. Danger / Destructive (Glossy Ruby Red) */
+/* 3. Danger / Destructive (Glossy Vivid Red) */
 :host(.btn-danger) {
   color: #fff;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(120, 15, 25, 0.2) 100%),
-    linear-gradient(180deg, #f25d6b 0%, #d82b3d 50%, #b21828 100%);
-  border: 1px solid rgba(150, 20, 35, 0.75);
-  box-shadow: 0 2px 8px rgba(180, 25, 40, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  text-shadow: 0 1px 1px rgba(60, 0, 10, 0.45);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(100, 10, 20, 0.2) 100%),
+    linear-gradient(180deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+  border: 1px solid #991b1b;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 1px rgba(80, 0, 0, 0.5);
 
   &:hover:not(.disabled):not([disabled]) {
-    box-shadow: 0 4px 12px rgba(180, 25, 40, 0.45), inset 0 1px 0 #ffffff;
-    filter: brightness(1.06);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.5), inset 0 1px 0 #ffffff;
+    filter: brightness(1.08);
   }
 
   &:active:not(.disabled):not([disabled]) {
-    filter: brightness(0.96);
+    filter: brightness(0.92);
   }
 }
 

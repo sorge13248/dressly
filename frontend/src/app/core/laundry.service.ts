@@ -1,6 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { ApiService } from './api.service';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { OfflineStorageService } from './offline-storage.service';
+import { SyncService } from './sync.service';
 
 export interface LaundryCounterState {
   count: number;
@@ -10,7 +10,8 @@ export interface LaundryCounterState {
 
 @Injectable({ providedIn: 'root' })
 export class LaundryService {
-  private readonly api = inject(ApiService);
+  private readonly storage = inject(OfflineStorageService, { optional: true });
+  private readonly syncService = inject(SyncService, { optional: true });
 
   readonly washingState = signal<LaundryCounterState>({
     count: 0,
@@ -30,11 +31,23 @@ export class LaundryService {
   private washingTimer: ReturnType<typeof setTimeout> | null = null;
   private ironingTimer: ReturnType<typeof setTimeout> | null = null;
 
+  constructor() {
+    const sync = this.syncService;
+    if (sync) {
+      effect(() => {
+        sync.dataUpdated();
+        void this.refreshCounts();
+      });
+    }
+  }
+
   async refreshCounts(hintType?: 'washing' | 'ironing', hintAction?: 'add' | 'remove'): Promise<void> {
+    if (!this.storage) return;
+
     try {
-      const counts = await firstValueFrom(this.api.getLaundryCounts());
-      const nextWash = counts?.washingCount ?? 0;
-      const nextIron = counts?.ironingCount ?? 0;
+      const cached = await this.storage.getLaundry();
+      const nextWash = cached.washing?.length ?? 0;
+      const nextIron = cached.ironing?.length ?? 0;
 
       const washHint = hintType === 'washing' ? (hintAction === 'remove' ? 'slide-down' : 'pop-up') : undefined;
       const ironHint = hintType === 'ironing' ? (hintAction === 'remove' ? 'slide-down' : 'pop-up') : undefined;
@@ -42,7 +55,7 @@ export class LaundryService {
       this.updateWashingCount(nextWash, washHint);
       this.updateIroningCount(nextIron, ironHint);
     } catch {
-      // Ignore count fetch errors gracefully
+      // ignore
     }
   }
 

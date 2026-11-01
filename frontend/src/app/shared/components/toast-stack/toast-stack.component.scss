@@ -1,7 +1,7 @@
 :host {
   position: fixed;
-  top: 14px;
-  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
   z-index: 1200;
   pointer-events: none;
 }
@@ -79,7 +79,7 @@
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.98);
+    transform: translateY(8px) scale(0.98);
   }
 
   to {
@@ -96,14 +96,14 @@
 
   to {
     opacity: 0;
-    transform: translateY(-6px) scale(0.985);
+    transform: translateY(6px) scale(0.985);
   }
 }
 
 @media (max-width: 640px) {
   :host {
-    top: 8px;
-    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    right: calc(8px + env(safe-area-inset-right, 0px));
   }
 
   .toast-stack {

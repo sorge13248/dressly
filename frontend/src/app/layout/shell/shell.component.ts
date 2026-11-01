@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { LaundryService } from '../../core/laundry.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { ToastStackComponent } from '../../shared/components/toast-stack/toast-stack.component';
+import { SyncIndicatorComponent } from '../../shared/components/sync-indicator/sync-indicator.component';
 import { WashingIconComponent, IroningIconComponent } from '../../shared/components/icons';
 
 @Component({
@@ -16,6 +17,7 @@ import { WashingIconComponent, IroningIconComponent } from '../../shared/compone
     RouterLinkActive,
     RouterOutlet,
     ToastStackComponent,
+    SyncIndicatorComponent,
     WashingIconComponent,
     IroningIconComponent,
   ],
@@ -33,6 +35,7 @@ export class AppShellComponent implements OnInit {
 
     return [
       { label: 'Guardaroba', path: 'wardrobe', exact: true, badge: null, badgeState: null },
+      { label: 'Abbinamenti', path: 'outfits', exact: false, badge: null, badgeState: null },
       { label: 'Lavatrice', path: 'wardrobe/washing', exact: true, badge: washingState.count, badgeState: washingState },
       { label: 'Stiratura', path: 'wardrobe/ironing', exact: true, badge: ironingState.count, badgeState: ironingState },
       { label: 'Domini', path: 'categories', exact: false, badge: null, badgeState: null },
