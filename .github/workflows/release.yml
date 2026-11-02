@@ -167,13 +167,40 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
         run: |
+          PREV_TAG="v${{ steps.versioning.outputs.previous_version }}"
           TAG_NAME="${{ steps.versioning.outputs.tag_name }}"
-          echo "Creazione GitHub Release per ${TAG_NAME} su main..."
+          REPO="${{ github.repository }}"
           
+          echo "Generazione note di rilascio da ${PREV_TAG} a ${TAG_NAME}..."
+          
+          if git rev-parse -q --verify "refs/tags/${PREV_TAG}" >/dev/null; then
+            COMMIT_RANGE="${PREV_TAG}..HEAD"
+            CHANGELOG_LINK="https://github.com/${REPO}/compare/${PREV_TAG}...${TAG_NAME}"
+          else
+            COMMIT_RANGE="HEAD"
+            CHANGELOG_LINK="https://github.com/${REPO}/commits/${TAG_NAME}"
+          fi
+          
+          CHANGES=$(git log ${COMMIT_RANGE} --no-merges --invert-grep --grep="^chore(release)" \
+            --pretty=format:"* %s by @%an in [%h](https://github.com/${REPO}/commit/%H)")
+          
+          cat << 'EOF' > release_notes.md
+          ## What's Changed
+          EOF
+          
+          if [ -n "${CHANGES}" ]; then
+            printf "%s\n\n" "${CHANGES}" >> release_notes.md
+          else
+            printf "* Nessuna modifica rilevante o solo aggiornamenti di manutenzione.\n\n" >> release_notes.md
+          fi
+          
+          printf "**Full Changelog**: %s\n" "${CHANGELOG_LINK}" >> release_notes.md
+          
+          echo "Creazione GitHub Release per ${TAG_NAME} su main..."
           gh release create "${TAG_NAME}" \
             --target main \
             --title "${TAG_NAME}" \
-            --generate-notes
+            --notes-file release_notes.md
           
           echo "Release ${TAG_NAME} creata con successo."
 

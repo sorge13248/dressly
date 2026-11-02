@@ -717,6 +717,21 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     this.selectionService.clear();
   }
 
+  async openOutfitModalForItem(item: ClothesItem) {
+    const dialogRef = this.dialog.open<OutfitDetailResponse | null>(OutfitSelectModalComponent, {
+      data: {
+        clothesIds: [item.id],
+      },
+    });
+
+    const result = await firstValueFrom(dialogRef.closed);
+    if (result) {
+      this.toast.success(
+        `"${this.getPreferredLabel(item)}" aggiunto all'abbinamento "${result.name}"`,
+      );
+    }
+  }
+
   async onOpenOutfitModal() {
     const ids = this.selectionService.selectedIds();
     if (ids.length === 0) {

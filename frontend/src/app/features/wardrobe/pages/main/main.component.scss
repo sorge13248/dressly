@@ -459,6 +459,7 @@
   flex: 1;
   gap: 14px;
   min-width: 0;
+  width: 100%;
   overflow: visible;
 }
 
@@ -473,12 +474,13 @@
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 320px));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
-  justify-content: start;
+  justify-content: stretch;
   align-content: start;
   overflow: visible;
   padding-bottom: 6px;
+  width: 100%;
 }
 
 .item-card {
@@ -486,7 +488,7 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
-  max-width: 320px;
+  max-width: none;
   overflow: hidden;
   border-radius: 14px;
   border: 1px solid rgba(100, 146, 214, 0.26);
@@ -1092,6 +1094,7 @@
     justify-content: stretch;
     overflow: visible;
     flex: initial;
+    width: 100%;
   }
 
   .item-card {
@@ -1228,6 +1231,7 @@
 
   .cards-grid {
     grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .item-card {

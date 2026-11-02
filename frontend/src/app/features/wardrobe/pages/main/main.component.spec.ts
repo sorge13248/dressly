@@ -1,11 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Dialog } from '@angular/cdk/dialog';
 import { of } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { SyncService } from '../../../../core/sync.service';
+import { ToastService } from '../../../../core/toast.service';
 import { WardrobePageComponent } from './main.component';
-import { ClothesItem } from '../../../../core/models';
+import { ClothesItem, OutfitDetailResponse } from '../../../../core/models';
+import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
 
 describe('WardrobePageComponent', () => {
   beforeEach(async () => {
@@ -281,9 +284,12 @@ describe('WardrobePageComponent', () => {
     fixture.detectChanges();
 
     const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
-    expect(quickActionBtns.length).toBe(2);
+    expect(quickActionBtns.length).toBe(3);
 
-    const washBtn = quickActionBtns[0] as HTMLButtonElement;
+    const outfitBtn = quickActionBtns[0] as HTMLButtonElement;
+    expect(outfitBtn.getAttribute('title')).toBe('Aggiungi ad un abbinamento');
+
+    const washBtn = quickActionBtns[1] as HTMLButtonElement;
     expect(washBtn.getAttribute('title')).toBe('Metti a lavare');
 
     const clickEvent = new MouseEvent('click');
@@ -324,7 +330,7 @@ describe('WardrobePageComponent', () => {
     fixture.detectChanges();
 
     const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
-    const washBtn = quickActionBtns[0] as HTMLButtonElement;
+    const washBtn = quickActionBtns[1] as HTMLButtonElement;
     expect(washBtn.getAttribute('title')).toBe('Togli dalla lavatrice');
     expect(washBtn.classList.contains('active-washing')).toBe(true);
 
@@ -361,7 +367,7 @@ describe('WardrobePageComponent', () => {
     fixture.detectChanges();
 
     const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
-    const ironBtn = quickActionBtns[1] as HTMLButtonElement;
+    const ironBtn = quickActionBtns[2] as HTMLButtonElement;
     expect(ironBtn.getAttribute('title')).toBe('Metti a stirare');
 
     const clickEvent = new MouseEvent('click');
@@ -378,6 +384,52 @@ describe('WardrobePageComponent', () => {
 
     expect(queueSpy).toHaveBeenCalledWith('ironing', 'item-iron-1', 'delete');
     expect(component.items()[0].isInIroning).toBe(false);
+  });
+
+  it('should open outfit select modal when clicking outfit quick action button', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const dialog = TestBed.inject(Dialog);
+    const toast = TestBed.inject(ToastService);
+    const toastSpy = vi.spyOn(toast, 'success');
+    vi.spyOn(component, 'load').mockImplementation(async () => {});
+
+    const fakeItem = {
+      id: 'item-outfit-1',
+      name: 'Giacca Vintage',
+      userId: 'user-1',
+      size: null,
+      notes: null,
+      isInWashing: false,
+      isInIroning: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as ClothesItem;
+
+    const dialogRefMock = {
+      closed: of({ id: 'outfit-1', name: 'Look Estate' } as OutfitDetailResponse),
+    };
+    const openSpy = vi.spyOn(dialog, 'open').mockReturnValue(dialogRefMock as any);
+
+    component.items.set([fakeItem]);
+    component.total.set(1);
+    component.loading.set(false);
+    fixture.detectChanges();
+
+    const quickActionBtns = fixture.nativeElement.querySelectorAll('.item-card .quick-action-btn');
+    const outfitBtn = quickActionBtns[0] as HTMLButtonElement;
+    expect(outfitBtn.getAttribute('title')).toBe('Aggiungi ad un abbinamento');
+
+    outfitBtn.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(openSpy).toHaveBeenCalledWith(OutfitSelectModalComponent, {
+      data: {
+        clothesIds: ['item-outfit-1'],
+      },
+    });
+    expect(toastSpy).toHaveBeenCalledWith('"Giacca Vintage" aggiunto all\'abbinamento "Look Estate"');
   });
 
   describe('touch-only mobile/tablet filter sidebar drag', () => {

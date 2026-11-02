@@ -133,6 +133,7 @@
               [actionPending]="isActionPending(item.id)"
               linkPrefix="/wardrobe"
               (selectionChange)="toggleSelection($event.id, $event.event)"
+              (outfitClick)="openOutfitModalForItem($event.item)"
               (washingClick)="toggleWashing($event.item, $event.event)"
               (ironingClick)="toggleIroning($event.item, $event.event)"
             />

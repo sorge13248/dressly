@@ -23,10 +23,10 @@
       @if (isEditingDetails()) {
         <!-- Form unico di modifica dettagli abbinamento -->
         <form class="outfit-top-row outfit-edit-form" (ngSubmit)="saveEditDetails()">
-          <!-- Card 1: Titolo e Descrizione (nella card originale) -->
-          <div class="hero-banner edit-mode-card edit-card-left">
-            <div class="edit-card-header">
-              <span class="eyebrow">Modifica Dettagli</span>
+          <!-- Card 1: Titolo e Descrizione -->
+          <div class="details-summary-card edit-mode-card edit-card-left">
+            <div class="summary-header-row edit-card-header">
+              <h3 class="summary-card-title">Titolo & Descrizione</h3>
               <button
                 type="button"
                 class="close-edit-btn"
@@ -476,6 +476,7 @@
               <app-clothes-card
                 [item]="item"
                 [showRemove]="true"
+                [showOutfit]="false"
                 linkPrefix="/wardrobe"
                 (removeClick)="removeCloth($event.item, $event.event)"
                 (washingClick)="toggleWashing($event.item, $event.event)"

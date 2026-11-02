@@ -493,7 +493,7 @@ form.outfit-edit-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 
   @media (max-width: 960px) {
     grid-template-columns: 1fr;
@@ -505,6 +505,7 @@ form.outfit-edit-form {
   width: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 /* Card panel per le sezioni inferiori in stile Frutiger Aero */
