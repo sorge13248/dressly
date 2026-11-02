@@ -4,7 +4,8 @@
     class="sync-pill"
     [class.is-open]="dropdownOpen()"
     [class.status-syncing]="status() === 'syncing'"
-    [class.status-online-ok]="status() === 'online-ok'"
+    [class.status-online-ok]="status() === 'online-ok' && !showSuccessCheckmark()"
+    [class.status-success]="showSuccessCheckmark()"
     [class.status-offline]="status() === 'offline'"
     [class.status-conflict]="status() === 'conflict'"
     [attr.title]="tooltip()"
@@ -18,6 +19,11 @@
       <svg class="sync-icon icon-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
         <circle cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.25)" />
         <path d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" />
+      </svg>
+    } @else if (showSuccessCheckmark()) {
+      <!-- Spunta verde: sincronizzazione completata con successo -->
+      <svg class="sync-icon icon-success-check" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12" />
       </svg>
     } @else if (status() === 'online-ok') {
       <!-- Frecce circolari verdi: sincronizzazione in linea OK -->
@@ -54,12 +60,12 @@
     <div class="sync-dropdown" role="menu" aria-label="Menu opzioni sincronizzazione">
       <div class="dropdown-header">
         <div class="status-indicator-row">
-          <span class="status-dot" [class]="'dot-' + status()"></span>
+          <span class="status-dot" [class]="showSuccessCheckmark() ? 'dot-success' : 'dot-' + status()"></span>
           <span class="status-text">{{ statusLabel() }}</span>
         </div>
         @if (pendingCount() > 0) {
           <span class="pending-tag">
-            {{ pendingCount() }} {{ pendingCount() === 1 ? 'in attesa' : 'in attesa' }}
+            {{ pendingCount() }} in attesa
           </span>
         }
       </div>
@@ -87,16 +93,26 @@
           [disabled]="status() === 'syncing' || !isOnline()"
           (click)="onSyncNow()"
         >
-          <svg class="action-icon" [class.action-spin]="status() === 'syncing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 3v5h-5" />
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-            <path d="M3 21v-5h5" />
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-          </svg>
-          <div class="action-text-block">
-            <span class="action-title">Sincronizza ora</span>
-            <span class="action-desc">Invia le modifiche e scarica gli aggiornamenti</span>
-          </div>
+          @if (showSuccessCheckmark()) {
+            <svg class="action-icon action-icon-success" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <div class="action-text-block">
+              <span class="action-title success-title">Sincronizzazione completata!</span>
+              <span class="action-desc">Tutti i dati sono aggiornati</span>
+            </div>
+          } @else {
+            <svg class="action-icon" [class.action-spin]="status() === 'syncing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 3v5h-5" />
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+              <path d="M3 21v-5h5" />
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+            </svg>
+            <div class="action-text-block">
+              <span class="action-title">Sincronizza ora</span>
+              <span class="action-desc">Invia le modifiche e scarica gli aggiornamenti</span>
+            </div>
+          }
         </button>
 
         <button
@@ -120,4 +136,3 @@
     </div>
   }
 </div>
-

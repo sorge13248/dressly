@@ -9,8 +9,8 @@ import { LaundryService } from '../../../../core/laundry.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WashingClothesItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
-import { ButtonComponent } from '../../../../shared/components/button';
 import { IroningIconComponent } from '../../../../shared/components/icons';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state';
 
 export interface WashingTemperatureGroup {
   temperature: number;
@@ -21,7 +21,7 @@ export interface WashingTemperatureGroup {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, ButtonComponent, IroningIconComponent],
+  imports: [CommonModule, RouterLink, IroningIconComponent, EmptyStateComponent],
   templateUrl: './washing.component.html',
   styleUrl: './washing.component.scss',
 })

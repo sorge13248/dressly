@@ -1,0 +1,22 @@
+<section class="modal-shell" role="alertdialog" aria-modal="true" aria-labelledby="update-title">
+  <div class="update-icon-badge" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+    </svg>
+  </div>
+
+  <header>
+    <h2 id="update-title">Aggiornamento disponibile</h2>
+    <p>È disponibile una nuova versione di Dressly. Ricarica l'applicazione per applicare le ultime modifiche e funzionalità.</p>
+  </header>
+
+  <footer>
+    <button type="button" appButton variant="ghost" class="ghost" (click)="dismiss()">
+      Più tardi
+    </button>
+    <button type="button" appButton variant="primary" class="primary" (click)="reload()">
+      Ricarica ora
+    </button>
+  </footer>
+</section>
+

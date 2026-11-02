@@ -2,8 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { WashingIconComponent } from './washing-icon.component';
 import { DryingIconComponent } from './drying-icon.component';
 import { IroningIconComponent } from './ironing-icon.component';
+import { OutfitIconComponent } from './outfit-icon.component';
 
-describe('Laundry Care Icons', () => {
+describe('Icons', () => {
   describe('WashingIconComponent', () => {
     it('should create and render washing SVG with custom size', () => {
       const fixture = TestBed.createComponent(WashingIconComponent);
@@ -40,6 +41,19 @@ describe('Laundry Care Icons', () => {
       expect(svg).toBeTruthy();
       expect(svg.style.width).toBe('22px');
       expect(svg.style.height).toBe('22px');
+    });
+  });
+
+  describe('OutfitIconComponent', () => {
+    it('should create and render outfit SVG with custom size', () => {
+      const fixture = TestBed.createComponent(OutfitIconComponent);
+      fixture.componentRef.setInput('size', 18);
+      fixture.detectChanges();
+
+      const svg = fixture.nativeElement.querySelector('svg');
+      expect(svg).toBeTruthy();
+      expect(svg.style.width).toBe('18px');
+      expect(svg.style.height).toBe('18px');
     });
   });
 });

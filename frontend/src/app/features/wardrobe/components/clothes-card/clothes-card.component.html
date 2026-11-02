@@ -137,6 +137,18 @@
     }
 
     <div class="card-quick-actions" (click)="$event.stopPropagation()">
+      @if (showOutfit()) {
+        <button
+          type="button"
+          class="quick-action-btn outfit-action-btn"
+          [disabled]="actionPending()"
+          (click)="onAddToOutfit($event)"
+          title="Aggiungi ad un abbinamento"
+          aria-label="Aggiungi ad un abbinamento"
+        >
+          <app-outfit-icon class="quick-icon" [size]="18" />
+        </button>
+      }
       <button
         type="button"
         class="quick-action-btn"

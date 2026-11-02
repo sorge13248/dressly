@@ -1,10 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SyncService } from '../../../core/sync.service';
 import { ToastService } from '../../../core/toast.service';
 import { ConfirmModalComponent } from '../confirm-modal/confirm-modal.component';
+import { SyncStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-sync-indicator',
@@ -13,13 +24,17 @@ import { ConfirmModalComponent } from '../confirm-modal/confirm-modal.component'
   templateUrl: './sync-indicator.component.html',
   styleUrl: './sync-indicator.component.scss',
 })
-export class SyncIndicatorComponent {
+export class SyncIndicatorComponent implements OnDestroy {
   private readonly elementRef = inject(ElementRef);
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
   readonly syncService = inject(SyncService);
 
   readonly dropdownOpen = signal(false);
+  readonly showSuccessCheckmark = signal(false);
+
+  private successTimer: ReturnType<typeof setTimeout> | null = null;
+  private previousStatus: SyncStatus | null = null;
 
   readonly status = computed(() => this.syncService.status());
   readonly pendingCount = computed(() => this.syncService.pendingCount());
@@ -43,6 +58,9 @@ export class SyncIndicatorComponent {
   });
 
   readonly statusLabel = computed(() => {
+    if (this.showSuccessCheckmark()) {
+      return 'Sincronizzato ora!';
+    }
     switch (this.status()) {
       case 'syncing':
         return 'Sincronizzazione in corso...';
@@ -56,6 +74,10 @@ export class SyncIndicatorComponent {
   });
 
   readonly tooltip = computed(() => {
+    if (this.showSuccessCheckmark()) {
+      return 'Sincronizzazione completata con successo!';
+    }
+
     const s = this.status();
     const pending = this.pendingCount();
     const pendingStr = pending > 0 ? ` (${pending} modifiche in attesa)` : '';
@@ -71,6 +93,32 @@ export class SyncIndicatorComponent {
         return `Conflitto di sincronizzazione!${pendingStr}`;
     }
   });
+
+  constructor() {
+    effect(() => {
+      const current = this.status();
+      const prev = this.previousStatus;
+      this.previousStatus = current;
+
+      if (prev === 'syncing' && current === 'online-ok') {
+        untracked(() => {
+          this.triggerSuccessCheckmark();
+        });
+      }
+    });
+  }
+
+  triggerSuccessCheckmark(): void {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+    this.showSuccessCheckmark.set(true);
+    this.successTimer = setTimeout(() => {
+      this.showSuccessCheckmark.set(false);
+      this.successTimer = null;
+    }, 3000);
+  }
 
   toggleDropdown(event?: Event): void {
     event?.stopPropagation();
@@ -98,6 +146,7 @@ export class SyncIndicatorComponent {
     try {
       await this.syncService.sync();
       this.toast.success('Sincronizzazione completata');
+      this.triggerSuccessCheckmark();
     } catch {
       this.toast.error('Errore durante la sincronizzazione');
     }
@@ -125,9 +174,16 @@ export class SyncIndicatorComponent {
     try {
       await this.syncService.downloadServerVersion();
       this.toast.success('Versione del server scaricata con successo');
+      this.triggerSuccessCheckmark();
     } catch {
       this.toast.error('Errore durante il download dal server');
     }
   }
-}
 
+  ngOnDestroy(): void {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+  }
+}

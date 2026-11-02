@@ -1,4 +1,4 @@
-<section class="page-shell">
+<section class="page-shell" [class.has-selection]="selectionService.hasSelection()">
   @if (selectionService.hasSelection()) {
     <aside class="selection-toolbar" role="region" aria-label="Operazioni vestiti selezionati">
       <div class="toolbar-cluster">
@@ -133,6 +133,7 @@
               [actionPending]="isActionPending(item.id)"
               linkPrefix="/wardrobe"
               (selectionChange)="toggleSelection($event.id, $event.event)"
+              (outfitClick)="openOutfitModalForItem($event.item)"
               (washingClick)="toggleWashing($event.item, $event.event)"
               (ironingClick)="toggleIroning($event.item, $event.event)"
             />

@@ -293,7 +293,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
   readonly isEditMode = computed(() => Boolean(this.editingId()));
   readonly title = computed(() => (this.isEditMode() ? 'Modifica capo' : 'Nuovo capo'));
-  readonly saveLabel = computed(() => (this.isEditMode() ? 'Aggiorna' : 'Salva'));
+  readonly saveLabel = computed(() => (this.isEditMode() ? 'Aggiorna' : 'Crea'));
   readonly photoCount = computed(() => this.allPhotos().length);
   readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() =>
     this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),

@@ -1,5 +1,6 @@
 // Dressly PWA Service Worker
-const CACHE_NAME = 'dressly-cache-v1';
+const VERSION = '1.1.2';
+const CACHE_NAME = `dressly-cache-v${VERSION}`;
 
 // Static resources to precache on install
 const PRECACHE_ASSETS = [
@@ -24,7 +25,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
         console.warn('[SW] Precache partial error:', err);
       });
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -41,6 +42,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Listen for messages from the frontend application
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Fetch event: Network-first for navigation, Stale-While-Revalidate for static assets, Network-only for API
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -55,6 +63,18 @@ self.addEventListener('fetch', (event) => {
   // Do not intercept API requests or Auth endpoints:
   // Data is stored in IndexedDB and handled by SyncService
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/oauth2') || url.pathname.startsWith('/auth')) {
+    return;
+  }
+
+  // Do not intercept dev server HMR / WebSocket requests or Vite internal endpoints
+  if (
+    url.pathname.includes('/@vite') ||
+    url.pathname.includes('/ng-cli-ws') ||
+    url.pathname.includes('/@fs') ||
+    url.pathname.includes('/@id') ||
+    url.pathname.includes('/sockjs-node') ||
+    request.headers.get('Upgrade') === 'websocket'
+  ) {
     return;
   }
 
@@ -96,4 +116,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-

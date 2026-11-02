@@ -5,11 +5,14 @@
     } @else if (error()) {
       <div class="state-card error">{{ error() }}</div>
     } @else if (items().length === 0) {
-      <div class="state-card empty-card">
-        <h2>Nessun capo da stirare</h2>
-        <p>Aggiungi capi alla stiratura dal guardaroba o dalla pagina di dettaglio.</p>
-        <button type="button" appButton variant="primary" class="primary return-btn" (click)="returnToWardrobe()">Vai al guardaroba</button>
-      </div>
+      <app-empty-state
+        title="Nessun capo da stirare"
+        description="Aggiungi capi alla stiratura dal guardaroba o dalla pagina di dettaglio."
+        icon="ironing"
+        actionText="Vai al guardaroba"
+        actionRoute="/wardrobe"
+        (action)="returnToWardrobe()"
+      />
     } @else {
       <div class="cards-layout" [class.grid-2x2]="missingInfoItems().length > 0">
         <!-- 1. Manca informazione (arancione leggero) -->

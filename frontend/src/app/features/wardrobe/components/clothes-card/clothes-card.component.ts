@@ -3,12 +3,12 @@ import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AttachmentItem, ClothesItem } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
-import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
+import { WashingIconComponent, IroningIconComponent, OutfitIconComponent } from '../../../../shared/components/icons';
 
 @Component({
   selector: 'app-clothes-card',
   standalone: true,
-  imports: [CommonModule, RouterLink, WashingIconComponent, IroningIconComponent],
+  imports: [CommonModule, RouterLink, WashingIconComponent, IroningIconComponent, OutfitIconComponent],
   templateUrl: './clothes-card.component.html',
   styleUrl: './clothes-card.component.scss',
 })
@@ -16,12 +16,14 @@ export class ClothesCardComponent {
   readonly item = input.required<ClothesItem>();
   readonly selectable = input<boolean>(false);
   readonly selected = input<boolean>(false);
+  readonly showOutfit = input<boolean>(true);
   readonly showRemove = input<boolean>(false);
   readonly actionPending = input<boolean>(false);
   readonly linkPrefix = input<string>('/wardrobe');
 
   readonly selectionChange = output<{ id: string; event: Event }>();
   readonly removeClick = output<{ item: ClothesItem; event: Event }>();
+  readonly outfitClick = output<{ item: ClothesItem; event: Event }>();
   readonly washingClick = output<{ item: ClothesItem; event: Event }>();
   readonly ironingClick = output<{ item: ClothesItem; event: Event }>();
 
@@ -78,6 +80,12 @@ export class ClothesCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.removeClick.emit({ item: this.item(), event });
+  }
+
+  onAddToOutfit(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.outfitClick.emit({ item: this.item(), event });
   }
 
   onToggleWashing(event: Event) {

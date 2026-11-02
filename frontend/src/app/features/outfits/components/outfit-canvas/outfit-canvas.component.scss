@@ -323,5 +323,14 @@
     width: 150px;
     height: 150px;
   }
+
+  .canvas-toolbar {
+    padding: 10px 12px;
+    gap: 8px;
+
+    .toolbar-left .toolbar-hint {
+      display: none;
+    }
+  }
 }
 
