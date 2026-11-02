@@ -124,6 +124,18 @@ describe('WardrobePageComponent', () => {
     expect(newDressBtn?.textContent).toContain('Nuovo vestito');
   });
 
+  it('should render filters sidebar with filters-sidebar class inside layout-grid', () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    fixture.detectChanges();
+
+    const layoutGrid = fixture.nativeElement.querySelector('.layout-grid');
+    expect(layoutGrid).not.toBeNull();
+
+    const sidebar = layoutGrid?.querySelector('.filters-sidebar');
+    expect(sidebar).not.toBeNull();
+    expect(sidebar?.tagName.toLowerCase()).toBe('aside');
+  });
+
   it('should render aero checkbox on each item card and toggle selection', () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     const component = fixture.componentInstance;

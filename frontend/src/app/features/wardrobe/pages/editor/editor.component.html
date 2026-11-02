@@ -681,7 +681,7 @@
 
   <!-- Floating Dock Action Island: ancorata in basso al centro, stile Aero glass -->
   <aside class="wizard-dock floating-dock" role="region" aria-label="Azioni del wizard">
-    <button type="button" appButton variant="ghost" size="md" (click)="cancelOrClose()">
+    <button type="button" appButton variant="ghost" size="md" class="dock-btn-close" (click)="cancelOrClose()">
       Chiudi
     </button>
     <span class="dock-separator" aria-hidden="true"></span>
@@ -690,6 +690,7 @@
       appButton
       variant="secondary"
       size="md"
+      class="dock-btn-prev"
       [disabled]="currentStep() === 1"
       (click)="previousStep()"
     >
@@ -699,7 +700,7 @@
       <span>Indietro</span>
     </button>
     @if (currentStep() < 5) {
-      <button type="button" appButton variant="primary" size="md" (click)="nextStep()">
+      <button type="button" appButton variant="primary" size="md" class="dock-btn-next" (click)="nextStep()">
         <span>Avanti</span>
         <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M7.5 15L12.5 10L7.5 5"/>
@@ -711,6 +712,7 @@
       appButton
       variant="primary"
       size="md"
+      class="dock-btn-save"
       [disabled]="saving()"
       [loading]="saving()"
       (click)="save()"

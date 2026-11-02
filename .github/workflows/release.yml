@@ -123,6 +123,17 @@ jobs:
                   f.write("\n")
               print(f"Aggiornato: {file_path} -> {new_ver}")
 
+          # Aggiorna versione in frontend/public/sw.js
+          sw_path = "frontend/public/sw.js"
+          if os.path.exists(sw_path):
+              import re
+              with open(sw_path, "r", encoding="utf-8") as f:
+                  sw_content = f.read()
+              sw_content = re.sub(r"const VERSION = '.*?';", f"const VERSION = '{new_ver}';", sw_content)
+              with open(sw_path, "w", encoding="utf-8") as f:
+                  f.write(sw_content)
+              print(f"Aggiornato: {sw_path} -> {new_ver}")
+
           github_output = os.getenv("GITHUB_OUTPUT")
           if github_output:
               with open(github_output, "a", encoding="utf-8") as f:
@@ -134,7 +145,7 @@ jobs:
       - name: Commit e push su develop
         run: |
           NEW_VER="${{ steps.versioning.outputs.new_version }}"
-          git add package.json package-lock.json backend/package.json backend/package-lock.json frontend/package.json frontend/package-lock.json
+          git add package.json package-lock.json backend/package.json backend/package-lock.json frontend/package.json frontend/package-lock.json frontend/public/sw.js
           
           if git diff --staged --quiet; then
             echo "Nessuna modifica da committare su develop."

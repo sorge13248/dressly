@@ -126,9 +126,9 @@
 .canvas-board {
   position: relative;
   width: 100%;
-  height: 520px;
-  min-height: 420px;
-  flex: 1;
+  aspect-ratio: 1 / 1;
+  max-width: 620px;
+  margin: 0 auto;
   background:
     radial-gradient(ellipse at 50% 30%, rgba(240, 248, 255, 0.95) 0%, rgba(224, 238, 255, 0.7) 100%),
     #edf4fc;
@@ -201,6 +201,8 @@
 /* Elemento del capo nel canvas (SOLO la foto del capo, nessun tag o cornice polaroid) */
 .canvas-item {
   position: absolute;
+  width: 32%;
+  aspect-ratio: 1 / 1;
   cursor: grab;
   touch-action: none;
   display: flex;
@@ -242,8 +244,8 @@
 }
 
 .item-visual {
-  width: 200px;
-  height: 200px;
+  width: 100%;
+  height: 100%;
   border-radius: 16px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.92);
@@ -270,8 +272,8 @@
   color: #4075b5;
 
   svg {
-    width: 60px;
-    height: 60px;
+    width: 45%;
+    height: 45%;
   }
 }
 
@@ -314,14 +316,13 @@
 }
 
 @media (max-width: 640px) {
-  .canvas-board {
-    height: 440px;
-    min-height: 380px;
-  }
+  .canvas-toolbar {
+    padding: 10px 12px;
+    gap: 8px;
 
-  .item-visual {
-    width: 150px;
-    height: 150px;
+    .toolbar-left .toolbar-hint {
+      display: none;
+    }
   }
 }
 

@@ -943,7 +943,7 @@ textarea {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .wizard-shell {
     padding: 14px 8px 100px;
   }
@@ -967,10 +967,23 @@ textarea {
 
   .wizard-dock.floating-dock {
     bottom: 14px;
-    padding: 6px 10px;
-    gap: 6px;
-    width: calc(100% - 24px);
-    justify-content: space-between;
+    padding: 6px 14px;
+    gap: 0;
+    width: auto;
+    max-width: calc(100% - 32px);
+    justify-content: center;
+
+    .dock-btn-close,
+    .dock-separator,
+    .dock-btn-prev,
+    .dock-btn-next {
+      display: none !important;
+    }
+
+    .dock-btn-save {
+      min-width: 150px;
+      justify-content: center;
+    }
   }
 
   .dock-separator {

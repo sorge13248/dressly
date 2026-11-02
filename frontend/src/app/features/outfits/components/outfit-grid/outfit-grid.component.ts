@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, effect, inject, input, output, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { Dialog } from '@angular/cdk/dialog';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
@@ -10,11 +10,12 @@ import { SyncService } from '../../../../core/sync.service';
 import { AttachmentItem, ClothesItem, OutfitDetailResponse, OutfitItem } from '../../../../core/models';
 import { CreateNameModalComponent } from '../../../../shared/components/create-name-modal/create-name-modal.component';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state';
 
 @Component({
   selector: 'app-outfit-grid',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, EmptyStateComponent],
   templateUrl: './outfit-grid.component.html',
   styleUrl: './outfit-grid.component.scss',
 })

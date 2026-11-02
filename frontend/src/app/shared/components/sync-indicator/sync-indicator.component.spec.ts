@@ -142,6 +142,62 @@ describe('SyncIndicatorComponent', () => {
     expect(component.dropdownOpen()).toBe(false);
   });
 
+  it('should display green checkmark inside sync pill after onSyncNow succeeds and revert after timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      await component.onSyncNow();
+      expect(component.showSuccessCheckmark()).toBe(true);
+      fixture.detectChanges();
+
+      const checkIcon = fixture.nativeElement.querySelector('.icon-success-check');
+      expect(checkIcon).toBeTruthy();
+      const pill = fixture.nativeElement.querySelector('.sync-pill');
+      expect(pill.classList.contains('status-success')).toBe(true);
+      expect(component.tooltip()).toBe('Sincronizzazione completata con successo!');
+
+      vi.advanceTimersByTime(3000);
+      expect(component.showSuccessCheckmark()).toBe(false);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.icon-success-check')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('.icon-ok')).toBeTruthy();
+      expect(pill.classList.contains('status-success')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('should display green checkmark when status transitions from syncing to online-ok', () => {
+    mockStatus.set('syncing');
+    fixture.detectChanges();
+
+    mockStatus.set('online-ok');
+    fixture.detectChanges();
+
+    expect(component.showSuccessCheckmark()).toBe(true);
+    fixture.detectChanges();
+
+    const checkIcon = fixture.nativeElement.querySelector('.icon-success-check');
+    expect(checkIcon).toBeTruthy();
+  });
+
+  it('should display green checkmark after downloadServerVersion succeeds', async () => {
+    await component.onDownloadServerVersion();
+    expect(component.showSuccessCheckmark()).toBe(true);
+    fixture.detectChanges();
+
+    const checkIcon = fixture.nativeElement.querySelector('.icon-success-check');
+    expect(checkIcon).toBeTruthy();
+  });
+
+  it('should not display checkmark when onSyncNow fails', async () => {
+    mockSync.mockRejectedValueOnce(new Error('Sync failure'));
+    await component.onSyncNow();
+
+    expect(component.showSuccessCheckmark()).toBe(false);
+    expect(mockToast.error).toHaveBeenCalledWith('Errore durante la sincronizzazione');
+  });
+
   it('should open confirmation modal and call downloadServerVersion on confirm', async () => {
     component.dropdownOpen.set(true);
     fixture.detectChanges();
@@ -184,4 +240,3 @@ describe('SyncIndicatorComponent', () => {
     expect(component.dropdownOpen()).toBe(false);
   });
 });
-

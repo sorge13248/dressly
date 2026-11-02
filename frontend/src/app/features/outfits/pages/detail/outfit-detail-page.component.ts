@@ -19,6 +19,7 @@ import { ContextSelectorComponent } from '../../../../shared/components/context-
 import { ClothesCardComponent } from '../../../wardrobe/components/clothes-card/clothes-card.component';
 import { WardrobePhotoLightboxModalComponent } from '../../../wardrobe/components/photo-lightbox-modal/photo-lightbox-modal.component';
 import { OutfitCanvasComponent } from '../../components/outfit-canvas/outfit-canvas.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state';
 
 @Component({
   selector: 'app-outfit-detail-page',
@@ -33,6 +34,7 @@ import { OutfitCanvasComponent } from '../../components/outfit-canvas/outfit-can
     ClothesCardComponent,
     ContextSelectorComponent,
     OutfitCanvasComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './outfit-detail-page.component.html',
   styleUrl: './outfit-detail-page.component.scss',

@@ -2,15 +2,29 @@ import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppShellComponent } from './shell.component';
 import { LaundryService } from '../../core/laundry.service';
+import { PwaUpdateService } from '../../core/pwa-update.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { SyncService } from '../../core/sync.service';
 import { signal } from '@angular/core';
 
 describe('AppShellComponent', () => {
+  const updateAvailableSignal = signal(false);
+  const promptUpdateSpy = vi.fn();
+
   beforeEach(async () => {
+    updateAvailableSignal.set(false);
+    promptUpdateSpy.mockClear();
+
     await TestBed.configureTestingModule({
       imports: [AppShellComponent, RouterTestingModule],
       providers: [
+        {
+          provide: PwaUpdateService,
+          useValue: {
+            updateAvailable: updateAvailableSignal,
+            promptUpdate: promptUpdateSpy,
+          },
+        },
         {
           provide: SyncService,
           useValue: {
@@ -79,5 +93,36 @@ describe('AppShellComponent', () => {
     fixture.componentInstance.closeNavMenu();
     fixture.detectChanges();
     expect(topbar.classList.contains('menu-open')).toBe(false);
+  });
+
+  it('should render mobile menu toggle icon button and toggle menu on click', () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    const toggleBtn: HTMLButtonElement | null = fixture.nativeElement.querySelector('.nav-toggle');
+    expect(toggleBtn).toBeTruthy();
+
+    const svgIcon = toggleBtn?.querySelector('svg.nav-toggle-icon');
+    expect(svgIcon).toBeTruthy();
+    expect(toggleBtn?.getAttribute('aria-label')).toBe('Apri menu');
+
+    toggleBtn?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.mobileNavOpen()).toBe(true);
+    expect(toggleBtn?.getAttribute('aria-label')).toBe('Chiudi menu');
+  });
+
+  it('should render update pill when update is available and call promptUpdate on click', () => {
+    updateAvailableSignal.set(true);
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    const updateBtn: HTMLButtonElement | null = fixture.nativeElement.querySelector('.update-pill-btn');
+    expect(updateBtn).toBeTruthy();
+    expect(updateBtn?.textContent).toContain('Nuova versione');
+
+    updateBtn?.click();
+    expect(promptUpdateSpy).toHaveBeenCalled();
   });
 });

@@ -493,7 +493,7 @@ form.outfit-edit-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
 
   @media (max-width: 960px) {
     grid-template-columns: 1fr;
@@ -505,7 +505,6 @@ form.outfit-edit-form {
   width: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
 /* Card panel per le sezioni inferiori in stile Frutiger Aero */
@@ -810,61 +809,6 @@ form.outfit-edit-form {
   align-content: start;
   overflow: visible;
   padding-bottom: 12px;
-}
-
-/* Stato abbinamento vuoto */
-.empty-state-box {
-  padding: 48px 24px;
-  text-align: center;
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(240, 248, 255, 0.86) 100%),
-    var(--surface-strong, #ffffff);
-  border: 1px solid rgba(100, 146, 214, 0.28);
-  box-shadow: 0 10px 28px rgba(23, 62, 116, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-
-  .empty-icon-wrap {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: linear-gradient(180deg, rgba(235, 245, 255, 0.95), rgba(215, 235, 255, 0.8));
-    border: 1px solid rgba(40, 110, 200, 0.24);
-    box-shadow: 0 4px 14px rgba(30, 109, 207, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    color: var(--accent, #1e6dcf);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    svg {
-      width: 32px;
-      height: 32px;
-    }
-  }
-
-  h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--text, #182030);
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.95rem;
-    color: var(--muted, #5a6880);
-    max-width: 460px;
-    line-height: 1.45;
-  }
-
-  .go-wardrobe-btn {
-    margin-top: 8px;
-    padding: 9px 20px;
-    border-radius: 999px;
-  }
 }
 
 @media (max-width: 768px) {

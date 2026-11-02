@@ -13,6 +13,14 @@
   gap: 0;
   overflow: visible;
   padding-bottom: 104px; /* Spazio per non coprire il contenuto con il pannello fluttuante ancorato in fondo */
+
+  &.has-selection {
+    .filters-sidebar {
+      top: calc(var(--topbar-height, 73px) + 52px + 14px);
+      max-height: calc(100vh - var(--topbar-height, 73px) - 52px - 28px);
+      max-height: calc(100dvh - var(--topbar-height, 73px) - 52px - 28px);
+    }
+  }
 }
 
 .filters-sidebar,
@@ -201,8 +209,9 @@
   border-bottom: 1px solid rgba(80, 130, 215, 0.38);
   box-shadow: 0 4px 14px rgba(16, 52, 105, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   animation: toolbar-slide-down 180ms ease-out;
-  position: relative;
-  z-index: 10;
+  position: sticky;
+  top: var(--topbar-height, 73px);
+  z-index: 30;
 }
 
 @keyframes toolbar-slide-down {
@@ -323,22 +332,25 @@
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
   gap: 14px;
-  margin: 14px;
+  margin: 14px calc(14px + env(safe-area-inset-right, 0px)) 14px calc(14px + env(safe-area-inset-left, 0px));
   align-items: start;
   overflow: visible;
   flex: 1;
 }
 
 .filters-sidebar {
-  position: sticky;
+  position: fixed;
   top: calc(var(--topbar-height, 73px) + 14px);
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  width: 290px;
+  z-index: 20;
   max-height: calc(100vh - var(--topbar-height, 73px) - 28px);
   max-height: calc(100dvh - var(--topbar-height, 73px) - 28px);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(60, 130, 215, 0.35) transparent;
-  padding: 14px;
+  padding: 14px 14px 28px;
   display: grid;
   gap: 14px;
   align-content: start;
@@ -441,6 +453,7 @@
 }
 
 .results-area {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -966,6 +979,14 @@
     min-height: initial;
     flex: 1;
     overflow: visible;
+
+    &.has-selection {
+      .filters-sidebar {
+        top: 0;
+        max-height: 100vh;
+        max-height: 100dvh;
+      }
+    }
   }
 
   .layout-grid {
@@ -973,6 +994,10 @@
     margin: 12px;
     overflow: visible;
     flex: initial;
+  }
+
+  .results-area {
+    grid-column: auto;
   }
 
   .search-banner {

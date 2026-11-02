@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { LaundryService } from '../../core/laundry.service';
+import { PwaUpdateService } from '../../core/pwa-update.service';
 import { ReferenceStoreService } from '../../core/reference-store.service';
 import { ToastStackComponent } from '../../shared/components/toast-stack/toast-stack.component';
 import { SyncIndicatorComponent } from '../../shared/components/sync-indicator/sync-indicator.component';
@@ -28,6 +29,7 @@ export class AppShellComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly referenceStore = inject(ReferenceStoreService);
   readonly laundryService = inject(LaundryService);
+  readonly pwaUpdateService = inject(PwaUpdateService);
 
   readonly navItems = computed(() => {
     const washingState = this.laundryService.washingState ? this.laundryService.washingState() : { count: this.laundryService.washingCount(), displayedCount: this.laundryService.washingCount(), animating: 'idle' as const };

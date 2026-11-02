@@ -70,6 +70,21 @@
 
     <!-- Icona utente a destra con foto profilo arrotondata e indicatore sync -->
     <div class="topbar-right">
+      @if (pwaUpdateService.updateAvailable()) {
+        <button
+          type="button"
+          class="update-pill-btn"
+          (click)="pwaUpdateService.promptUpdate()"
+          title="Nuova versione disponibile"
+          aria-label="Nuova versione di Dressly disponibile. Clicca per aggiornare."
+        >
+          <svg class="update-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          <span class="update-pill-text">Nuova versione</span>
+        </button>
+      }
+
       <app-sync-indicator />
 
       <div class="user-area">
@@ -112,9 +127,21 @@
         [attr.aria-expanded]="mobileNavOpen()"
         aria-controls="main-mobile-menu"
         (click)="toggleNavMenu()"
-        aria-label="Toggle navigation menu"
+        [attr.aria-label]="mobileNavOpen() ? 'Chiudi menu' : 'Apri menu'"
+        [title]="mobileNavOpen() ? 'Chiudi menu' : 'Menu'"
       >
-        {{ mobileNavOpen() ? 'Chiudi' : 'Menu' }}
+        @if (mobileNavOpen()) {
+          <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        } @else {
+          <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
+        }
       </button>
     </div>
 

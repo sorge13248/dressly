@@ -1,4 +1,4 @@
-<section class="page-shell">
+<section class="page-shell" [class.has-selection]="selectionService.hasSelection()">
   @if (selectionService.hasSelection()) {
     <aside class="selection-toolbar" role="region" aria-label="Operazioni vestiti selezionati">
       <div class="toolbar-cluster">

@@ -274,4 +274,21 @@ describe('WardrobeWizardPageComponent', () => {
     expect(comp.allPhotos()[0].id).toBe('att-99');
     expect(comp.allPhotos()[0].source).toBe('existing');
   });
+
+  it('should compute saveLabel as Crea in create mode and Aggiorna in edit mode', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+
+    expect(comp.isEditMode()).toBe(false);
+    expect(comp.saveLabel()).toBe('Crea');
+
+    comp.editingId.set('clothes-123');
+    expect(comp.isEditMode()).toBe(true);
+    expect(comp.saveLabel()).toBe('Aggiorna');
+
+    fixture.detectChanges();
+    const saveBtn = fixture.nativeElement.querySelector('.dock-btn-save');
+    expect(saveBtn).toBeTruthy();
+    expect(saveBtn.textContent).toContain('Aggiorna');
+  });
 });

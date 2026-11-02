@@ -7,18 +7,13 @@
       <button type="button" class="retry-btn" (click)="loadOutfits()">Riprova</button>
     </div>
   } @else if (mode() === 'page' && outfits().length === 0) {
-    <div class="empty-page-state">
-      <div class="empty-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
-        </svg>
-      </div>
-      <h2>Nessun abbinamento presente</h2>
-      <p>Per creare un abbinamento, seleziona uno o più vestiti dal guardaroba e clicca sul pulsante <strong>Abbina...</strong>.</p>
-      <a routerLink="/wardrobe" class="go-wardrobe-btn">
-        Vai al guardaroba
-      </a>
-    </div>
+    <app-empty-state
+      title="Nessun abbinamento presente"
+      description="Per creare un abbinamento, seleziona uno o più vestiti dal guardaroba e clicca sul pulsante <strong>Abbina...</strong>."
+      icon="outfit"
+      actionText="Vai al guardaroba"
+      actionRoute="/wardrobe"
+    />
   } @else {
     <div class="outfits-grid">
       <!-- 1st card: Placeholder per creare un nuovo abbinamento (SOLO IN MODALE) -->

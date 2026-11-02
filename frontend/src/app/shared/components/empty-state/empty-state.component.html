@@ -1,0 +1,46 @@
+<div class="empty-state empty-card empty-page-state empty-state-box">
+  @if (icon() && icon() !== 'none') {
+    <div class="empty-icon-wrap">
+      @if (icon() === 'washing') {
+        <app-washing-icon [size]="32" [strokeWidth]="1.8" />
+      } @else if (icon() === 'ironing') {
+        <app-ironing-icon [size]="32" [strokeWidth]="1.8" />
+      } @else if (icon() === 'drying') {
+        <app-drying-icon [size]="32" [strokeWidth]="1.8" />
+      } @else if (icon() === 'outfit' || icon() === 'clothes' || icon() === 'wardrobe') {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+        </svg>
+      } @else {
+        <ng-content select="[slot=icon], [icon], svg" />
+      }
+    </div>
+  }
+
+  @if (title()) {
+    <h2>{{ title() }}</h2>
+  } @else {
+    <ng-content select="[slot=title], h2" />
+  }
+
+  @if (description()) {
+    <p [innerHTML]="description()"></p>
+  } @else {
+    <ng-content select="[slot=description]" />
+  }
+
+  @if (actionRoute()) {
+    <a [routerLink]="actionRoute()" class="empty-action-btn go-wardrobe-btn return-btn" (click)="onActionClick($event)">
+      {{ actionText() }}
+    </a>
+  } @else if (actionText()) {
+    <button type="button" class="empty-action-btn go-wardrobe-btn return-btn" (click)="onActionClick($event)">
+      {{ actionText() }}
+    </button>
+  } @else {
+    <ng-content select="[slot=action], [action]" />
+  }
+
+  <ng-content />
+</div>
+
