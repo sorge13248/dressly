@@ -18,13 +18,18 @@ import { IroningItem } from './ironing-item.entity';
 
 @Entity({ name: 'clothes' })
 @Unique(['userId', 'name'])
+@Unique(['userId', 'code'])
 @Index(['userId'])
+@Index(['userId', 'code'])
 export class Clothes {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ type: 'varchar' })
   userId!: string;
+
+  @Column({ type: 'varchar', length: 3, nullable: true })
+  code!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   name!: string | null;

@@ -528,7 +528,8 @@ export class OfflineStorageService {
           item.fullTitle?.toLowerCase().includes(q) ||
           item.brand?.name?.toLowerCase().includes(q) ||
           item.type?.name?.toLowerCase().includes(q) ||
-          item.notes?.toLowerCase().includes(q),
+          item.notes?.toLowerCase().includes(q) ||
+          item.code?.toLowerCase().includes(q),
       );
     }
     if (query.brand_id) {

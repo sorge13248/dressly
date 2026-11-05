@@ -44,6 +44,14 @@
               }
             </div>
             <div class="hero-detail-list">
+              @if (current.code) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">ID Etichetta</span>
+                  <div class="hero-meta">
+                    <span class="hero-code-val">{{ current.code }}</span>
+                  </div>
+                </div>
+              }
               @if (current.size) {
                 <div class="hero-detail-row">
                   <span class="hero-label">Taglia</span>

@@ -381,7 +381,7 @@ h2 {
 
 .base-row-grid {
   display: grid;
-  grid-template-columns: minmax(180px, 2.5fr) minmax(170px, 1.6fr) minmax(130px, 1.2fr) minmax(65px, 80px) minmax(130px, 1.2fr);
+  grid-template-columns: minmax(160px, 2fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) minmax(65px, 80px) minmax(120px, 1.1fr) minmax(130px, 1.2fr);
   gap: 10px;
   align-items: start;
 }
@@ -389,6 +389,31 @@ h2 {
 .field-size input {
   min-width: 0;
   width: 100%;
+}
+
+.field-code {
+  .inline-code-input {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+
+    input {
+      min-width: 0;
+      width: 100%;
+      text-transform: uppercase;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .btn-regenerate-code {
+      flex-shrink: 0;
+      height: 38px;
+      padding: 0 10px;
+      font-size: 1rem;
+    }
+  }
 }
 
 .subsection-title {

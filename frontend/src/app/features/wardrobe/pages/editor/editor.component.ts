@@ -30,6 +30,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { WashingIconComponent, DryingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { ContextSelectorComponent } from '../../../../shared/components/context-selector/context-selector.component';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
+import { generateRandomTagCode, normalizeTagCode } from '../../../../shared/utils/tag-code.utils';
 
 export type StepIndex = 1 | 2 | 3 | 4 | 5;
 
@@ -75,6 +76,7 @@ type WizardBuyForm = {
 type WizardFormModel = {
   base: {
     name: string;
+    code: string;
     size: string;
     fit_id: string;
     brand_id: string;
@@ -108,6 +110,7 @@ type WizardFormModel = {
 const createInitialWizardModel = (): WizardFormModel => ({
   base: {
     name: '',
+    code: generateRandomTagCode(),
     size: '',
     fit_id: '',
     brand_id: '',
@@ -273,6 +276,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
   readonly wizardModel = signal<WizardFormModel>(createInitialWizardModel());
   readonly wizardForm = form(this.wizardModel, (schema) => {
+    pattern(schema.base.code, /^[A-Z0-9]{3}$/i, { message: 'Il codice etichetta deve essere di 3 caratteri alfanumerici' });
     minLength(schema.style.color_ids, 1, { message: 'Seleziona almeno un colore' });
 
     minLength(schema.context.season_ids, 1, { message: 'Seleziona almeno una stagione' });
@@ -1089,6 +1093,15 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     this.wizardForm.base.size().value.set(uppercaseValue);
   }
 
+  onCodeInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const clean = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    if (input.value !== clean) {
+      input.value = clean;
+    }
+    this.wizardForm.base.code().value.set(clean);
+  }
+
   toggleArray(field: any, id: string) {
     const current = field().value() as string[];
     const next = current.includes(id) ? current.filter((value: string) => value !== id) : [...current, id];
@@ -1126,7 +1139,11 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   private isStepValid(step: StepIndex) {
     switch (step) {
       case 1:
-        return !this.wizardForm.base.size().invalid() && !this.wizardForm.buy.detail.shop_url().invalid();
+        return (
+          !this.wizardForm.base.size().invalid() &&
+          !this.wizardForm.base.code().invalid() &&
+          !this.wizardForm.buy.detail.shop_url().invalid()
+        );
       case 2:
         return !this.wizardForm.style.color_ids().invalid();
       case 3:
@@ -1237,6 +1254,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     this.wizardModel.set({
       base: {
         name: item.name ?? '',
+        code: item.code ?? generateRandomTagCode(),
         size: item.size ?? '',
         fit_id: item.fit?.id ?? '',
         brand_id: item.brand?.id ?? '',
@@ -1331,6 +1349,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
     return {
       name: base.name.trim() || null,
+      code: base.code ? base.code.trim().toUpperCase() : null,
       size: size || null,
       fit_id: base.fit_id || null,
       brand_id: base.brand_id || null,

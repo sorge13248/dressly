@@ -9,7 +9,7 @@
     "start": "node dist/main.js",
     "seed:run": "tsx src/database/seed.ts",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "tsx --tsconfig tsconfig.json src/services/sync.service.spec.ts && tsx --tsconfig tsconfig.json src/services/outfits.service.spec.ts"
+    "test": "tsx --tsconfig tsconfig.json src/services/sync.service.spec.ts && tsx --tsconfig tsconfig.json src/services/outfits.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-tag-code.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.2.0",

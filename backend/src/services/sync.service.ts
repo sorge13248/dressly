@@ -23,6 +23,7 @@ import { Material } from '../entities/material.entity';
 import { Season } from '../entities/season.entity';
 import { SyncTombstone } from '../entities/sync-tombstone.entity';
 import { Tag } from '../entities/tag.entity';
+import { generateUniqueTagCode, normalizeTagCode } from '../common/utils/tag-code.util';
 import { Temperature } from '../entities/temperature.entity';
 import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
@@ -307,6 +308,14 @@ export class SyncService {
       if (!existing) {
         const clothes = clothesRepo.create({ id: item.id, userId: user.id });
         await this.applyClothesFieldUpdates(user, clothes, clientFields);
+        if (!clothes.code) {
+          const assigned = await clothesRepo.find({
+            where: { userId: user.id },
+            select: { code: true },
+          });
+          const userCodes = new Set(assigned.map((c) => c.code).filter(Boolean) as string[]);
+          clothes.code = generateUniqueTagCode(userCodes);
+        }
         clothes.updatedAt = new Date(item.updatedAt);
         await clothesRepo.save(clothes);
         appliedIds.push(item.id);
@@ -698,6 +707,8 @@ export class SyncService {
 
   private getClothesFieldValue(clothes: Clothes, key: string): unknown {
     switch (key) {
+      case 'code':
+        return clothes.code;
       case 'name':
         return clothes.name;
       case 'size':
@@ -777,6 +788,9 @@ export class SyncService {
     value: unknown,
   ) {
     switch (key) {
+      case 'code':
+        clothes.code = normalizeTagCode(value !== null && value !== undefined ? String(value) : null);
+        break;
       case 'name':
         clothes.name = value === null || value === undefined ? null : String(value).trim();
         break;

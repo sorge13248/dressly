@@ -130,6 +130,7 @@ export interface BuyDetailItem {
 export interface ClothesItem {
   id: string;
   userId: string;
+  code?: string | null;
   fullTitle?: string | null;
   name: string | null;
   size: string | null;
@@ -187,6 +188,7 @@ export interface WizardAttachmentDraft {
 
 export interface ClothesWizardFormValue {
   name: string;
+  code: string;
   size: string;
   fit_id: string;
   brand_id: string;
@@ -210,6 +212,7 @@ export interface ClothesWizardFormValue {
 
 export interface IroningClothesItem {
   id: string;
+  code?: string | null;
   name: string | null;
   fullTitle?: string | null;
   brand: { id: string; name: string } | null;
@@ -237,6 +240,7 @@ export interface IroningClothesResponse {
 
 export interface WashingClothesItem {
   id: string;
+  code?: string | null;
   name: string | null;
   fullTitle?: string | null;
   brand: { id: string; name: string } | null;
@@ -395,6 +399,7 @@ export interface CanvasItemLayout {
 
 export interface OutfitClothesSummary {
   id: string;
+  code?: string | null;
   name: string | null;
   fullTitle?: string | null;
   brand?: BrandItem | null;
