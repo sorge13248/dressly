@@ -581,6 +581,22 @@ export class WardrobeDetailPageComponent implements OnInit {
     return null;
   }
 
+  copyTagCode(code: string) {
+    if (!code) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard
+        .writeText(code)
+        .then(() => {
+          this.toast.success(`ID etichetta "${code}" copiato negli appunti`);
+        })
+        .catch(() => {
+          this.toast.info(`ID etichetta: ${code}`);
+        });
+    } else {
+      this.toast.info(`ID etichetta: ${code}`);
+    }
+  }
+
   private navigateToMain(queryParams: Params) {
     void this.router.navigate(['/wardrobe'], { queryParams });
   }

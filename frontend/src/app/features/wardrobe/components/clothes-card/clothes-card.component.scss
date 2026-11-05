@@ -259,6 +259,30 @@
   gap: 10px;
 }
 
+.card-top-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tag-code-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border: 1px solid rgba(130, 90, 220, 0.35);
+  background: rgba(240, 230, 255, 0.85);
+  color: #4c1d95;
+}
+
 .brand {
   margin: 0 0 2px;
   color: #49688f;

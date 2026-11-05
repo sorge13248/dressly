@@ -123,6 +123,21 @@
                     }}</small>
                   }
                 </label>
+                <label class="field-code">
+                  <span>ID Etichetta</span>
+                  <div class="inline-code-input">
+                    <input
+                      [formField]="wizardForm.base.code"
+                      placeholder="es. 7KX"
+                      (input)="onCodeInput($event)"
+                    />
+                  </div>
+                  @if (showFieldError(wizardForm.base.code(), 1)) {
+                    <small class="field-error-text">{{
+                      fieldError(wizardForm.base.code(), 'Codice di 3 caratteri')
+                    }}</small>
+                  }
+                </label>
               </div>
 
               <label class="full-width notes-field">

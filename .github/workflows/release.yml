@@ -166,35 +166,98 @@ jobs:
         id: create_release
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          PREV_TAG: "v${{ steps.versioning.outputs.previous_version }}"
+          TAG_NAME: "${{ steps.versioning.outputs.tag_name }}"
+          REPO: "${{ github.repository }}"
         run: |
-          PREV_TAG="v${{ steps.versioning.outputs.previous_version }}"
-          TAG_NAME="${{ steps.versioning.outputs.tag_name }}"
-          REPO="${{ github.repository }}"
-          
           echo "Generazione note di rilascio da ${PREV_TAG} a ${TAG_NAME}..."
           
-          if git rev-parse -q --verify "refs/tags/${PREV_TAG}" >/dev/null; then
-            COMMIT_RANGE="${PREV_TAG}..HEAD"
-            CHANGELOG_LINK="https://github.com/${REPO}/compare/${PREV_TAG}...${TAG_NAME}"
-          else
-            COMMIT_RANGE="HEAD"
-            CHANGELOG_LINK="https://github.com/${REPO}/commits/${TAG_NAME}"
-          fi
-          
-          CHANGES=$(git log ${COMMIT_RANGE} --no-merges --invert-grep --grep="^chore(release)" \
-            --pretty=format:"* %s by @%an in [%h](https://github.com/${REPO}/commit/%H)")
-          
-          cat << 'EOF' > release_notes.md
-          ## What's Changed
+          python3 - << 'EOF'
+          import json
+          import os
+          import re
+          import subprocess
+          import urllib.request
+
+          prev_tag = os.getenv("PREV_TAG", "").strip()
+          tag_name = os.getenv("TAG_NAME", "").strip()
+          repo = os.getenv("REPO", "").strip()
+          token = os.getenv("GH_TOKEN", "").strip()
+
+          # Determina il range di commit
+          if prev_tag and subprocess.run(["git", "rev-parse", "-q", "--verify", f"refs/tags/{prev_tag}"], capture_output=True).returncode == 0:
+              commit_range = f"{prev_tag}..HEAD"
+              changelog_link = f"https://github.com/{repo}/compare/{prev_tag}...{tag_name}"
+          else:
+              commit_range = "HEAD"
+              changelog_link = f"https://github.com/{repo}/commits/{tag_name}"
+
+          cmd = [
+              "git", "log", commit_range, "--no-merges",
+              "--invert-grep", "--grep=^chore(release)",
+              "--pretty=format:%H\x1f%h\x1f%ae\x1f%an\x1f%s"
+          ]
+          res = subprocess.run(cmd, capture_output=True, text=True)
+          raw_commits = res.stdout.strip().split("\n") if res.stdout.strip() else []
+
+          # Tenta di interrogare la GitHub API per ottenere il mapping SHA -> username GitHub reale
+          author_map = {}
+          if token and repo:
+              try:
+                  api_url = f"https://api.github.com/repos/{repo}/compare/{prev_tag}...main" if (prev_tag and commit_range != "HEAD") else f"https://api.github.com/repos/{repo}/commits?sha=main"
+                  req = urllib.request.Request(api_url, headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "release-workflow"
+                  })
+                  with urllib.request.urlopen(req, timeout=10) as response:
+                      data = json.load(response)
+                      items = data.get("commits", []) if isinstance(data, dict) else data
+                      for item in items:
+                          sha = item.get("sha")
+                          author = item.get("author")
+                          if sha and author and author.get("login"):
+                              author_map[sha] = author["login"]
+              except Exception as e:
+                  print(f"::warning::GitHub API user mapping failed: {e}")
+
+          lines = []
+          for line in raw_commits:
+              if not line:
+                  continue
+              parts = line.split("\x1f")
+              if len(parts) < 5:
+                  continue
+              full_sha, short_sha, email, name, subject = parts[0], parts[1], parts[2], parts[3], parts[4]
+
+              # Risoluzione dello username:
+              # 1. Login ottenuto direttamente dalla GitHub API
+              # 2. Match sull'email GitHub noreply (es. 12345+username@users.noreply.github.com)
+              # 3. Fallback sul nome Git senza '@' (per non taggare profili GitHub errati)
+              gh_user = author_map.get(full_sha)
+              if not gh_user:
+                  m = re.match(r"^(?:[0-9]+\+)?([^@]+)@users\.noreply\.github\.com$", email)
+                  if m:
+                      gh_user = m.group(1)
+
+              if gh_user:
+                  author_str = f"by @{gh_user}"
+              else:
+                  author_str = f"by {name}"
+
+              commit_url = f"https://github.com/{repo}/commit/{full_sha}"
+              lines.append(f"* {subject} {author_str} in [{short_sha}]({commit_url})")
+
+          with open("release_notes.md", "w", encoding="utf-8") as f:
+              f.write("## What's Changed\n")
+              if lines:
+                  f.write("\n".join(lines) + "\n\n")
+              else:
+                  f.write("* Nessuna modifica rilevante o solo aggiornamenti di manutenzione.\n\n")
+              f.write(f"**Full Changelog**: {changelog_link}\n")
+
+          print(f"Generate note di rilascio con {len(lines)} commit.")
           EOF
-          
-          if [ -n "${CHANGES}" ]; then
-            printf "%s\n\n" "${CHANGES}" >> release_notes.md
-          else
-            printf "* Nessuna modifica rilevante o solo aggiornamenti di manutenzione.\n\n" >> release_notes.md
-          fi
-          
-          printf "**Full Changelog**: %s\n" "${CHANGELOG_LINK}" >> release_notes.md
           
           echo "Creazione GitHub Release per ${TAG_NAME} su main..."
           gh release create "${TAG_NAME}" \

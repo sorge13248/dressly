@@ -82,9 +82,14 @@
         <h3>{{ getPreferredLabel(item()) }}</h3>
       </div>
 
-      @if (item().size) {
-        <div class="size-pill">{{ item().size }}</div>
-      }
+      <div class="card-top-badges">
+        @if (item().code) {
+          <div class="tag-code-pill" title="ID Etichetta">{{ item().code }}</div>
+        }
+        @if (item().size) {
+          <div class="size-pill">{{ item().size }}</div>
+        }
+      </div>
     </div>
 
     <div class="meta-line">

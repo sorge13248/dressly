@@ -1,11 +1,12 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, IsNull, Not } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
+import { generateUniqueTagCode, isValidTagCode, normalizeTagCode } from '../common/utils/tag-code.util';
 import { Attachment } from '../entities/attachment.entity';
 import { Brand } from '../entities/brand.entity';
 import { Clothes } from '../entities/clothes.entity';
@@ -69,6 +70,42 @@ export class ClothesService implements OnModuleInit {
 
   async onModuleInit() {
     await this.generateMissingPreviews();
+    await this.backfillMissingTagCodes();
+  }
+
+  async backfillMissingTagCodes() {
+    const repository = this.dataSource.getRepository(Clothes);
+    const unassigned = await repository.find({
+      where: { code: IsNull() },
+      order: { createdAt: 'ASC' },
+    });
+
+    if (unassigned.length === 0) return;
+
+    this.logger.log(`Backfilling tag codes for ${unassigned.length} clothes items...`);
+
+    const byUser = new Map<string, Clothes[]>();
+    for (const item of unassigned) {
+      const list = byUser.get(item.userId) ?? [];
+      list.push(item);
+      byUser.set(item.userId, list);
+    }
+
+    for (const [userId, items] of byUser.entries()) {
+      const assigned = await repository.find({
+        where: { userId, code: Not(IsNull()) },
+        select: { code: true },
+      });
+      const userCodes = new Set(assigned.map((c) => c.code).filter(Boolean) as string[]);
+
+      for (const item of items) {
+        const newCode = generateUniqueTagCode(userCodes);
+        userCodes.add(newCode);
+        await repository.update(item.id, { code: newCode });
+      }
+    }
+
+    this.logger.log(`Successfully backfilled tag codes for ${unassigned.length} clothes items.`);
   }
 
   async list(user: AuthUser, query: Record<string, string | undefined>) {
@@ -135,7 +172,11 @@ export class ClothesService implements OnModuleInit {
     }
 
     if (query.size) qb.andWhere('clothes.size = :size', { size: query.size });
-    if (query.search) qb.andWhere('(clothes.name LIKE :search OR brand.name LIKE :search)', { search: `%${query.search}%` });
+    if (query.search) {
+      qb.andWhere('(clothes.name LIKE :search OR brand.name LIKE :search OR clothes.code LIKE :search OR clothes.notes LIKE :search)', {
+        search: `%${query.search}%`,
+      });
+    }
 
     const [items, total] = await qb.orderBy('clothes.createdAt', 'DESC').skip((page - 1) * perPage).take(perPage).getManyAndCount();
     for (const item of items) {
@@ -215,6 +256,7 @@ export class ClothesService implements OnModuleInit {
           null;
         return {
           id: item.id,
+          code: item.code,
           name: item.name,
           fullTitle: item.fullTitle,
           brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
@@ -370,6 +412,7 @@ export class ClothesService implements OnModuleInit {
           null;
         return {
           id: item.id,
+          code: item.code,
           name: item.name,
           fullTitle: item.fullTitle,
           brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
@@ -701,6 +744,48 @@ export class ClothesService implements OnModuleInit {
   private async mapPayload(user: AuthUser, body: Record<string, unknown>, existing?: Clothes) {
     const repository = this.dataSource.getRepository(Clothes);
     const clothes = existing ?? repository.create({ userId: user.id });
+
+    if ('code' in body) {
+      const normalized = normalizeTagCode(body.code !== null && body.code !== undefined ? String(body.code) : null);
+      if (normalized) {
+        if (!isValidTagCode(normalized)) {
+          throw new BadRequestException('Il codice etichetta deve essere composto da esattamente 3 caratteri alfanumerici.');
+        }
+        if (!existing || existing.code !== normalized) {
+          const collision = await repository.findOne({
+            where: { userId: user.id, code: normalized },
+          });
+          if (collision && collision.id !== existing?.id) {
+            throw new ConflictException(`Il codice etichetta "${normalized}" è già utilizzato per un altro capo.`);
+          }
+        }
+        clothes.code = normalized;
+      } else {
+        const existingItems = await repository.find({
+          where: { userId: user.id },
+          select: { code: true, id: true },
+        });
+        const existingCodes = new Set(
+          existingItems
+            .filter((c) => c.id !== existing?.id)
+            .map((c) => c.code)
+            .filter(Boolean) as string[],
+        );
+        clothes.code = generateUniqueTagCode(existingCodes);
+      }
+    } else if (!existing || !clothes.code) {
+      const existingItems = await repository.find({
+        where: { userId: user.id },
+        select: { code: true, id: true },
+      });
+      const existingCodes = new Set(
+        existingItems
+          .filter((c) => c.id !== existing?.id)
+          .map((c) => c.code)
+          .filter(Boolean) as string[],
+      );
+      clothes.code = generateUniqueTagCode(existingCodes);
+    }
 
     if (body.name !== undefined) clothes.name = body.name === null ? null : String(body.name).trim();
     if (body.size !== undefined) {
