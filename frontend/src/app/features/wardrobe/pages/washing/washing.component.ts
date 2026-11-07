@@ -15,6 +15,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state';
 export interface WashingTemperatureGroup {
   temperature: number;
   label: string;
+  title: string;
   subtitle: string;
   items: WashingClothesItem[];
 }
@@ -72,7 +73,8 @@ export class WashingPageComponent implements OnInit {
 
     return temps.map((temp) => ({
       temperature: temp,
-      label: `${temp}°C`,
+      label: temp === 0 ? 'A freddo' : `${temp}°C`,
+      title: temp === 0 ? 'Lavaggio a freddo' : `Temperatura ${temp}°C`,
       subtitle: this.getTempSubtitle(temp),
       items: validItems.filter((item) => this.parseTemperature(item) === temp),
     }));
@@ -239,17 +241,18 @@ export class WashingPageComponent implements OnInit {
       return null;
     }
     const temp = wash.temperature;
-    if (!temp) {
+    if (temp === null || temp === undefined || temp === '') {
       return null;
     }
     const num = Number(temp);
-    if (Number.isNaN(num) || num <= 0) {
+    if (Number.isNaN(num) || num < 0) {
       return null;
     }
     return num;
   }
 
   getTempSubtitle(temp: number): string {
+    if (temp === 0) return 'Acqua fredda';
     if (temp <= 20) return 'Lavaggio a freddo • Delicatissimi';
     if (temp <= 30) return 'Max 30°C • Seta, sintetici, delicati';
     if (temp <= 40) return 'Max 40°C • Cotone, colorati, misti';

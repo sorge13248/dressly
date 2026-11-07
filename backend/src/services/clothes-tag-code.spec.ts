@@ -245,6 +245,40 @@ async function runTagCodeTests() {
   await clothesService.removeFromIroning(userA, cumulativeCloth.id, 1, true);
   console.log('✓ Test 8 passed!');
 
+  // Test 9: Cold wash temperature 0 allowed and persisted
+  console.log('Test 9: Cold wash temperature 0 allowed and persisted');
+  const coldCloth = await clothesService.create(userA, {
+    name: 'Seta fredda',
+    color_ids: [color1.id],
+    season_ids: [season1.id],
+    temperature_ids: [temp1.id],
+    washingInstruction: {
+      washType: 'washer_ok',
+      washing_temperature: 0,
+      bleachType: 'no_bleach',
+    },
+  });
+  assert.strictEqual(coldCloth.washingInstruction?.temperature, '0');
+
+  // Verify invalid negative temperature rejected
+  let rejectedNegative = false;
+  try {
+    await clothesService.create(userA, {
+      name: 'Temp negativa',
+      color_ids: [color1.id],
+      season_ids: [season1.id],
+      temperature_ids: [temp1.id],
+      washingInstruction: {
+        washType: 'washer_ok',
+        washing_temperature: -5,
+      },
+    });
+  } catch {
+    rejectedNegative = true;
+  }
+  assert.strictEqual(rejectedNegative, true);
+  console.log('✓ Test 9 passed!');
+
   await dataSource.destroy();
   console.log('🎉 ALL TAG CODE TESTS PASSED SUCCESSFULLY! 🎉');
 }

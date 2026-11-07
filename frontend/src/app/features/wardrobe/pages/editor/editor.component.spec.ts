@@ -344,4 +344,26 @@ describe('WardrobeWizardPageComponent', () => {
       }),
     );
   });
+
+  it('should accept cold wash temperature 0 and load it properly', async () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+
+    vi.spyOn(api, 'getClothes').mockReturnValue(of({
+      id: 'c-cold',
+      name: 'Vestito seta',
+      washingInstruction: {
+        washType: 'washer_ok',
+        temperature: '0',
+      },
+      attachments: [],
+    } as any));
+
+    await comp.loadClothes('c-cold');
+
+    expect(comp.wizardForm.care.washing.wash_type().value()).toBe('washer_ok');
+    expect(comp.wizardForm.care.washing.washing_temperature().value()).toBe(0);
+    expect(comp.wizardForm.care.washing.washing_temperature().invalid()).toBe(false);
+  });
 });
