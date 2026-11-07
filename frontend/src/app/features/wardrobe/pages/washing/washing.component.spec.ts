@@ -231,4 +231,70 @@ describe('WashingPageComponent', () => {
     expect(emptyCard).not.toBeNull();
     expect(emptyCard.textContent).toContain('Nessun capo da lavare');
   });
+
+  it('should render quantity pill for cumulative clothes in washing', () => {
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+    vi.spyOn(comp, 'load').mockImplementation(async () => {});
+
+    const cumulativeItem: WashingClothesItem = {
+      ...fakeClothes[3],
+      id: 'cloth-cumul',
+      isCumulative: true,
+      quantity: 5,
+      washingQuantity: 4,
+    };
+
+    comp.items.set([cumulativeItem]);
+    comp.loading.set(false);
+    fixture.detectChanges();
+
+    const pill = fixture.nativeElement.querySelector('.quantity-pill');
+    expect(pill).toBeTruthy();
+    expect(pill.textContent.trim()).toBe('4');
+  });
+
+  it('should decrement washingQuantity on onWashed when cumulative quantity > 1', async () => {
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+
+    const cumulativeItem: WashingClothesItem = {
+      ...fakeClothes[3],
+      id: 'cloth-cumul',
+      isCumulative: true,
+      quantity: 5,
+      washingQuantity: 3,
+    };
+
+    comp.items.set([cumulativeItem]);
+    await comp.onWashed(cumulativeItem);
+
+    expect(mockStorageService.removeFromWashing).toHaveBeenCalledWith('cloth-cumul');
+    expect(mockSyncService.queueLaundryChange).toHaveBeenCalledWith('washing', 'cloth-cumul', 'delete');
+    // Item should still be present with quantity 2
+    const updated = comp.items().find((i) => i.id === 'cloth-cumul');
+    expect(updated).toBeDefined();
+    expect(updated?.washingQuantity).toBe(2);
+  });
+
+  it('should remove all items on onWashedAll for cumulative clothes', async () => {
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+
+    const cumulativeItem: WashingClothesItem = {
+      ...fakeClothes[3],
+      id: 'cloth-cumul',
+      isCumulative: true,
+      quantity: 5,
+      washingQuantity: 3,
+    };
+
+    comp.items.set([cumulativeItem]);
+    await comp.onWashedAll(cumulativeItem);
+
+    expect(mockStorageService.removeFromWashing).toHaveBeenCalledWith('cloth-cumul', 3, true);
+    expect(mockSyncService.queueLaundryChange).toHaveBeenCalledTimes(3);
+    // Item should be completely removed
+    expect(comp.items().some((i) => i.id === 'cloth-cumul')).toBe(false);
+  });
 });

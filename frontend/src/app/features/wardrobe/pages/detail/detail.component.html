@@ -31,13 +31,13 @@
                   @if (isInWashing()) {
                     <span class="status-chip status-chip--washing" title="In lavatrice">
                       <app-washing-icon [size]="14" [strokeWidth]="2" />
-                      In lavatrice
+                      In lavatrice@if (current.isCumulative && washingQuantity() > 0) { ({{ washingQuantity() }})}
                     </span>
                   }
                   @if (isInIroning()) {
                     <span class="status-chip status-chip--ironing" title="Da stirare">
                       <app-ironing-icon [size]="14" [strokeWidth]="2" />
-                      Da stirare
+                      Da stirare@if (current.isCumulative && ironingQuantity() > 0) { ({{ ironingQuantity() }})}
                     </span>
                   }
                 </div>
@@ -49,6 +49,14 @@
                   <span class="hero-label">ID Etichetta</span>
                   <div class="hero-meta">
                     <span class="hero-code-val">{{ current.code }}</span>
+                  </div>
+                </div>
+              }
+              @if (current.isCumulative || (current.quantity && current.quantity > 1)) {
+                <div class="hero-detail-row">
+                  <span class="hero-label">Quantità</span>
+                  <div class="hero-meta">
+                    <span class="hero-quantity-val">{{ current.quantity || 1 }}</span>
                   </div>
                 </div>
               }
@@ -188,10 +196,20 @@
               class="hero-action-btn"
               [class.active-washing]="isInWashing()"
               (click)="toggleWashing()"
-              [title]="isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare'"
+              [title]="current.isCumulative ? 'Aggiungi alla lavatrice' : (isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare')"
             >
               <app-washing-icon [size]="16" />
-              <span>{{ isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare' }}</span>
+              <span>
+                @if (current.isCumulative) {
+                  @if (washingQuantity() >= (current.quantity || 1)) {
+                    In lavatrice ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+                  } @else {
+                    Metti a lavare ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+                  }
+                } @else {
+                  {{ isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare' }}
+                }
+              </span>
             </button>
 
             <button
@@ -199,10 +217,20 @@
               class="hero-action-btn"
               [class.active-ironing]="isInIroning()"
               (click)="toggleIroning()"
-              [title]="isInIroning() ? 'Togli da stirare' : 'Metti a stirare'"
+              [title]="current.isCumulative ? 'Aggiungi alla stiratura' : (isInIroning() ? 'Togli da stirare' : 'Metti a stirare')"
             >
               <app-ironing-icon [size]="16" />
-              <span>{{ isInIroning() ? 'Togli da stirare' : 'Metti a stirare' }}</span>
+              <span>
+                @if (current.isCumulative) {
+                  @if (ironingQuantity() >= (current.quantity || 1)) {
+                    Da stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+                  } @else {
+                    Metti a stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+                  }
+                } @else {
+                  {{ isInIroning() ? 'Togli da stirare' : 'Metti a stirare' }}
+                }
+              </span>
             </button>
 
             <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit()">Modifica</button>

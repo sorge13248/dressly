@@ -47,6 +47,15 @@
                     } @else {
                       <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                     }
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                      <span
+                        class="quantity-pill"
+                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                      >
+                        {{ item.ironingQuantity }}
+                      </span>
+                    }
                   </div>
                   <div class="cloth-body">
                     <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -57,13 +66,26 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onIroned(item, $event)"
-                      title="Segna come stirato e rimuovi dalla lista"
+                      [title]="item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Segna 1 capo come stirato' : 'Segna come stirato e rimuovi dalla lista'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Stirato</span>
+                      <span>{{ item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Stirato (1)' : 'Stirato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onIronedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.ironingQuantity + ' capi come stirati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Stira tutti ({{ item.ironingQuantity }})</span>
+                      </button>
+                    }
                   </div>
                 </a>
               }
@@ -104,6 +126,15 @@
                     } @else {
                       <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                     }
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                      <span
+                        class="quantity-pill"
+                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                      >
+                        {{ item.ironingQuantity }}
+                      </span>
+                    }
                   </div>
                   <div class="cloth-body">
                     <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -116,13 +147,26 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onIroned(item, $event)"
-                      title="Segna come stirato e rimuovi dalla lista"
+                      [title]="item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Segna 1 capo come stirato' : 'Segna come stirato e rimuovi dalla lista'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Stirato</span>
+                      <span>{{ item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Stirato (1)' : 'Stirato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onIronedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.ironingQuantity + ' capi come stirati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Stira tutti ({{ item.ironingQuantity }})</span>
+                      </button>
+                    }
                   </div>
                 </a>
               }
@@ -163,6 +207,15 @@
                     } @else {
                       <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                     }
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                      <span
+                        class="quantity-pill"
+                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                      >
+                        {{ item.ironingQuantity }}
+                      </span>
+                    }
                   </div>
                   <div class="cloth-body">
                     <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -175,13 +228,26 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onIroned(item, $event)"
-                      title="Segna come stirato e rimuovi dalla lista"
+                      [title]="item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Segna 1 capo come stirato' : 'Segna come stirato e rimuovi dalla lista'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Stirato</span>
+                      <span>{{ item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Stirato (1)' : 'Stirato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onIronedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.ironingQuantity + ' capi come stirati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Stira tutti ({{ item.ironingQuantity }})</span>
+                      </button>
+                    }
                   </div>
                 </a>
               }
@@ -222,6 +288,15 @@
                     } @else {
                       <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                     }
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                      <span
+                        class="quantity-pill"
+                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                      >
+                        {{ item.ironingQuantity }}
+                      </span>
+                    }
                   </div>
                   <div class="cloth-body">
                     <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -234,13 +309,26 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onIroned(item, $event)"
-                      title="Segna come stirato e rimuovi dalla lista"
+                      [title]="item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Segna 1 capo come stirato' : 'Segna come stirato e rimuovi dalla lista'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Stirato</span>
+                      <span>{{ item.isCumulative && (item.ironingQuantity ?? 1) > 1 ? 'Stirato (1)' : 'Stirato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onIronedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.ironingQuantity + ' capi come stirati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Stira tutti ({{ item.ironingQuantity }})</span>
+                      </button>
+                    }
                   </div>
                 </a>
               }

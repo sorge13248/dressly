@@ -82,6 +82,8 @@ type WizardFormModel = {
     brand_id: string;
     type_id: string;
     notes: string;
+    is_cumulative: boolean;
+    quantity: number;
   };
   style: {
     color_ids: string[];
@@ -116,6 +118,8 @@ const createInitialWizardModel = (): WizardFormModel => ({
     brand_id: '',
     type_id: '',
     notes: '',
+    is_cumulative: false,
+    quantity: 1,
   },
   style: {
     color_ids: [],
@@ -277,6 +281,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly wizardModel = signal<WizardFormModel>(createInitialWizardModel());
   readonly wizardForm = form(this.wizardModel, (schema) => {
     pattern(schema.base.code, /^[A-Z0-9]{3}$/i, { message: 'Il codice etichetta deve essere di 3 caratteri alfanumerici' });
+    min(schema.base.quantity, 1, { message: 'La quantità deve essere almeno 1' });
     minLength(schema.style.color_ids, 1, { message: 'Seleziona almeno un colore' });
 
     minLength(schema.context.season_ids, 1, { message: 'Seleziona almeno una stagione' });
@@ -1102,6 +1107,28 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     this.wizardForm.base.code().value.set(clean);
   }
 
+  onCumulativeChange(event: Event | boolean) {
+    const isChecked = typeof event === 'boolean' ? event : (event.target as HTMLInputElement).checked;
+    this.wizardModel.update((prev) => {
+      const currentQty = prev.base.quantity;
+      const nextQty = isChecked ? (currentQty && currentQty > 1 ? currentQty : 2) : 1;
+      return {
+        ...prev,
+        base: {
+          ...prev.base,
+          is_cumulative: isChecked,
+          quantity: nextQty,
+        },
+      };
+    });
+  }
+
+  onQuantityInput(event: Event | number) {
+    const val = typeof event === 'number' ? event : parseInt((event.target as HTMLInputElement).value, 10);
+    const validQty = Number.isFinite(val) && val >= 1 ? val : 1;
+    this.wizardForm.base.quantity().value.set(validQty);
+  }
+
   toggleArray(field: any, id: string) {
     const current = field().value() as string[];
     const next = current.includes(id) ? current.filter((value: string) => value !== id) : [...current, id];
@@ -1260,6 +1287,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         brand_id: item.brand?.id ?? '',
         type_id: item.type?.id ?? '',
         notes: item.notes ?? '',
+        is_cumulative: Boolean(item.isCumulative),
+        quantity: item.quantity && item.quantity > 0 ? item.quantity : 1,
       },
       style: {
         color_ids: item.colors?.map((color) => color.id) ?? [],
@@ -1355,6 +1384,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       brand_id: base.brand_id || null,
       type_id: base.type_id || null,
       notes: base.notes.trim() || null,
+      is_cumulative: base.is_cumulative,
+      quantity: base.is_cumulative ? (base.quantity && base.quantity > 0 ? base.quantity : 1) : 1,
       color_ids: style.color_ids,
       material_ids: style.material_ids,
       tag_ids: style.tag_ids,

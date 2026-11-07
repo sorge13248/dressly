@@ -356,15 +356,21 @@ export class SyncService {
           for (const item of pendingLaundry) {
             if (item.kind === 'washing') {
               if (item.action === 'create') {
-                washing = [...new Set([...washing, item.entityId])];
+                washing.push(item.entityId);
               } else if (item.action === 'delete') {
-                washing = washing.filter((id) => id !== item.entityId);
+                const idx = washing.indexOf(item.entityId);
+                if (idx !== -1) {
+                  washing.splice(idx, 1);
+                }
               }
             } else if (item.kind === 'ironing') {
               if (item.action === 'create') {
-                ironing = [...new Set([...ironing, item.entityId])];
+                ironing.push(item.entityId);
               } else if (item.action === 'delete') {
-                ironing = ironing.filter((id) => id !== item.entityId);
+                const idx = ironing.indexOf(item.entityId);
+                if (idx !== -1) {
+                  ironing.splice(idx, 1);
+                }
               }
             }
           }
@@ -513,11 +519,19 @@ export class SyncService {
       } else if (item.entityType === 'laundry' && item.kind) {
         const target = item.kind === 'washing' ? laundryInput.washing! : laundryInput.ironing!;
         if (item.action === 'create') {
-          target.added = Array.from(new Set([...(target.added ?? []), item.entityId]));
-          target.removed = (target.removed ?? []).filter((id) => id !== item.entityId);
+          const remIdx = (target.removed ?? []).indexOf(item.entityId);
+          if (remIdx !== -1) {
+            target.removed!.splice(remIdx, 1);
+          } else {
+            target.added = [...(target.added ?? []), item.entityId];
+          }
         } else if (item.action === 'delete') {
-          target.removed = Array.from(new Set([...(target.removed ?? []), item.entityId]));
-          target.added = (target.added ?? []).filter((id) => id !== item.entityId);
+          const addIdx = (target.added ?? []).indexOf(item.entityId);
+          if (addIdx !== -1) {
+            target.added!.splice(addIdx, 1);
+          } else {
+            target.removed = [...(target.removed ?? []), item.entityId];
+          }
         }
       } else if (item.entityType === 'outfits') {
         const existing = outfitMap.get(item.entityId) ?? {

@@ -3,6 +3,8 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { SyncService } from '../../../../core/sync.service';
 import { IroningClothesItem } from '../../../../core/models';
 import { IroningPageComponent } from './ironing.component';
 
@@ -253,5 +255,79 @@ describe('IroningPageComponent', () => {
 
     comp.returnToWardrobe();
     expect(navigateSpy).toHaveBeenCalledWith(['/wardrobe']);
+  });
+
+  it('should render quantity pill for cumulative clothes in ironing', () => {
+    const fixture = TestBed.createComponent(IroningPageComponent);
+    const comp = fixture.componentInstance;
+    vi.spyOn(comp, 'load').mockImplementation(async () => {});
+
+    const cumulativeItem: IroningClothesItem = {
+      ...fakeClothes[1],
+      id: 'cloth-cumul-iron',
+      isCumulative: true,
+      quantity: 4,
+      ironingQuantity: 3,
+    };
+
+    comp.items.set([cumulativeItem]);
+    comp.loading.set(false);
+    fixture.detectChanges();
+
+    const pill = fixture.nativeElement.querySelector('.quantity-pill');
+    expect(pill).toBeTruthy();
+    expect(pill.textContent.trim()).toBe('3');
+  });
+
+  it('should decrement ironingQuantity on onIroned when cumulative quantity > 1', async () => {
+    const fixture = TestBed.createComponent(IroningPageComponent);
+    const comp = fixture.componentInstance;
+    const storage = TestBed.inject(OfflineStorageService);
+    const syncService = TestBed.inject(SyncService);
+
+    const removeSpy = vi.spyOn(storage, 'removeFromIroning').mockResolvedValue(undefined);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange').mockResolvedValue(undefined);
+
+    const cumulativeItem: IroningClothesItem = {
+      ...fakeClothes[1],
+      id: 'cloth-cumul-iron',
+      isCumulative: true,
+      quantity: 4,
+      ironingQuantity: 3,
+    };
+
+    comp.items.set([cumulativeItem]);
+    await comp.onIroned(cumulativeItem);
+
+    expect(removeSpy).toHaveBeenCalledWith('cloth-cumul-iron');
+    expect(queueSpy).toHaveBeenCalledWith('ironing', 'cloth-cumul-iron', 'delete');
+    const updated = comp.items().find((i) => i.id === 'cloth-cumul-iron');
+    expect(updated).toBeDefined();
+    expect(updated?.ironingQuantity).toBe(2);
+  });
+
+  it('should remove all items on onIronedAll for cumulative clothes', async () => {
+    const fixture = TestBed.createComponent(IroningPageComponent);
+    const comp = fixture.componentInstance;
+    const storage = TestBed.inject(OfflineStorageService);
+    const syncService = TestBed.inject(SyncService);
+
+    const removeSpy = vi.spyOn(storage, 'removeFromIroning').mockResolvedValue(undefined);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange').mockResolvedValue(undefined);
+
+    const cumulativeItem: IroningClothesItem = {
+      ...fakeClothes[1],
+      id: 'cloth-cumul-iron',
+      isCumulative: true,
+      quantity: 4,
+      ironingQuantity: 3,
+    };
+
+    comp.items.set([cumulativeItem]);
+    await comp.onIronedAll(cumulativeItem);
+
+    expect(removeSpy).toHaveBeenCalledWith('cloth-cumul-iron', 3, true);
+    expect(queueSpy).toHaveBeenCalledTimes(3);
+    expect(comp.items().some((i) => i.id === 'cloth-cumul-iron')).toBe(false);
   });
 });

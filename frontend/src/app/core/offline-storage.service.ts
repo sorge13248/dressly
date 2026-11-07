@@ -329,13 +329,24 @@ export class OfflineStorageService {
 
   async addToWashing(clothesIds: string[]): Promise<void> {
     const current = await this.getLaundry();
-    const updated = Array.from(new Set([...current.washing, ...clothesIds]));
+    const updated = [...current.washing, ...clothesIds];
     await this.saveLaundry({ washing: updated });
   }
 
-  async removeFromWashing(clothesId: string): Promise<void> {
+  async removeFromWashing(clothesId: string, quantityToRemove = 1, removeAll = false): Promise<void> {
     const current = await this.getLaundry();
-    const updated = current.washing.filter((id) => id !== clothesId);
+    let updated: string[];
+    if (removeAll) {
+      updated = current.washing.filter((id) => id !== clothesId);
+    } else {
+      updated = [...current.washing];
+      for (let i = 0; i < quantityToRemove; i++) {
+        const idx = updated.indexOf(clothesId);
+        if (idx !== -1) {
+          updated.splice(idx, 1);
+        }
+      }
+    }
     await this.saveLaundry({ washing: updated });
   }
 
@@ -345,13 +356,24 @@ export class OfflineStorageService {
 
   async addToIroning(clothesIds: string[]): Promise<void> {
     const current = await this.getLaundry();
-    const updated = Array.from(new Set([...current.ironing, ...clothesIds]));
+    const updated = [...current.ironing, ...clothesIds];
     await this.saveLaundry({ ironing: updated });
   }
 
-  async removeFromIroning(clothesId: string): Promise<void> {
+  async removeFromIroning(clothesId: string, quantityToRemove = 1, removeAll = false): Promise<void> {
     const current = await this.getLaundry();
-    const updated = current.ironing.filter((id) => id !== clothesId);
+    let updated: string[];
+    if (removeAll) {
+      updated = current.ironing.filter((id) => id !== clothesId);
+    } else {
+      updated = [...current.ironing];
+      for (let i = 0; i < quantityToRemove; i++) {
+        const idx = updated.indexOf(clothesId);
+        if (idx !== -1) {
+          updated.splice(idx, 1);
+        }
+      }
+    }
     await this.saveLaundry({ ironing: updated });
   }
 
@@ -359,21 +381,40 @@ export class OfflineStorageService {
     await this.saveLaundry({ ironing: [] });
   }
 
-  async moveWashingToIroning(clothesId: string): Promise<void> {
+  async moveWashingToIroning(clothesId: string, quantityToMove = 1, moveAll = false): Promise<void> {
     const current = await this.getLaundry();
-    const updatedWashing = current.washing.filter((id) => id !== clothesId);
-    const updatedIroning = Array.from(new Set([...current.ironing, clothesId]));
+    let updatedWashing = [...current.washing];
+    const toMoveCount = moveAll
+      ? updatedWashing.filter((id) => id === clothesId).length
+      : quantityToMove;
+
+    for (let i = 0; i < toMoveCount; i++) {
+      const idx = updatedWashing.indexOf(clothesId);
+      if (idx !== -1) {
+        updatedWashing.splice(idx, 1);
+      }
+    }
+    const updatedIroning = [...current.ironing];
+    for (let i = 0; i < toMoveCount; i++) {
+      updatedIroning.push(clothesId);
+    }
     await this.saveLaundry({ washing: updatedWashing, ironing: updatedIroning });
   }
 
   async getClothesForWashing(): Promise<WashingClothesItem[]> {
     const all = await this.getAllClothes();
     const laundry = await this.getLaundry();
-    const washingSet = new Set(laundry.washing);
+    const washingIds = laundry.washing;
+    const washingCountMap = new Map<string, number>();
+    for (const id of washingIds) {
+      washingCountMap.set(id, (washingCountMap.get(id) ?? 0) + 1);
+    }
+    const washingSet = new Set(washingIds);
     return all
       .filter((item) => washingSet.has(item.id))
       .map((item) => ({
         ...item,
+        washingQuantity: washingCountMap.get(item.id) ?? 1,
         primaryAttachment: item.attachments?.[0]
           ? {
               id: item.attachments[0].id,
@@ -388,11 +429,17 @@ export class OfflineStorageService {
   async getClothesForIroning(): Promise<IroningClothesItem[]> {
     const all = await this.getAllClothes();
     const laundry = await this.getLaundry();
-    const ironingSet = new Set(laundry.ironing);
+    const ironingIds = laundry.ironing;
+    const ironingCountMap = new Map<string, number>();
+    for (const id of ironingIds) {
+      ironingCountMap.set(id, (ironingCountMap.get(id) ?? 0) + 1);
+    }
+    const ironingSet = new Set(ironingIds);
     return all
       .filter((item) => ironingSet.has(item.id))
       .map((item) => ({
         ...item,
+        ironingQuantity: ironingCountMap.get(item.id) ?? 1,
         primaryAttachment: item.attachments?.[0]
           ? {
               id: item.attachments[0].id,
@@ -511,13 +558,23 @@ export class OfflineStorageService {
   async queryClothes(query: ClothesFilters): Promise<{ items: ClothesItem[]; total: number }> {
     const all = await this.getAllClothes();
     const laundry = await this.getLaundry();
-    const washingSet = new Set(laundry.washing);
-    const ironingSet = new Set(laundry.ironing);
+    const washingIds = laundry.washing;
+    const ironingIds = laundry.ironing;
+    const washingCountMap = new Map<string, number>();
+    for (const id of washingIds) {
+      washingCountMap.set(id, (washingCountMap.get(id) ?? 0) + 1);
+    }
+    const ironingCountMap = new Map<string, number>();
+    for (const id of ironingIds) {
+      ironingCountMap.set(id, (ironingCountMap.get(id) ?? 0) + 1);
+    }
 
     let result = all.map((item) => ({
       ...item,
-      isInWashing: washingSet.has(item.id),
-      isInIroning: ironingSet.has(item.id),
+      isInWashing: (washingCountMap.get(item.id) ?? 0) > 0,
+      washingQuantity: washingCountMap.get(item.id) ?? 0,
+      isInIroning: (ironingCountMap.get(item.id) ?? 0) > 0,
+      ironingQuantity: ironingCountMap.get(item.id) ?? 0,
     }));
 
     if (query.search?.trim()) {

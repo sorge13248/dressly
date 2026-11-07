@@ -140,6 +140,29 @@
                 </label>
               </div>
 
+              <div class="cumulative-row">
+                <label class="checkbox-label cumulative-checkbox">
+                  <input
+                    type="checkbox"
+                    [formField]="wizardForm.base.is_cumulative"
+                    (change)="onCumulativeChange($event)"
+                  />
+                  <span>Capo cumulativo (possiedo più capi identici)</span>
+                </label>
+                @if (wizardForm.base.is_cumulative().value()) {
+                  <label class="field-quantity">
+                    <span>Quantità</span>
+                    <input
+                      type="number"
+                      class="input-quantity-narrow"
+                      [formField]="wizardForm.base.quantity"
+                      (input)="onQuantityInput($event)"
+                      placeholder="2"
+                    />
+                  </label>
+                }
+              </div>
+
               <label class="full-width notes-field">
                 <span>Note</span>
                 <textarea [formField]="wizardForm.base.notes" rows="3" placeholder="Note aggiuntive, composizione, vestibilità..."></textarea>

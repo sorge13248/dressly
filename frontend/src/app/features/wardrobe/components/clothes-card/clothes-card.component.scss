@@ -51,13 +51,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
+  min-width: 30px;
+  width: auto;
   height: 30px;
+  padding: 0 6px;
+  gap: 3px;
   border-radius: 8px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 2px 8px rgba(10, 32, 70, 0.2);
   transition: all 160ms ease;
+
+  .status-badge-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+  }
 
   &--washing {
     background: rgba(235, 248, 255, 0.9);

@@ -151,6 +151,10 @@ export interface ClothesItem {
   buyDetail?: BuyDetailItem | null;
   isInWashing?: boolean;
   isInIroning?: boolean;
+  isCumulative?: boolean;
+  quantity?: number;
+  washingQuantity?: number;
+  ironingQuantity?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -194,6 +198,8 @@ export interface ClothesWizardFormValue {
   brand_id: string;
   type_id: string;
   notes: string;
+  is_cumulative: boolean;
+  quantity: number;
   color_ids: string[];
   material_ids: string[];
   season_ids: string[];
@@ -232,6 +238,9 @@ export interface IroningClothesItem {
   } | null;
   isInWashing?: boolean;
   isInIroning?: boolean;
+  isCumulative?: boolean;
+  quantity?: number;
+  ironingQuantity?: number;
 }
 
 export interface IroningClothesResponse {
@@ -268,6 +277,9 @@ export interface WashingClothesItem {
   } | null;
   isInWashing?: boolean;
   isInIroning?: boolean;
+  isCumulative?: boolean;
+  quantity?: number;
+  washingQuantity?: number;
 }
 
 export interface WashingClothesResponse {

@@ -379,31 +379,66 @@ export class SyncService {
   ) {
     const washingRepo = this.dataSource.getRepository(WashingItem);
     const ironingRepo = this.dataSource.getRepository(IroningItem);
+    const clothesRepo = this.dataSource.getRepository(Clothes);
 
     if (laundry.washing?.removed?.length) {
       for (const clothesId of laundry.washing.removed) {
-        await washingRepo.delete({ userId: user.id, clothesId });
+        const item = await washingRepo.findOne({ where: { userId: user.id, clothesId } });
+        if (item) {
+          if (item.quantity > 1) {
+            item.quantity -= 1;
+            await washingRepo.save(item);
+          } else {
+            await washingRepo.delete({ id: item.id });
+          }
+        }
       }
     }
     if (laundry.washing?.added?.length) {
       for (const clothesId of laundry.washing.added) {
-        const count = await washingRepo.count({ where: { userId: user.id, clothesId } });
-        if (count === 0) {
-          await washingRepo.save(washingRepo.create({ userId: user.id, clothesId }));
+        const item = await washingRepo.findOne({ where: { userId: user.id, clothesId } });
+        if (item) {
+          const cloth = await clothesRepo.findOne({ where: { id: clothesId, userId: user.id } });
+          if (cloth?.isCumulative) {
+            const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
+            if (item.quantity < maxQty) {
+              item.quantity += 1;
+              await washingRepo.save(item);
+            }
+          }
+        } else {
+          await washingRepo.save(washingRepo.create({ userId: user.id, clothesId, quantity: 1 }));
         }
       }
     }
 
     if (laundry.ironing?.removed?.length) {
       for (const clothesId of laundry.ironing.removed) {
-        await ironingRepo.delete({ userId: user.id, clothesId });
+        const item = await ironingRepo.findOne({ where: { userId: user.id, clothesId } });
+        if (item) {
+          if (item.quantity > 1) {
+            item.quantity -= 1;
+            await ironingRepo.save(item);
+          } else {
+            await ironingRepo.delete({ id: item.id });
+          }
+        }
       }
     }
     if (laundry.ironing?.added?.length) {
       for (const clothesId of laundry.ironing.added) {
-        const count = await ironingRepo.count({ where: { userId: user.id, clothesId } });
-        if (count === 0) {
-          await ironingRepo.save(ironingRepo.create({ userId: user.id, clothesId }));
+        const item = await ironingRepo.findOne({ where: { userId: user.id, clothesId } });
+        if (item) {
+          const cloth = await clothesRepo.findOne({ where: { id: clothesId, userId: user.id } });
+          if (cloth?.isCumulative) {
+            const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
+            if (item.quantity < maxQty) {
+              item.quantity += 1;
+              await ironingRepo.save(item);
+            }
+          }
+        } else {
+          await ironingRepo.save(ironingRepo.create({ userId: user.id, clothesId, quantity: 1 }));
         }
       }
     }
@@ -608,11 +643,11 @@ export class SyncService {
     // 5. Laundry lists
     const washingItems = await this.dataSource.getRepository(WashingItem).find({
       where: { userId: user.id },
-      select: { clothesId: true },
+      select: { clothesId: true, quantity: true },
     });
     const ironingItems = await this.dataSource.getRepository(IroningItem).find({
       where: { userId: user.id },
-      select: { clothesId: true },
+      select: { clothesId: true, quantity: true },
     });
 
     // 6. Outfits changes
@@ -679,8 +714,8 @@ export class SyncService {
       referenceData: serverReferenceData,
       deletedReferenceData,
       laundry: {
-        washingClothesIds: washingItems.map((w) => w.clothesId),
-        ironingClothesIds: ironingItems.map((i) => i.clothesId),
+        washingClothesIds: washingItems.flatMap((w) => Array.from({ length: w.quantity || 1 }, () => w.clothesId)),
+        ironingClothesIds: ironingItems.flatMap((i) => Array.from({ length: i.quantity || 1 }, () => i.clothesId)),
       },
       outfits: serverOutfits,
       deletedOutfitIds,
