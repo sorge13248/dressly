@@ -47,6 +47,15 @@
                       } @else {
                         <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                       }
+                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità in lavatrice: ' + item.washingQuantity"
+                          [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
+                        >
+                          {{ item.washingQuantity }}
+                        </span>
+                      }
                     </div>
                     <div class="cloth-body">
                       <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -59,21 +68,34 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onWashed(item, $event)"
-                      title="Segna come lavato e rimuovi dalla lavatrice"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Segna 1 capo come lavato' : 'Segna come lavato e rimuovi dalla lavatrice'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Lavato</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Lavato (1)' : 'Lavato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onWashedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.washingQuantity + ' capi come lavati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Lava tutti ({{ item.washingQuantity }})</span>
+                      </button>
+                    }
                     <button
                       type="button"
                       class="cloth-action-btn action-iron"
                       (click)="onWashedAndIron(item, $event)"
-                      title="Segna come lavato e aggiungi ai capi da stirare"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
                     >
                       <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                      <span>Lavato e da stirare</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
                     </button>
                   </div>
                 </div>
@@ -113,6 +135,15 @@
                       } @else {
                         <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                       }
+                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità in lavatrice: ' + item.washingQuantity"
+                          [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
+                        >
+                          {{ item.washingQuantity }}
+                        </span>
+                      }
                     </div>
                     <div class="cloth-body">
                       <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -127,21 +158,34 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onWashed(item, $event)"
-                      title="Segna come lavato e rimuovi dalla lavatrice"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Segna 1 capo come lavato' : 'Segna come lavato e rimuovi dalla lavatrice'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Lavato</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Lavato (1)' : 'Lavato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onWashedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.washingQuantity + ' capi come lavati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Lava tutti ({{ item.washingQuantity }})</span>
+                      </button>
+                    }
                     <button
                       type="button"
                       class="cloth-action-btn action-iron"
                       (click)="onWashedAndIron(item, $event)"
-                      title="Segna come lavato e aggiungi ai capi da stirare"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
                     >
                       <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                      <span>Lavato e da stirare</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
                     </button>
                   </div>
                 </div>
@@ -181,6 +225,15 @@
                       } @else {
                         <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                       }
+                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità in lavatrice: ' + item.washingQuantity"
+                          [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
+                        >
+                          {{ item.washingQuantity }}
+                        </span>
+                      }
                     </div>
                     <div class="cloth-body">
                       <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -195,13 +248,26 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onWashed(item, $event)"
-                      title="Rimuovi dalla lista dei capi da lavare"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Rimuovi 1 capo dalla lavatrice' : 'Rimuovi dalla lista dei capi da lavare'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Rimuovi</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Rimuovi (1)' : 'Rimuovi' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onWashedAll(item, $event)"
+                        [title]="'Rimuovi tutti i ' + item.washingQuantity + ' capi dalla lavatrice'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Rimuovi tutti ({{ item.washingQuantity }})</span>
+                      </button>
+                    }
                   </div>
                 </div>
               }
@@ -240,6 +306,15 @@
                       } @else {
                         <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                       }
+                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità in lavatrice: ' + item.washingQuantity"
+                          [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
+                        >
+                          {{ item.washingQuantity }}
+                        </span>
+                      }
                     </div>
                     <div class="cloth-body">
                       <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
@@ -262,21 +337,34 @@
                       type="button"
                       class="cloth-action-btn"
                       (click)="onWashed(item, $event)"
-                      title="Segna come lavato e rimuovi dalla lavatrice"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Segna 1 capo come lavato' : 'Segna come lavato e rimuovi dalla lavatrice'"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>Lavato</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Lavato (1)' : 'Lavato' }}</span>
                     </button>
+                    @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-all"
+                        (click)="onWashedAll(item, $event)"
+                        [title]="'Segna tutti i ' + item.washingQuantity + ' capi come lavati'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Lava tutti ({{ item.washingQuantity }})</span>
+                      </button>
+                    }
                     <button
                       type="button"
                       class="cloth-action-btn action-iron"
                       (click)="onWashedAndIron(item, $event)"
-                      title="Segna come lavato e aggiungi ai capi da stirare"
+                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
                     >
                       <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                      <span>Lavato e da stirare</span>
+                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
                     </button>
                   </div>
                 </div>

@@ -184,33 +184,29 @@ export class ClothesService implements OnModuleInit {
     }
 
     const itemIds = items.map((item) => item.id);
-    const washingIds = itemIds.length > 0
-      ? new Set(
-          (
-            await this.dataSource.getRepository(WashingItem).find({
-              where: { userId: user.id, clothesId: In(itemIds) },
-              select: { clothesId: true },
-            })
-          ).map((w) => w.clothesId),
-        )
-      : new Set<string>();
+    const washingEntries = itemIds.length > 0
+      ? await this.dataSource.getRepository(WashingItem).find({
+          where: { userId: user.id, clothesId: In(itemIds) },
+          select: { clothesId: true, quantity: true },
+        })
+      : [];
+    const washingMap = new Map(washingEntries.map((w) => [w.clothesId, w.quantity || 1]));
 
-    const ironingIds = itemIds.length > 0
-      ? new Set(
-          (
-            await this.dataSource.getRepository(IroningItem).find({
-              where: { userId: user.id, clothesId: In(itemIds) },
-              select: { clothesId: true },
-            })
-          ).map((i) => i.clothesId),
-        )
-      : new Set<string>();
+    const ironingEntries = itemIds.length > 0
+      ? await this.dataSource.getRepository(IroningItem).find({
+          where: { userId: user.id, clothesId: In(itemIds) },
+          select: { clothesId: true, quantity: true },
+        })
+      : [];
+    const ironingMap = new Map(ironingEntries.map((i) => [i.clothesId, i.quantity || 1]));
 
     return {
       items: items.map((item) => ({
         ...this.decorateResponse(item),
-        isInWashing: washingIds.has(item.id),
-        isInIroning: ironingIds.has(item.id),
+        isInWashing: washingMap.has(item.id),
+        washingQuantity: washingMap.get(item.id) ?? 0,
+        isInIroning: ironingMap.has(item.id),
+        ironingQuantity: ironingMap.get(item.id) ?? 0,
       })),
       total,
       page,
@@ -222,12 +218,13 @@ export class ClothesService implements OnModuleInit {
     const washingEntries = await this.dataSource.getRepository(WashingItem).find({
       where: { userId: user.id },
       order: { addedAt: 'DESC' },
-      select: { clothesId: true },
+      select: { clothesId: true, quantity: true },
     });
     const ids = washingEntries.map((w) => w.clothesId);
     if (ids.length === 0) {
       return { items: [] };
     }
+    const quantitiesByClothesId = new Map(washingEntries.map((w) => [w.clothesId, w.quantity || 1]));
 
     const qb = this.dataSource
       .getRepository(Clothes)
@@ -259,6 +256,10 @@ export class ClothesService implements OnModuleInit {
           code: item.code,
           name: item.name,
           fullTitle: item.fullTitle,
+          isCumulative: item.isCumulative ?? false,
+          quantity: item.quantity ?? 1,
+          washingQuantity: quantitiesByClothesId.get(item.id) ?? 1,
+          isInWashing: true,
           brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
           type: item.type ? { id: item.type.id, name: item.type.name } : null,
           colors: (item.colors ?? []).map((c) => ({ id: c.id, name: c.name, hexCode: c.hexCode })),
@@ -295,44 +296,70 @@ export class ClothesService implements OnModuleInit {
     if (!clothesIds || clothesIds.length === 0) {
       return { added: 0, existing: 0, total: 0 };
     }
-    const uniqueIds = Array.from(new Set(clothesIds.filter(Boolean)));
+    const countById = new Map<string, number>();
+    for (const id of clothesIds.filter(Boolean)) {
+      countById.set(id, (countById.get(id) ?? 0) + 1);
+    }
+    const uniqueIds = Array.from(countById.keys());
     const validClothes = await this.dataSource.getRepository(Clothes).find({
       where: { userId: user.id, id: In(uniqueIds) },
-      select: { id: true },
+      select: { id: true, isCumulative: true, quantity: true },
     });
-    const validIds = validClothes.map((c) => c.id);
-    if (validIds.length === 0) {
+    if (validClothes.length === 0) {
       return { added: 0, existing: 0, total: 0 };
     }
 
     const washingRepo = this.dataSource.getRepository(WashingItem);
     const existingItems = await washingRepo.find({
-      where: { userId: user.id, clothesId: In(validIds) },
-      select: { clothesId: true },
+      where: { userId: user.id, clothesId: In(validClothes.map((c) => c.id)) },
     });
-    const existingSet = new Set(existingItems.map((e) => e.clothesId));
+    const existingMap = new Map(existingItems.map((e) => [e.clothesId, e]));
 
-    const toInsert = validIds
-      .filter((id) => !existingSet.has(id))
-      .map((clothesId) => washingRepo.create({ userId: user.id, clothesId }));
-
-    if (toInsert.length > 0) {
-      await washingRepo.save(toInsert);
+    let addedCount = 0;
+    for (const cloth of validClothes) {
+      const requested = countById.get(cloth.id) ?? 1;
+      const existing = existingMap.get(cloth.id);
+      if (existing) {
+        if (cloth.isCumulative) {
+          const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
+          const newQty = Math.min(maxQty, (existing.quantity || 1) + requested);
+          if (newQty > (existing.quantity || 1)) {
+            addedCount += newQty - (existing.quantity || 1);
+            existing.quantity = newQty;
+            await washingRepo.save(existing);
+          }
+        }
+      } else {
+        const initialQty = cloth.isCumulative
+          ? Math.min(cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1, requested)
+          : 1;
+        await washingRepo.save(washingRepo.create({ userId: user.id, clothesId: cloth.id, quantity: initialQty }));
+        addedCount += initialQty;
+      }
     }
 
-    const total = await washingRepo.count({ where: { userId: user.id } });
+    const counts = await this.getLaundryCounts(user);
     return {
-      added: toInsert.length,
-      existing: existingSet.size,
-      total,
+      added: addedCount,
+      existing: existingItems.length,
+      total: counts.washingCount,
     };
   }
 
-  async removeFromWashing(user: AuthUser, clothesId: string) {
+  async removeFromWashing(user: AuthUser, clothesId: string, quantityToRemove = 1, removeAll = false) {
     const washingRepo = this.dataSource.getRepository(WashingItem);
-    await washingRepo.delete({ userId: user.id, clothesId });
-    const total = await washingRepo.count({ where: { userId: user.id } });
-    return { removed: true, total };
+    const existing = await washingRepo.findOne({ where: { userId: user.id, clothesId } });
+    if (existing) {
+      const cloth = await this.dataSource.getRepository(Clothes).findOne({ where: { id: clothesId, userId: user.id } });
+      if (removeAll || !cloth?.isCumulative || (existing.quantity || 1) <= quantityToRemove) {
+        await washingRepo.delete({ id: existing.id });
+      } else {
+        existing.quantity = (existing.quantity || 1) - quantityToRemove;
+        await washingRepo.save(existing);
+      }
+    }
+    const counts = await this.getLaundryCounts(user);
+    return { removed: true, total: counts.washingCount };
   }
 
   async clearWashing(user: AuthUser) {
@@ -341,49 +368,74 @@ export class ClothesService implements OnModuleInit {
     return { cleared: true };
   }
 
-  async moveWashingToIroning(user: AuthUser, clothesId: string) {
+  async moveWashingToIroning(user: AuthUser, clothesId: string, quantityToMove = 1, moveAll = false) {
     const washingRepo = this.dataSource.getRepository(WashingItem);
     const ironingRepo = this.dataSource.getRepository(IroningItem);
 
-    // Remove from washing
-    await washingRepo.delete({ userId: user.id, clothesId });
+    const existingWashing = await washingRepo.findOne({ where: { userId: user.id, clothesId } });
+    if (!existingWashing) {
+      throw new NotFoundException('Capo non trovato nella lavatrice');
+    }
 
-    // Validate clothes exists and belongs to user
-    const exists =
-      (await this.dataSource.getRepository(Clothes).count({
-        where: { id: clothesId, userId: user.id },
-      })) > 0;
-    if (!exists) {
+    const cloth = await this.dataSource.getRepository(Clothes).findOne({
+      where: { id: clothesId, userId: user.id },
+    });
+    if (!cloth) {
       throw new NotFoundException('Capo non trovato');
     }
 
-    // Add to ironing if not already there
-    const alreadyInIroning =
-      (await ironingRepo.count({
-        where: { userId: user.id, clothesId },
-      })) > 0;
-    if (!alreadyInIroning) {
-      await ironingRepo.save(ironingRepo.create({ userId: user.id, clothesId }));
+    const actualMoveCount = moveAll || !cloth.isCumulative || (existingWashing.quantity || 1) <= quantityToMove
+      ? (existingWashing.quantity || 1)
+      : quantityToMove;
+
+    if (actualMoveCount >= (existingWashing.quantity || 1)) {
+      await washingRepo.delete({ id: existingWashing.id });
+    } else {
+      existingWashing.quantity = (existingWashing.quantity || 1) - actualMoveCount;
+      await washingRepo.save(existingWashing);
     }
 
-    const washingCount = await washingRepo.count({ where: { userId: user.id } });
-    const ironingCount = await ironingRepo.count({ where: { userId: user.id } });
-    return { moved: true, washingCount, ironingCount };
+    const existingIroning = await ironingRepo.findOne({ where: { userId: user.id, clothesId } });
+    if (existingIroning) {
+      if (cloth.isCumulative) {
+        const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
+        existingIroning.quantity = Math.min(maxQty, (existingIroning.quantity || 1) + actualMoveCount);
+        await ironingRepo.save(existingIroning);
+      }
+    } else {
+      await ironingRepo.save(
+        ironingRepo.create({
+          userId: user.id,
+          clothesId,
+          quantity: cloth.isCumulative ? actualMoveCount : 1,
+        }),
+      );
+    }
+
+    const counts = await this.getLaundryCounts(user);
+    return { moved: true, washingCount: counts.washingCount, ironingCount: counts.ironingCount };
   }
 
   async getIroningList(user: AuthUser, rawIds?: string) {
     let ids = parseCsv(rawIds);
+    let ironingEntries: Array<{ clothesId: string; quantity: number }> = [];
     if (ids.length === 0) {
-      const ironingEntries = await this.dataSource.getRepository(IroningItem).find({
+      ironingEntries = await this.dataSource.getRepository(IroningItem).find({
         where: { userId: user.id },
         order: { addedAt: 'DESC' },
-        select: { clothesId: true },
+        select: { clothesId: true, quantity: true },
       });
       ids = ironingEntries.map((item) => item.clothesId);
+    } else {
+      ironingEntries = await this.dataSource.getRepository(IroningItem).find({
+        where: { userId: user.id, clothesId: In(ids) },
+        select: { clothesId: true, quantity: true },
+      });
     }
     if (ids.length === 0) {
       return { items: [] };
     }
+    const ironingQuantities = new Map(ironingEntries.map((i) => [i.clothesId, i.quantity || 1]));
 
     const qb = this.dataSource
       .getRepository(Clothes)
@@ -415,6 +467,10 @@ export class ClothesService implements OnModuleInit {
           code: item.code,
           name: item.name,
           fullTitle: item.fullTitle,
+          isCumulative: item.isCumulative ?? false,
+          quantity: item.quantity ?? 1,
+          ironingQuantity: ironingQuantities.get(item.id) ?? 1,
+          isInIroning: true,
           brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
           type: item.type ? { id: item.type.id, name: item.type.name } : null,
           colors: (item.colors ?? []).map((c) => ({ id: c.id, name: c.name, hexCode: c.hexCode })),
@@ -443,44 +499,70 @@ export class ClothesService implements OnModuleInit {
     if (!clothesIds || clothesIds.length === 0) {
       return { added: 0, existing: 0, total: 0 };
     }
-    const uniqueIds = Array.from(new Set(clothesIds.filter(Boolean)));
+    const countById = new Map<string, number>();
+    for (const id of clothesIds.filter(Boolean)) {
+      countById.set(id, (countById.get(id) ?? 0) + 1);
+    }
+    const uniqueIds = Array.from(countById.keys());
     const validClothes = await this.dataSource.getRepository(Clothes).find({
       where: { userId: user.id, id: In(uniqueIds) },
-      select: { id: true },
+      select: { id: true, isCumulative: true, quantity: true },
     });
-    const validIds = validClothes.map((c) => c.id);
-    if (validIds.length === 0) {
+    if (validClothes.length === 0) {
       return { added: 0, existing: 0, total: 0 };
     }
 
     const ironingRepo = this.dataSource.getRepository(IroningItem);
     const existingItems = await ironingRepo.find({
-      where: { userId: user.id, clothesId: In(validIds) },
-      select: { clothesId: true },
+      where: { userId: user.id, clothesId: In(validClothes.map((c) => c.id)) },
     });
-    const existingSet = new Set(existingItems.map((e) => e.clothesId));
+    const existingMap = new Map(existingItems.map((e) => [e.clothesId, e]));
 
-    const toInsert = validIds
-      .filter((id) => !existingSet.has(id))
-      .map((clothesId) => ironingRepo.create({ userId: user.id, clothesId }));
-
-    if (toInsert.length > 0) {
-      await ironingRepo.save(toInsert);
+    let addedCount = 0;
+    for (const cloth of validClothes) {
+      const requested = countById.get(cloth.id) ?? 1;
+      const existing = existingMap.get(cloth.id);
+      if (existing) {
+        if (cloth.isCumulative) {
+          const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
+          const newQty = Math.min(maxQty, (existing.quantity || 1) + requested);
+          if (newQty > (existing.quantity || 1)) {
+            addedCount += newQty - (existing.quantity || 1);
+            existing.quantity = newQty;
+            await ironingRepo.save(existing);
+          }
+        }
+      } else {
+        const initialQty = cloth.isCumulative
+          ? Math.min(cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1, requested)
+          : 1;
+        await ironingRepo.save(ironingRepo.create({ userId: user.id, clothesId: cloth.id, quantity: initialQty }));
+        addedCount += initialQty;
+      }
     }
 
-    const total = await ironingRepo.count({ where: { userId: user.id } });
+    const counts = await this.getLaundryCounts(user);
     return {
-      added: toInsert.length,
-      existing: existingSet.size,
-      total,
+      added: addedCount,
+      existing: existingItems.length,
+      total: counts.ironingCount,
     };
   }
 
-  async removeFromIroning(user: AuthUser, clothesId: string) {
+  async removeFromIroning(user: AuthUser, clothesId: string, quantityToRemove = 1, removeAll = false) {
     const ironingRepo = this.dataSource.getRepository(IroningItem);
-    await ironingRepo.delete({ userId: user.id, clothesId });
-    const total = await ironingRepo.count({ where: { userId: user.id } });
-    return { removed: true, total };
+    const existing = await ironingRepo.findOne({ where: { userId: user.id, clothesId } });
+    if (existing) {
+      const cloth = await this.dataSource.getRepository(Clothes).findOne({ where: { id: clothesId, userId: user.id } });
+      if (removeAll || !cloth?.isCumulative || (existing.quantity || 1) <= quantityToRemove) {
+        await ironingRepo.delete({ id: existing.id });
+      } else {
+        existing.quantity = (existing.quantity || 1) - quantityToRemove;
+        await ironingRepo.save(existing);
+      }
+    }
+    const counts = await this.getLaundryCounts(user);
+    return { removed: true, total: counts.ironingCount };
   }
 
   async clearIroning(user: AuthUser) {
@@ -490,13 +572,23 @@ export class ClothesService implements OnModuleInit {
   }
 
   async getLaundryCounts(user: AuthUser) {
-    const washingCount = await this.dataSource.getRepository(WashingItem).count({
-      where: { userId: user.id },
-    });
-    const ironingCount = await this.dataSource.getRepository(IroningItem).count({
-      where: { userId: user.id },
-    });
-    return { washingCount, ironingCount };
+    const washingRes = await this.dataSource
+      .getRepository(WashingItem)
+      .createQueryBuilder('w')
+      .where('w.userId = :userId', { userId: user.id })
+      .select('COALESCE(SUM(w.quantity), 0)', 'total')
+      .getRawOne();
+    const ironingRes = await this.dataSource
+      .getRepository(IroningItem)
+      .createQueryBuilder('i')
+      .where('i.userId = :userId', { userId: user.id })
+      .select('COALESCE(SUM(i.quantity), 0)', 'total')
+      .getRawOne();
+
+    return {
+      washingCount: Number(washingRes?.total ?? 0),
+      ironingCount: Number(ironingRes?.total ?? 0),
+    };
   }
 
   async getOne(user: AuthUser, id: string) {
@@ -523,19 +615,19 @@ export class ClothesService implements OnModuleInit {
     if (!item) throw new NotFoundException();
     this.sortAttachments(item);
 
-    const isInWashing =
-      (await this.dataSource.getRepository(WashingItem).count({
-        where: { userId: user.id, clothesId: id },
-      })) > 0;
-    const isInIroning =
-      (await this.dataSource.getRepository(IroningItem).count({
-        where: { userId: user.id, clothesId: id },
-      })) > 0;
+    const washingItem = await this.dataSource.getRepository(WashingItem).findOne({
+      where: { userId: user.id, clothesId: id },
+    });
+    const ironingItem = await this.dataSource.getRepository(IroningItem).findOne({
+      where: { userId: user.id, clothesId: id },
+    });
 
     return {
       ...this.decorateResponse(item),
-      isInWashing,
-      isInIroning,
+      isInWashing: Boolean(washingItem),
+      washingQuantity: washingItem?.quantity ?? 0,
+      isInIroning: Boolean(ironingItem),
+      ironingQuantity: ironingItem?.quantity ?? 0,
     };
   }
 
@@ -792,6 +884,16 @@ export class ClothesService implements OnModuleInit {
       clothes.size = body.size === null || String(body.size).trim() === '' ? null : String(body.size).trim();
     }
     if (body.notes !== undefined) clothes.notes = body.notes === null ? null : String(body.notes).trim();
+    if (body.is_cumulative !== undefined || body.isCumulative !== undefined) {
+      clothes.isCumulative = Boolean(body.is_cumulative ?? body.isCumulative);
+    }
+    if (body.quantity !== undefined) {
+      const parsedQty = parseInt(String(body.quantity), 10);
+      clothes.quantity = Number.isFinite(parsedQty) && parsedQty >= 1 ? parsedQty : 1;
+    }
+    if (!clothes.isCumulative) {
+      clothes.quantity = 1;
+    }
     if (body.brand_id !== undefined) {
       if (body.brand_id === null || String(body.brand_id).trim() === '') {
         clothes.brand = null;

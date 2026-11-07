@@ -89,12 +89,45 @@ export class IroningPageComponent implements OnInit {
     const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-ironing-id="${item.id}"]`);
     void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'remove');
 
+    const isCumulative = Boolean(item.isCumulative);
+    const currentQty = item.ironingQuantity ?? 1;
+
     try {
       await this.storage.removeFromIroning(item.id);
       await this.syncService.queueLaundryChange('ironing', item.id, 'delete');
+
+      if (isCumulative && currentQty > 1) {
+        const nextQty = currentQty - 1;
+        this.items.update((list) =>
+          list.map((i) => (i.id === item.id ? { ...i, ironingQuantity: nextQty } : i)),
+        );
+        this.toast.success(`1 capo segnato come stirato (ancora ${nextQty} da stirare)`);
+      } else {
+        this.items.update((list) => list.filter((i) => i.id !== item.id));
+        this.toast.success('Capo segnato come stirato');
+      }
+      void this.laundryService.refreshCounts('ironing', 'remove');
+    } catch {
+      this.toast.error('Errore durante la rimozione dalla stiratura');
+    }
+  }
+
+  async onIronedAll(item: IroningClothesItem, event?: Event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-ironing-id="${item.id}"]`);
+    void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'remove');
+
+    try {
+      const currentQty = item.ironingQuantity ?? 1;
+      await this.storage.removeFromIroning(item.id, currentQty, true);
+      for (let i = 0; i < currentQty; i++) {
+        await this.syncService.queueLaundryChange('ironing', item.id, 'delete');
+      }
       this.items.update((list) => list.filter((i) => i.id !== item.id));
       void this.laundryService.refreshCounts('ironing', 'remove');
-      this.toast.success('Capo segnato come stirato');
+      this.toast.success(`Tutti i ${currentQty} capi segnati come stirati`);
     } catch {
       this.toast.error('Errore durante la rimozione dalla stiratura');
     }

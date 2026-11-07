@@ -3,6 +3,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { SyncService } from '../../../../core/sync.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { WardrobeDetailPageComponent } from './detail.component';
 
 describe('WardrobeDetailPageComponent', () => {
@@ -215,5 +216,117 @@ describe('WardrobeDetailPageComponent', () => {
     await comp.toggleIroning();
     expect(queueSpy).toHaveBeenCalledWith('ironing', 'cloth-2', 'delete');
     expect(comp.isInIroning()).toBe(false);
+  });
+
+  it('should display Quantità field for cumulative clothes', () => {
+    vi.spyOn(WardrobeDetailPageComponent.prototype, 'ngOnInit').mockImplementation(function (this: any) {
+      this.loading.set(false);
+      this.error.set(null);
+    });
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.loading.set(false);
+    comp.error.set(null);
+    comp.item.set({
+      id: 'cloth-cumul-1',
+      userId: 'user-1',
+      name: 'Calzini Neri',
+      size: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isCumulative: true,
+      quantity: 5,
+    });
+    fixture.detectChanges();
+
+    const rows = Array.from(fixture.nativeElement.querySelectorAll('.hero-detail-row')) as HTMLElement[];
+    const qtyRow = rows.find((row) => row.querySelector('.hero-label')?.textContent?.includes('Quantità'));
+
+    expect(qtyRow).toBeTruthy();
+    expect(qtyRow?.querySelector('.hero-quantity-val')?.textContent?.trim()).toBe('5');
+  });
+
+  it('should correctly increment washing and ironing counters for cumulative clothes on button', async () => {
+    vi.spyOn(WardrobeDetailPageComponent.prototype, 'ngOnInit').mockImplementation(function (this: any) {
+      this.loading.set(false);
+      this.error.set(null);
+    });
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const syncService = TestBed.inject(SyncService);
+    vi.spyOn(syncService, 'queueLaundryChange').mockResolvedValue(undefined);
+
+    comp.loading.set(false);
+    comp.error.set(null);
+    comp.item.set({
+      id: 'cloth-cumul-2',
+      userId: 'user-1',
+      name: 'Magliette Bianche',
+      size: 'L',
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isCumulative: true,
+      quantity: 5,
+      washingQuantity: 0,
+      ironingQuantity: 0,
+      isInWashing: false,
+      isInIroning: false,
+    });
+    fixture.detectChanges();
+
+    const washBtn = fixture.nativeElement.querySelector('.hero-action-btn:nth-child(1)');
+    expect(washBtn.textContent).toContain('Metti a lavare (0/5)');
+
+    await comp.toggleWashing();
+    fixture.detectChanges();
+
+    expect(washBtn.textContent).toContain('Metti a lavare (1/5)');
+    expect(comp.washingQuantity()).toBe(1);
+
+    await comp.toggleWashing();
+    fixture.detectChanges();
+
+    expect(washBtn.textContent).toContain('Metti a lavare (2/5)');
+    expect(comp.washingQuantity()).toBe(2);
+
+    const ironBtn = fixture.nativeElement.querySelector('.hero-action-btn:nth-child(2)');
+    expect(ironBtn.textContent).toContain('Metti a stirare (0/5)');
+
+    await comp.toggleIroning();
+    fixture.detectChanges();
+
+    expect(ironBtn.textContent).toContain('Metti a stirare (1/5)');
+    expect(comp.ironingQuantity()).toBe(1);
+  });
+
+  it('should compute washingQuantity and ironingQuantity when load is called with storage data', async () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const storage = TestBed.inject(OfflineStorageService);
+
+    vi.spyOn(storage, 'getClothes').mockResolvedValue({
+      id: 'cloth-cumul-3',
+      userId: 'user-1',
+      name: 'Polo',
+      isCumulative: true,
+      quantity: 5,
+    } as any);
+
+    vi.spyOn(storage, 'getLaundry').mockResolvedValue({
+      washing: ['cloth-cumul-3', 'cloth-cumul-3', 'other-item'],
+      ironing: ['cloth-cumul-3'],
+    });
+
+    await comp.load('cloth-cumul-3');
+
+    expect(comp.item()?.washingQuantity).toBe(2);
+    expect(comp.item()?.ironingQuantity).toBe(1);
+    expect(comp.washingQuantity()).toBe(2);
+    expect(comp.ironingQuantity()).toBe(1);
+    expect(comp.isInWashing()).toBe(true);
+    expect(comp.isInIroning()).toBe(true);
   });
 });

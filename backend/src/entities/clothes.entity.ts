@@ -40,6 +40,12 @@ export class Clothes {
   @Column({ type: 'varchar', nullable: true })
   notes!: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  isCumulative!: boolean;
+
+  @Column({ type: 'integer', default: 1 })
+  quantity!: number;
+
   @ManyToOne(() => Brand, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'brandId' })
   brand!: Brand | null;

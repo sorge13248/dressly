@@ -48,13 +48,21 @@ export class ClothesController {
   }
 
   @Delete('washing/:clothesId')
-  removeFromWashing(@CurrentUser() user: AuthUser, @Param('clothesId') clothesId: string) {
-    return this.clothesService.removeFromWashing(user, clothesId);
+  removeFromWashing(
+    @CurrentUser() user: AuthUser,
+    @Param('clothesId') clothesId: string,
+    @Query('all') all?: string,
+  ) {
+    return this.clothesService.removeFromWashing(user, clothesId, 1, all === 'true');
   }
 
   @Post('washing/:clothesId/move-to-ironing')
-  moveWashingToIroning(@CurrentUser() user: AuthUser, @Param('clothesId') clothesId: string) {
-    return this.clothesService.moveWashingToIroning(user, clothesId);
+  moveWashingToIroning(
+    @CurrentUser() user: AuthUser,
+    @Param('clothesId') clothesId: string,
+    @Query('all') all?: string,
+  ) {
+    return this.clothesService.moveWashingToIroning(user, clothesId, 1, all === 'true');
   }
 
   @Get('ironing')
@@ -73,8 +81,12 @@ export class ClothesController {
   }
 
   @Delete('ironing/:clothesId')
-  removeFromIroning(@CurrentUser() user: AuthUser, @Param('clothesId') clothesId: string) {
-    return this.clothesService.removeFromIroning(user, clothesId);
+  removeFromIroning(
+    @CurrentUser() user: AuthUser,
+    @Param('clothesId') clothesId: string,
+    @Query('all') all?: string,
+  ) {
+    return this.clothesService.removeFromIroning(user, clothesId, 1, all === 'true');
   }
 
   private extractIds(body: Record<string, unknown>): string[] {

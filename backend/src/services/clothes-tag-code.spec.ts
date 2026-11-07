@@ -201,6 +201,50 @@ async function runTagCodeTests() {
   assert.strictEqual(refreshedItem?.code?.length, 3);
   console.log(`✓ Test 7 passed! Backfilled code: ${refreshedItem?.code}`);
 
+  // Test 8: Cumulative clothes and quantity in washing/ironing
+  console.log('Test 8: Cumulative clothes creation and incremental laundry/ironing');
+  const cumulativeCloth = await clothesService.create(userA, {
+    name: 'Maglietta Bianca Cumulativa',
+    color_ids: [color1.id],
+    season_ids: [season1.id],
+    temperature_ids: [temp1.id],
+    is_cumulative: true,
+    quantity: 3,
+  });
+  assert.strictEqual(cumulativeCloth.isCumulative, true);
+  assert.strictEqual(cumulativeCloth.quantity, 3);
+
+  // Add to washing (1st time)
+  await clothesService.addToWashing(userA, [cumulativeCloth.id]);
+  let washingList = await clothesService.getWashingList(userA);
+  let washItem = washingList.items.find((i) => i.id === cumulativeCloth.id);
+  assert.strictEqual(washItem?.washingQuantity, 1);
+
+  // Add to washing (2nd time) -> increments
+  await clothesService.addToWashing(userA, [cumulativeCloth.id]);
+  washingList = await clothesService.getWashingList(userA);
+  washItem = washingList.items.find((i) => i.id === cumulativeCloth.id);
+  assert.strictEqual(washItem?.washingQuantity, 2);
+
+  // Move 1 to ironing
+  await clothesService.moveWashingToIroning(userA, cumulativeCloth.id, 1);
+  washingList = await clothesService.getWashingList(userA);
+  washItem = washingList.items.find((i) => i.id === cumulativeCloth.id);
+  assert.strictEqual(washItem?.washingQuantity, 1);
+
+  const ironingList = await clothesService.getIroningList(userA);
+  const ironItem = ironingList.items.find((i) => i.id === cumulativeCloth.id);
+  assert.strictEqual(ironItem?.ironingQuantity, 1);
+
+  const counts = await clothesService.getLaundryCounts(userA);
+  assert.strictEqual(counts.washingCount, 1);
+  assert.strictEqual(counts.ironingCount, 1);
+
+  // Clean up
+  await clothesService.removeFromWashing(userA, cumulativeCloth.id, 1, true);
+  await clothesService.removeFromIroning(userA, cumulativeCloth.id, 1, true);
+  console.log('✓ Test 8 passed!');
+
   await dataSource.destroy();
   console.log('🎉 ALL TAG CODE TESTS PASSED SUCCESSFULLY! 🎉');
 }

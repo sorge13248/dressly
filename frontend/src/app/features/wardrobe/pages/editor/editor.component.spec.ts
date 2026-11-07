@@ -291,4 +291,57 @@ describe('WardrobeWizardPageComponent', () => {
     expect(saveBtn).toBeTruthy();
     expect(saveBtn.textContent).toContain('Aggiorna');
   });
+
+  it('should support cumulative checkbox and quantity input', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(comp.wizardForm.base.is_cumulative().value()).toBe(false);
+    expect(comp.wizardForm.base.quantity().value()).toBe(1);
+
+    // Toggle cumulative ON
+    comp.onCumulativeChange(true);
+    expect(comp.wizardForm.base.is_cumulative().value()).toBe(true);
+    expect(comp.wizardForm.base.quantity().value()).toBe(2);
+
+    // Change quantity input
+    comp.onQuantityInput(5);
+    expect(comp.wizardForm.base.quantity().value()).toBe(5);
+
+    // Toggle cumulative OFF
+    comp.onCumulativeChange(false);
+    expect(comp.wizardForm.base.is_cumulative().value()).toBe(false);
+    expect(comp.wizardForm.base.quantity().value()).toBe(1);
+  });
+
+  it('should include cumulative fields in save payload', async () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const router = TestBed.inject(Router);
+
+    vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+    vi.spyOn(api, 'createClothes').mockReturnValue(of({ id: 'new-cumul-123' } as any));
+    vi.spyOn(api, 'getClothes').mockReturnValue(of({ id: 'new-cumul-123', name: 'Calzini', attachments: [] } as any));
+
+    comp.wizardForm.base.name().value.set('Calzini neri');
+    comp.wizardForm.base.type_id().value.set('type-1');
+    comp.wizardForm.base.brand_id().value.set('brand-1');
+    comp.wizardForm.style.color_ids().value.set(['col-1']);
+    comp.wizardForm.context.season_ids().value.set(['seas-1']);
+    comp.wizardForm.context.temperature_ids().value.set(['temp-1']);
+
+    comp.onCumulativeChange(true);
+    comp.onQuantityInput(6);
+
+    await comp.save();
+
+    expect(api.createClothes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_cumulative: true,
+        quantity: 6,
+      }),
+    );
+  });
 });

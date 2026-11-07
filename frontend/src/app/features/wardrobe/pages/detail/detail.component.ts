@@ -75,6 +75,10 @@ export class WardrobeDetailPageComponent implements OnInit {
 
   readonly isInWashing = computed(() => Boolean(this.item()?.isInWashing));
   readonly isInIroning = computed(() => Boolean(this.item()?.isInIroning));
+  readonly isCumulative = computed(() => Boolean(this.item()?.isCumulative));
+  readonly ownedQuantity = computed(() => this.item()?.quantity ?? 1);
+  readonly washingQuantity = computed(() => this.item()?.washingQuantity ?? (this.isInWashing() ? 1 : 0));
+  readonly ironingQuantity = computed(() => this.item()?.ironingQuantity ?? (this.isInIroning() ? 1 : 0));
 
   readonly title = computed(() => this.item()?.name || this.item()?.fullTitle || this.item()?.brand?.name || 'Capo');
   readonly photoAttachments = computed(() =>
@@ -243,9 +247,15 @@ export class WardrobeDetailPageComponent implements OnInit {
         const cached = await this.storage.getClothes(id);
         if (cached) {
           const laundry = await this.storage.getLaundry();
-          const isInWashing = laundry.washing.includes(cached.id);
-          const isInIroning = laundry.ironing.includes(cached.id);
-          this.item.set({ ...cached, isInWashing, isInIroning });
+          const washingQuantity = laundry.washing.filter((cId) => cId === cached.id).length;
+          const ironingQuantity = laundry.ironing.filter((cId) => cId === cached.id).length;
+          this.item.set({
+            ...cached,
+            isInWashing: washingQuantity > 0,
+            washingQuantity,
+            isInIroning: ironingQuantity > 0,
+            ironingQuantity,
+          });
           this.initialLoaded = true;
           this.loading.set(false);
 
@@ -258,10 +268,20 @@ export class WardrobeDetailPageComponent implements OnInit {
 
       const item = await firstValueFrom(this.api.getClothes(id));
       if (item) {
-        const laundry = this.storage ? await this.storage.getLaundry() : { washing: [], ironing: [] };
-        const isInWashing = laundry.washing.includes(item.id);
-        const isInIroning = laundry.ironing.includes(item.id);
-        this.item.set({ ...item, isInWashing, isInIroning });
+        const laundry = this.storage ? await this.storage.getLaundry() : null;
+        const washingQuantity = laundry
+          ? laundry.washing.filter((cId) => cId === item.id).length
+          : (item.washingQuantity ?? (item.isInWashing ? 1 : 0));
+        const ironingQuantity = laundry
+          ? laundry.ironing.filter((cId) => cId === item.id).length
+          : (item.ironingQuantity ?? (item.isInIroning ? 1 : 0));
+        this.item.set({
+          ...item,
+          isInWashing: washingQuantity > 0,
+          washingQuantity,
+          isInIroning: ironingQuantity > 0,
+          ironingQuantity,
+        });
         this.initialLoaded = true;
         if (this.storage) {
           await this.storage.saveClothes([item]);
@@ -283,10 +303,20 @@ export class WardrobeDetailPageComponent implements OnInit {
     try {
       const item = await firstValueFrom(this.api.getClothes(id));
       if (item) {
-        const laundry = this.storage ? await this.storage.getLaundry() : { washing: [], ironing: [] };
-        const isInWashing = laundry.washing.includes(item.id);
-        const isInIroning = laundry.ironing.includes(item.id);
-        this.item.set({ ...item, isInWashing, isInIroning });
+        const laundry = this.storage ? await this.storage.getLaundry() : null;
+        const washingQuantity = laundry
+          ? laundry.washing.filter((cId) => cId === item.id).length
+          : (item.washingQuantity ?? (item.isInWashing ? 1 : 0));
+        const ironingQuantity = laundry
+          ? laundry.ironing.filter((cId) => cId === item.id).length
+          : (item.ironingQuantity ?? (item.isInIroning ? 1 : 0));
+        this.item.set({
+          ...item,
+          isInWashing: washingQuantity > 0,
+          washingQuantity,
+          isInIroning: ironingQuantity > 0,
+          ironingQuantity,
+        });
         if (this.storage) {
           await this.storage.saveClothes([item]);
         }
@@ -300,18 +330,51 @@ export class WardrobeDetailPageComponent implements OnInit {
     const current = this.item();
     if (!current?.id) return;
 
-    const action = current.isInWashing ? 'remove' : 'add';
+    const isCumulative = Boolean(current.isCumulative);
+    const maxQty = current.quantity && current.quantity > 0 ? current.quantity : 1;
+    const currentWashing = current.washingQuantity ?? (current.isInWashing ? 1 : 0);
+    const currentIroning = current.ironingQuantity ?? (current.isInIroning ? 1 : 0);
+
     const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
+
+    if (isCumulative) {
+      if (currentWashing + currentIroning >= maxQty) {
+        this.toast.info(`Tutti i capi disponibili (${maxQty}) sono già in lavatrice o da stirare`);
+        return;
+      }
+      void this.laundryService.animateFlyToNav(heroImg, 'washing', 'add');
+      const nextQty = currentWashing + 1;
+      this.item.update((prev) => (prev ? { ...prev, isInWashing: true, washingQuantity: nextQty } : prev));
+      if (this.storage) {
+        await this.storage.addToWashing([current.id]);
+      } else {
+        await firstValueFrom(this.api.addToWashing([current.id]));
+      }
+      if (this.syncService) {
+        await this.syncService.queueLaundryChange('washing', current.id, 'create');
+      }
+      void this.laundryService.refreshCounts('washing', 'add');
+      this.toast.success(`Capo aggiunto alla lavatrice (${nextQty}/${maxQty})`);
+      return;
+    }
+
+    const action = current.isInWashing ? 'remove' : 'add';
     void this.laundryService.animateFlyToNav(heroImg, 'washing', action);
 
     const nextState = !current.isInWashing;
-    this.item.update((prev) => (prev ? { ...prev, isInWashing: nextState } : prev));
+    this.item.update((prev) => (prev ? { ...prev, isInWashing: nextState, washingQuantity: nextState ? 1 : 0 } : prev));
     if (this.storage) {
-      const cached = await this.storage.getLaundry();
-      const updatedList = nextState
-        ? [...new Set([...cached.washing, current.id])]
-        : cached.washing.filter((id) => id !== current.id);
-      await this.storage.saveLaundry({ ...cached, washing: updatedList });
+      if (nextState) {
+        await this.storage.addToWashing([current.id]);
+      } else {
+        await this.storage.removeFromWashing(current.id, 1, true);
+      }
+    } else {
+      if (nextState) {
+        await firstValueFrom(this.api.addToWashing([current.id]));
+      } else {
+        await firstValueFrom(this.api.removeFromWashing(current.id));
+      }
     }
     if (this.syncService) {
       await this.syncService.queueLaundryChange('washing', current.id, nextState ? 'create' : 'delete');
@@ -324,18 +387,51 @@ export class WardrobeDetailPageComponent implements OnInit {
     const current = this.item();
     if (!current?.id) return;
 
-    const action = current.isInIroning ? 'remove' : 'add';
+    const isCumulative = Boolean(current.isCumulative);
+    const maxQty = current.quantity && current.quantity > 0 ? current.quantity : 1;
+    const currentWashing = current.washingQuantity ?? (current.isInWashing ? 1 : 0);
+    const currentIroning = current.ironingQuantity ?? (current.isInIroning ? 1 : 0);
+
     const heroImg = document.querySelector<HTMLElement>('.hero-photo img') || document.querySelector<HTMLElement>('.hero-photo');
+
+    if (isCumulative) {
+      if (currentWashing + currentIroning >= maxQty) {
+        this.toast.info(`Tutti i capi disponibili (${maxQty}) sono già in lavatrice o da stirare`);
+        return;
+      }
+      void this.laundryService.animateFlyToNav(heroImg, 'ironing', 'add');
+      const nextQty = currentIroning + 1;
+      this.item.update((prev) => (prev ? { ...prev, isInIroning: true, ironingQuantity: nextQty } : prev));
+      if (this.storage) {
+        await this.storage.addToIroning([current.id]);
+      } else {
+        await firstValueFrom(this.api.addToIroning([current.id]));
+      }
+      if (this.syncService) {
+        await this.syncService.queueLaundryChange('ironing', current.id, 'create');
+      }
+      void this.laundryService.refreshCounts('ironing', 'add');
+      this.toast.success(`Capo aggiunto alla stiratura (${nextQty}/${maxQty})`);
+      return;
+    }
+
+    const action = current.isInIroning ? 'remove' : 'add';
     void this.laundryService.animateFlyToNav(heroImg, 'ironing', action);
 
     const nextState = !current.isInIroning;
-    this.item.update((prev) => (prev ? { ...prev, isInIroning: nextState } : prev));
+    this.item.update((prev) => (prev ? { ...prev, isInIroning: nextState, ironingQuantity: nextState ? 1 : 0 } : prev));
     if (this.storage) {
-      const cached = await this.storage.getLaundry();
-      const updatedList = nextState
-        ? [...new Set([...cached.ironing, current.id])]
-        : cached.ironing.filter((id) => id !== current.id);
-      await this.storage.saveLaundry({ ...cached, ironing: updatedList });
+      if (nextState) {
+        await this.storage.addToIroning([current.id]);
+      } else {
+        await this.storage.removeFromIroning(current.id, 1, true);
+      }
+    } else {
+      if (nextState) {
+        await firstValueFrom(this.api.addToIroning([current.id]));
+      } else {
+        await firstValueFrom(this.api.removeFromIroning(current.id));
+      }
     }
     if (this.syncService) {
       await this.syncService.queueLaundryChange('ironing', current.id, nextState ? 'create' : 'delete');

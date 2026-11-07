@@ -102,4 +102,40 @@ describe('ClothesCardComponent', () => {
       expect(btn.disabled).toBe(true);
     });
   });
+
+  it('should render quantity badge for cumulative item in washing or ironing', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    const cumulativeItem: ClothesItem = {
+      ...fakeItem,
+      isCumulative: true,
+      quantity: 5,
+      isInWashing: true,
+      washingQuantity: 3,
+    };
+    fixture.componentRef.setInput('item', cumulativeItem);
+    fixture.detectChanges();
+
+    const washingBadge = fixture.nativeElement.querySelector('.status-badge--washing');
+    expect(washingBadge).toBeTruthy();
+    const countBadge = washingBadge.querySelector('.status-badge-count');
+    expect(countBadge).toBeTruthy();
+    expect(countBadge.textContent.trim()).toBe('3');
+
+    // Test ironing
+    const ironingCumulativeItem: ClothesItem = {
+      ...fakeItem,
+      isCumulative: true,
+      quantity: 5,
+      isInIroning: true,
+      ironingQuantity: 2,
+    };
+    fixture.componentRef.setInput('item', ironingCumulativeItem);
+    fixture.detectChanges();
+
+    const ironingBadge = fixture.nativeElement.querySelector('.status-badge--ironing');
+    expect(ironingBadge).toBeTruthy();
+    const ironCountBadge = ironingBadge.querySelector('.status-badge-count');
+    expect(ironCountBadge).toBeTruthy();
+    expect(ironCountBadge.textContent.trim()).toBe('2');
+  });
 });

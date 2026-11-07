@@ -24,6 +24,9 @@ export class WashingItem {
   @JoinColumn({ name: 'userId' })
   user!: User;
 
+  @Column({ type: 'integer', default: 1 })
+  quantity!: number;
+
   @CreateDateColumn()
   addedAt!: Date;
 }

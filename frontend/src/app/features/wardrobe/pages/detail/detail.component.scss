@@ -239,6 +239,14 @@ h1 {
   color: #4c1d95;
 }
 
+.hero-quantity-val {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text, #1e293b);
+}
+
 .hero-status-tags {
   display: flex;
   gap: 8px;
