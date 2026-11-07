@@ -74,6 +74,31 @@ describe('WardrobeDetailPageComponent', () => {
     expect(ironSection?.tags).toEqual([]);
   });
 
+  it('should render "Lavaggio a freddo" when washing temperature is 0', () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.item.set({
+      id: 'test-cold',
+      userId: 'user-1',
+      name: 'Camicia Seta',
+      size: 'M',
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      washingInstruction: {
+        washType: 'washer_ok',
+        temperature: '0',
+      },
+    });
+
+    const sections = comp.careSections();
+    const washSection = sections.find((s) => s.title === 'Lavaggio');
+    expect(washSection).toBeDefined();
+    const tempSpec = washSection?.specs.find((s) => s.label === 'Temperatura');
+    expect(tempSpec).toEqual({ label: 'Temperatura', value: 'Lavaggio a freddo' });
+  });
+
   it('should use ✅ and ❌ emojis for Asciugatrice spec', () => {
     const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
     const comp = fixture.componentInstance;

@@ -99,7 +99,11 @@ export class WardrobeDetailPageComponent implements OnInit {
     if (washType) {
       washSpecs.push({ label: 'Tipo', value: washType });
     }
-    const washTemp = this.appendDegrees(wash?.temperature ?? wash?.washing_temperature);
+    const rawWashTemp = wash?.temperature ?? wash?.washing_temperature;
+    let washTemp: string | null = null;
+    if (rawWashTemp !== null && rawWashTemp !== undefined && rawWashTemp !== '') {
+      washTemp = Number(rawWashTemp) === 0 ? 'Lavaggio a freddo' : this.appendDegrees(rawWashTemp);
+    }
     if (washTemp) {
       washSpecs.push({ label: 'Temperatura', value: washTemp });
     }

@@ -297,4 +297,51 @@ describe('WashingPageComponent', () => {
     // Item should be completely removed
     expect(comp.items().some((i) => i.id === 'cloth-cumul')).toBe(false);
   });
+
+  it('should support cold wash (temperature 0) with dedicated "Lavaggio a freddo" group and "A freddo" pill', async () => {
+    const coldWashItem: WashingClothesItem = {
+      id: 'cloth-cold',
+      name: 'Abito Delicato',
+      brand: null,
+      type: { id: 't6', name: 'Abito' },
+      colors: [],
+      washingInstruction: {
+        washType: 'washer_ok',
+        temperature: '0',
+        bleachType: 'no_bleach',
+        stretch: false,
+        reverseWashing: false,
+        closedZips: false,
+        similarColors: false,
+        washSeparately: true,
+        useColorCatcher: false,
+        colorLossRisk: false,
+        colorLossTestTemperature: null,
+      },
+      primaryAttachment: null,
+    };
+
+    mockStorageService.getClothesForWashing.mockResolvedValue([...fakeClothes, coldWashItem]);
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+    await comp.load();
+    fixture.detectChanges();
+
+    expect(comp.missingInfoItems().some((i) => i.id === 'cloth-cold')).toBe(false);
+
+    const tempGroups = comp.temperatureGroups();
+    const coldGroup = tempGroups.find((g) => g.temperature === 0);
+    expect(coldGroup).toBeDefined();
+    expect(coldGroup?.label).toBe('A freddo');
+    expect(coldGroup?.title).toBe('Lavaggio a freddo');
+    expect(coldGroup?.subtitle).toBe('Acqua fredda');
+    expect(coldGroup?.items.some((i) => i.id === 'cloth-cold')).toBe(true);
+
+    const el = fixture.nativeElement as HTMLElement;
+    const coldCard = el.querySelector('section[aria-labelledby="card-temp-0-heading"]');
+    expect(coldCard).toBeTruthy();
+    expect(coldCard?.querySelector('h2')?.textContent?.trim()).toBe('Lavaggio a freddo');
+    expect(coldCard?.querySelector('.temp-pill')?.textContent?.trim()).toBe('A freddo');
+    expect(coldCard?.querySelector('.head-subtitle')?.textContent?.trim()).toBe('Acqua fredda');
+  });
 });

@@ -931,7 +931,10 @@ export class SyncService {
             userId: user.id,
             washType: raw['washType'] as never,
             bleachType: raw['bleachType'] as never,
-            temperature: raw['temperature'] ? String(raw['temperature']) : null,
+            temperature:
+              raw['temperature'] !== null && raw['temperature'] !== undefined && raw['temperature'] !== ''
+                ? String(raw['temperature'])
+                : null,
             stretch: Boolean(raw['stretch']),
             reverseWashing: Boolean(raw['reverseWashing']),
             closedZips: Boolean(raw['closedZips']),
@@ -974,7 +977,10 @@ export class SyncService {
             userId: user.id,
             ironType: raw['ironType'] as never,
             ironInsideOut: Boolean(raw['ironInsideOut']),
-            temperature: raw['temperature'] ? String(raw['temperature']) : null,
+            temperature:
+              raw['temperature'] !== null && raw['temperature'] !== undefined && raw['temperature'] !== ''
+                ? String(raw['temperature'])
+                : null,
           });
           if (clothes.ironingInstruction?.id) {
             inst.id = clothes.ironingInstruction.id;

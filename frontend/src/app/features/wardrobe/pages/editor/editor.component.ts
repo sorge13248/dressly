@@ -287,8 +287,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     minLength(schema.context.season_ids, 1, { message: 'Seleziona almeno una stagione' });
     minLength(schema.context.temperature_ids, 1, { message: 'Seleziona almeno una temperatura' });
 
-    min(schema.care.washing.washing_temperature, 20, { message: 'Temperatura minima 20' });
-    max(schema.care.washing.washing_temperature, 60, { message: 'Temperatura massima 60' });
+    min(schema.care.washing.washing_temperature, 0, { message: 'Temperatura minima 0' });
+    max(schema.care.washing.washing_temperature, 95, { message: 'Temperatura massima 95' });
     min(schema.care.washing.color_loss_test_temperature, 0, { message: 'Temperatura minima 0' });
     max(schema.care.washing.color_loss_test_temperature, 95, { message: 'Temperatura massima 95' });
 
@@ -1273,7 +1273,11 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   }
 
   private patchForms(item: ClothesItem) {
-    const washingTemperature = item.washingInstruction?.temperature ? Number(item.washingInstruction.temperature) : null;
+    const rawWashTemp = item.washingInstruction?.temperature ?? item.washingInstruction?.washing_temperature;
+    const washingTemperature =
+      rawWashTemp !== null && rawWashTemp !== undefined && rawWashTemp !== ''
+        ? Number(rawWashTemp)
+        : null;
     const dryingMethod = item.dryingInstruction?.method?.trim() ?? '';
     const fallbackTumbleDry = dryingMethod.startsWith('tumble_dry:');
     const fallbackTumbleDryLevel = fallbackTumbleDry ? dryingMethod.slice('tumble_dry:'.length).trim() : '';

@@ -1079,11 +1079,11 @@ export class ClothesService implements OnModuleInit {
       );
 
       if (washType === 'washer_ok' && washingTemperature === null) {
-        throw new BadRequestException('Temperatura lavaggio obbligatoria (20-60)');
+        throw new BadRequestException('Temperatura lavaggio obbligatoria (0-95)');
       }
 
-      if (washType === 'washer_ok' && washingTemperature !== null && (washingTemperature < 20 || washingTemperature > 60)) {
-        throw new BadRequestException('Temperatura lavaggio obbligatoria (20-60)');
+      if (washType === 'washer_ok' && washingTemperature !== null && (washingTemperature < 0 || washingTemperature > 95)) {
+        throw new BadRequestException('Temperatura lavaggio obbligatoria (0-95)');
       }
 
       const colorLossTestTemperature = this.toOptionalNumber(

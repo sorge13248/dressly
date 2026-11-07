@@ -357,6 +357,7 @@
                         <span>Temperatura lavaggio *</span>
                         <input
                           type="number"
+                          placeholder="es. 30 (0 per lavaggio a freddo)"
                           [formField]="wizardForm.care.washing.washing_temperature"
                           [class.field-error]="
                             (submitAttempted() || blockedStep() === 4) &&
@@ -369,7 +370,7 @@
                           (wizardForm.care.washing.washing_temperature().value() === null ||
                             wizardForm.care.washing.washing_temperature().invalid())
                         ) {
-                          <small class="field-error-text">Temperatura lavaggio obbligatoria (20-60)</small>
+                          <small class="field-error-text">Temperatura lavaggio obbligatoria (0-95)</small>
                         }
                       </label>
                     }
