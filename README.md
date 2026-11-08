@@ -14,6 +14,10 @@
 
 The project is structured as a lightweight npm monorepo with an **Angular 22** frontend and a **NestJS 12** backend, persisting to a local **SQLite** database via **TypeORM** (`better-sqlite3`).
 
+<p align="center">
+  <img src="docs/assets/screenshot-wardrobe.webp" alt="Dressly Wardrobe Interface" width="100%" />
+</p>
+
 ---
 
 ## 🌟 Why Dressly?

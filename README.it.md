@@ -14,6 +14,10 @@
 
 Il progetto è strutturato come un monorepo npm leggero con frontend in **Angular 22** e backend in **NestJS 12**, con persistenza su database locale **SQLite** tramite **TypeORM** (`better-sqlite3`).
 
+<p align="center">
+  <img src="docs/assets/screenshot-wardrobe.webp" alt="Interfaccia Guardaroba Dressly" width="100%" />
+</p>
+
 ---
 
 ## 🌟 Perché esiste Dressly?
