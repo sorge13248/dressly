@@ -275,6 +275,18 @@ h1 {
   gap: 8px;
 }
 
+.location-room-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e3edf7;
+  color: #2b5580;
+  margin-left: 6px;
+}
+
 .drag-handle {
   border: 0;
   background: transparent;

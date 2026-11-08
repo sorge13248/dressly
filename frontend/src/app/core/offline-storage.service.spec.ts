@@ -155,5 +155,27 @@ describe('OfflineStorageService', () => {
       const desc = await service.queryClothes({ search: '', brand_id: '', fit_id: '', size: '', color_ids: [], material_ids: [], season_ids: [], temperature_ids: [], use_case_ids: [], type_ids: [], tag_ids: [], sort: 'created_desc', page: 1, per_page: 10 });
       expect(desc.items.map((i) => i.id)).toEqual(['cloth-c', 'cloth-b', 'cloth-a']);
     });
+
+    it('should filter by status and location_ids', async () => {
+      const storedItem: ClothesItem = {
+        ...clothA,
+        id: 'cloth-stored',
+        status: 'in_storage',
+        locationId: 'loc-1',
+        location: { id: 'loc-1', userId: 'u1', name: 'Scatola Lana', roomId: 'room-1', sortOrder: 1, createdAt: '', updatedAt: '' },
+      };
+      await service.saveClothes([storedItem]);
+
+      const inWardrobeOnly = await service.queryClothes({ search: '', brand_id: '', fit_id: '', size: '', color_ids: [], material_ids: [], season_ids: [], temperature_ids: [], use_case_ids: [], type_ids: [], tag_ids: [], status: 'in_wardrobe', page: 1, per_page: 10 });
+      expect(inWardrobeOnly.items.some((i) => i.id === 'cloth-stored')).toBe(false);
+
+      const inStorageOnly = await service.queryClothes({ search: '', brand_id: '', fit_id: '', size: '', color_ids: [], material_ids: [], season_ids: [], temperature_ids: [], use_case_ids: [], type_ids: [], tag_ids: [], status: 'in_storage', page: 1, per_page: 10 });
+      expect(inStorageOnly.items.length).toBe(1);
+      expect(inStorageOnly.items[0].id).toBe('cloth-stored');
+
+      const byLocation = await service.queryClothes({ search: '', brand_id: '', fit_id: '', size: '', color_ids: [], material_ids: [], season_ids: [], temperature_ids: [], use_case_ids: [], type_ids: [], tag_ids: [], location_ids: ['loc-1'], page: 1, per_page: 10 });
+      expect(byLocation.items.length).toBe(1);
+      expect(byLocation.items[0].id).toBe('cloth-stored');
+    });
   });
 });

@@ -26,32 +26,49 @@
           <div class="hero-copy">
             <div class="title-with-status">
               <h1>{{ title() }}</h1>
-              @if (isInWashing() || isInIroning()) {
-                <div class="hero-status-tags">
-                  @if (isInWashing()) {
-                    <span class="status-chip status-chip--washing" title="In lavatrice">
-                      <app-washing-icon [size]="14" [strokeWidth]="2" />
-                      In lavatrice@if (current.isCumulative && washingQuantity() > 0) { ({{ washingQuantity() }})}
-                    </span>
-                  }
-                  @if (isInIroning()) {
-                    <span class="status-chip status-chip--ironing" title="Da stirare">
-                      <app-ironing-icon [size]="14" [strokeWidth]="2" />
-                      Da stirare@if (current.isCumulative && ironingQuantity() > 0) { ({{ ironingQuantity() }})}
-                    </span>
-                  }
-                </div>
-              }
+              <div class="hero-status-tags">
+                @if (current.code) {
+                  <span class="status-chip status-chip--code">{{ current.code }}</span>
+                }
+
+                @if (current.status === 'in_storage') {
+                  <span class="status-chip status-chip--storage" title="Capo attualmente in deposito">
+                    <span>📦 In deposito</span>
+                    @if (current.location) {
+                      <span>({{ current.location.room?.name ? current.location.room.name + ' › ' + current.location.name : current.location.name }})</span>
+                    }
+                  </span>
+                } @else if (current.status === 'dismissed') {
+                  <span class="status-chip status-chip--dismissed" title="Capo dismesso (donato, venduto o eliminato)">
+                    🏷️ Dismesso
+                  </span>
+                } @else {
+                  <span class="status-chip status-chip--wardrobe" title="Capo disponibile nell'armadio">
+                    🚪 Nell'armadio
+                  </span>
+                }
+
+                @if (isInWashing()) {
+                  <span class="status-chip status-chip--washing" title="In lavatrice">
+                    <app-washing-icon [size]="14" [strokeWidth]="2" />
+                    <span>In lavatrice</span>
+                    @if (current.isCumulative && washingQuantity() > 0) {
+                      <span>({{ washingQuantity() }})</span>
+                    }
+                  </span>
+                }
+                @if (isInIroning()) {
+                  <span class="status-chip status-chip--ironing" title="Da stirare">
+                    <app-ironing-icon [size]="14" [strokeWidth]="2" />
+                    <span>Da stirare</span>
+                    @if (current.isCumulative && ironingQuantity() > 0) {
+                      <span>({{ ironingQuantity() }})</span>
+                    }
+                  </span>
+                }
+              </div>
             </div>
             <div class="hero-detail-list">
-              @if (current.code) {
-                <div class="hero-detail-row">
-                  <span class="hero-label">ID Etichetta</span>
-                  <div class="hero-meta">
-                    <span class="hero-code-val">{{ current.code }}</span>
-                  </div>
-                </div>
-              }
               @if (current.isCumulative || (current.quantity && current.quantity > 1)) {
                 <div class="hero-detail-row">
                   <span class="hero-label">Quantità</span>

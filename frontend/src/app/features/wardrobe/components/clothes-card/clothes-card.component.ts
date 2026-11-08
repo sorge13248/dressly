@@ -18,10 +18,14 @@ export class ClothesCardComponent {
   readonly selected = input<boolean>(false);
   readonly showOutfit = input<boolean>(true);
   readonly showRemove = input<boolean>(false);
+  readonly showActions = input<boolean>(true);
+  readonly variant = input<'standard' | 'mini'>('standard');
+  readonly cardClickBehavior = input<'navigate' | 'select' | 'none'>('navigate');
   readonly actionPending = input<boolean>(false);
-  readonly linkPrefix = input<string>('/wardrobe');
+  readonly linkPrefix = input<string | null>('/wardrobe');
 
   readonly selectionChange = output<{ id: string; event: Event }>();
+  readonly cardClick = output<{ item: ClothesItem; event: Event }>();
   readonly removeClick = output<{ item: ClothesItem; event: Event }>();
   readonly outfitClick = output<{ item: ClothesItem; event: Event }>();
   readonly washingClick = output<{ item: ClothesItem; event: Event }>();
@@ -53,6 +57,20 @@ export class ClothesCardComponent {
     return type || color || 'Capo senza nome';
   }
 
+  getLocationLabel(item: ClothesItem): string {
+    if (item.status === 'in_storage') {
+      if (item.location) {
+        const room = item.location.room?.name;
+        return room ? `${room} › ${item.location.name}` : item.location.name;
+      }
+      return 'In deposito';
+    }
+    if (item.status === 'dismissed') {
+      return 'Dismesso';
+    }
+    return '';
+  }
+
   resolveColorHex(hexCode: string | null | undefined) {
     return normalizeHexColor(hexCode ?? null);
   }
@@ -69,6 +87,24 @@ export class ClothesCardComponent {
       .map((item) => item.name?.trim())
       .filter((name): name is string => Boolean(name))
       .join(', ');
+  }
+
+  openDetailInNewTab(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const base = this.linkPrefix() || '/wardrobe';
+    const url = `${base}/${this.item().id}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  onCardClick(event: Event) {
+    if (this.cardClickBehavior() === 'select') {
+      event.preventDefault();
+      this.selectionChange.emit({ id: this.item().id, event });
+      this.cardClick.emit({ item: this.item(), event });
+    } else if (!this.linkPrefix()) {
+      this.cardClick.emit({ item: this.item(), event });
+    }
   }
 
   onToggleSelection(event: Event) {

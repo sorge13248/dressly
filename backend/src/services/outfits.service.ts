@@ -98,6 +98,9 @@ export class OutfitsService {
           type: true,
           colors: true,
           attachments: true,
+          location: {
+            room: true,
+          },
         },
       },
     });
@@ -141,6 +144,9 @@ export class OutfitsService {
           id: c.id,
           name: c.name,
           fullTitle: c.fullTitle,
+          status: c.status,
+          locationId: c.locationId,
+          location: c.location,
           brand: c.brand,
           type: c.type,
           colors: c.colors,
@@ -171,6 +177,9 @@ export class OutfitsService {
           useCases: true,
           tags: true,
           attachments: true,
+          location: {
+            room: true,
+          },
           washingInstruction: true,
           dryingInstruction: true,
           ironingInstruction: true,

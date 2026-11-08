@@ -60,6 +60,29 @@
   }
 }
 
+.storage-notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fefce8 0%, #fef3c7 100%);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.08);
+
+  .notice-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .notice-text {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #92400e;
+  }
+}
+
 /* Stato caricamento / errore standard */
 .state-card {
   padding: 24px;

@@ -20,6 +20,8 @@ import { SyncTombstone } from './entities/sync-tombstone.entity';
 import { WashingItem } from './entities/washing-item.entity';
 import { IroningItem } from './entities/ironing-item.entity';
 import { Outfit } from './entities/outfit.entity';
+import { Room } from './entities/room.entity';
+import { Location } from './entities/location.entity';
 import { AuthController } from './auth.controller';
 import { BearerJwtGuard } from './common/auth/bearer-jwt.guard';
 import { CurrentUserController } from './controllers/current-user.controller';
@@ -61,6 +63,8 @@ import { UsersService } from './services/users.service';
         WashingItem,
         IroningItem,
         Outfit,
+        Room,
+        Location,
         SyncTombstone,
       ],
       autoLoadEntities: process.env.DB_AUTO_LOAD_ENTITIES !== 'false',

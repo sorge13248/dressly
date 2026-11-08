@@ -14,10 +14,14 @@ export type ReferenceEditorDialogData = {
   extraLabel: string;
   showSortOrder: boolean;
   usesColorPicker: boolean;
+  isLocation?: boolean;
+  hideExtra?: boolean;
+  roomOptions?: { id: string; name: string }[];
   initial: {
     name: string;
     sortOrder: string;
     extra: string;
+    roomId?: string;
   };
 };
 
@@ -25,6 +29,7 @@ export type ReferenceEditorDialogResult = {
   name: string;
   sortOrder: string;
   extra: string;
+  roomId?: string | null;
 };
 
 @Component({
@@ -40,6 +45,7 @@ export class ReferenceEditorModalComponent {
     name: this.data.initial.name,
     sortOrder: this.data.initial.sortOrder,
     extra: this.data.initial.extra,
+    roomId: this.data.initial.roomId ?? '',
   });
   readonly modalForm = form(this.model, (schema) => {
     required(schema.name, { message: 'Il nome è obbligatorio' });
@@ -65,6 +71,7 @@ export class ReferenceEditorModalComponent {
       name: this.modalForm.name().value().trim(),
       sortOrder: this.modalForm.sortOrder().value().trim(),
       extra: this.modalForm.extra().value().trim(),
+      roomId: this.modalForm.roomId().value() ? this.modalForm.roomId().value().trim() : null,
     });
   }
 

@@ -193,10 +193,13 @@ describe('WardrobePageComponent', () => {
     expect(toolbar.textContent).toContain('1 vestito selezionato');
 
     const buttons = toolbar.querySelectorAll('.toolbar-action-btn');
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(6);
     expect(buttons[0].textContent).toContain('Abbina...');
     expect(buttons[1].textContent).toContain('Metti a lavare');
     expect(buttons[2].textContent).toContain('Stira');
+    expect(buttons[3].textContent).toContain('In deposito...');
+    expect(buttons[4].textContent).toContain('Nell\'armadio');
+    expect(buttons[5].textContent).toContain('Dismetti');
 
     // Clicking deseleziona clears selection and hides toolbar
     const deselectBtn = toolbar.querySelector('.toolbar-btn') as HTMLButtonElement;

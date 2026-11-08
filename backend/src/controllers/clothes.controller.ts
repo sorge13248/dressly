@@ -102,6 +102,18 @@ export class ClothesController {
     return [];
   }
 
+  @Patch('bulk-status')
+  bulkUpdateStatus(
+    @CurrentUser() user: AuthUser,
+    @Body() body: Record<string, unknown>,
+  ) {
+    const ids = this.extractIds(body);
+    const status = String(body.status ?? 'in_wardrobe') as 'in_wardrobe' | 'in_storage' | 'dismissed';
+    const rawLocationId = body.locationId !== undefined ? body.locationId : body.location_id;
+    const locationId = rawLocationId !== undefined ? (rawLocationId ? String(rawLocationId).trim() : null) : undefined;
+    return this.clothesService.bulkUpdateStatus(user, ids, status, locationId);
+  }
+
   @Get(':id')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.clothesService.getOne(user, id);

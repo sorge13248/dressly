@@ -506,6 +506,116 @@
   overflow: visible;
 }
 
+/* Wardrobe Subnav: Status Tabs & Seasonal Rotation */
+.wardrobe-subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(240, 248, 255, 0.7) 100%);
+  border: 1px solid rgba(100, 150, 220, 0.25);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(10, 35, 75, 0.05);
+}
+
+.status-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(220, 235, 252, 0.55);
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(80, 130, 210, 0.22);
+}
+
+.status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #244b7a;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+
+  .tab-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    color: #0c2b53;
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  &.active {
+    background: #ffffff;
+    color: #174275;
+    box-shadow: 0 2px 6px rgba(20, 55, 110, 0.15), inset 0 1px 0 #ffffff;
+  }
+}
+
+.subnav-actions {
+  display: flex;
+  align-items: center;
+}
+
+.seasonal-change-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #12437b;
+  background: linear-gradient(180deg, #ffffff 0%, #e6f2ff 100%);
+  border: 1px solid rgba(40, 110, 200, 0.35);
+  box-shadow: 0 2px 6px rgba(15, 45, 95, 0.08);
+  transition: all 150ms ease;
+
+  .btn-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: linear-gradient(180deg, #ffffff 0%, #d8ebff 100%);
+    border-color: #2b77cc;
+    color: #082952;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(25, 75, 150, 0.15);
+  }
+}
+
+.danger-action {
+  border-color: rgba(200, 50, 50, 0.35) !important;
+  color: #991b1b !important;
+
+  &:hover {
+    background: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #7f1d1d !important;
+  }
+}
+
+.emoji-icon {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .state-card {
   padding: 20px;
 }

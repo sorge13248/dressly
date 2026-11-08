@@ -11,12 +11,14 @@ import { LaundryService } from '../../../../core/laundry.service';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
-import { AttachmentItem, CLOTHES_SORT_OPTIONS, ClothesFilters, ClothesItem, ClothesSortKey, OutfitDetailResponse } from '../../../../core/models';
+import { AttachmentItem, CLOTHES_SORT_OPTIONS, ClothesFilters, ClothesItem, ClothesSortKey, ClothesStatus, OutfitDetailResponse } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
 import { ClothesCardComponent } from '../../components/clothes-card/clothes-card.component';
+import { LocationSelectModalComponent, LocationSelectModalResult } from '../../components/location-select-modal/location-select-modal.component';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 interface FilterPillOption {
   id: string;
@@ -35,7 +37,18 @@ interface NamedMetaItem {
   name?: string | null;
 }
 
-type FilterKey = 'brand_ids' | 'fit_ids' | 'type_ids' | 'tag_ids' | 'color_ids' | 'material_ids' | 'season_ids' | 'temperature_ids' | 'use_case_ids';
+type FilterKey =
+  | 'brand_ids'
+  | 'fit_ids'
+  | 'type_ids'
+  | 'tag_ids'
+  | 'color_ids'
+  | 'material_ids'
+  | 'season_ids'
+  | 'temperature_ids'
+  | 'use_case_ids'
+  | 'room_ids'
+  | 'location_ids';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 50;
@@ -68,6 +81,9 @@ const QUERY_PARAM_KEYS = [
   'season_ids',
   'temperature_ids',
   'use_case_ids',
+  'room_ids',
+  'location_ids',
+  'status',
   'sort',
   'page',
   'per_page',
@@ -83,6 +99,7 @@ const initialFilters = (query: Record<string, string>) => {
     : getSavedSort();
 
   return {
+    search: query['search'] ?? '',
     size: query['size'] ?? '',
     brand_ids: query['brand_id'] ? query['brand_id'].split(',').filter(Boolean) : [],
     fit_ids: query['fit_id'] ? query['fit_id'].split(',').filter(Boolean) : [],
@@ -93,6 +110,9 @@ const initialFilters = (query: Record<string, string>) => {
     season_ids: query['season_ids'] ? query['season_ids'].split(',').filter(Boolean) : [],
     temperature_ids: query['temperature_ids'] ? query['temperature_ids'].split(',').filter(Boolean) : [],
     use_case_ids: query['use_case_ids'] ? query['use_case_ids'].split(',').filter(Boolean) : [],
+    room_ids: query['room_ids'] ? query['room_ids'].split(',').filter(Boolean) : [],
+    location_ids: query['location_ids'] ? query['location_ids'].split(',').filter(Boolean) : [],
+    status: (query['status'] as ClothesStatus | 'all') || 'in_wardrobe',
     sort: validSort,
     page: Number(query['page'] ?? DEFAULT_PAGE) || DEFAULT_PAGE,
     per_page: parsedPerPage > 0 ? Math.min(100, parsedPerPage) : DEFAULT_PER_PAGE,
@@ -170,7 +190,11 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   readonly useCaseOptions = this.referenceStore.useCases;
   readonly typeOptions = this.referenceStore.types;
   readonly tagOptions = this.referenceStore.tags;
+  readonly roomOptions = this.referenceStore.rooms;
+  readonly locationOptions = this.referenceStore.locations;
   readonly sortOptions = CLOTHES_SORT_OPTIONS;
+
+  readonly activeStatus = computed(() => this.filters().status || 'in_wardrobe');
 
   readonly brandFilterOptions = computed<FilterPillOption[]>(() =>
     this.brandOptions().map((brand) => ({ id: brand.id, label: brand.name, emoji: '🏷️' })),
@@ -212,6 +236,18 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     this.tagOptions().map((tag) => ({ id: tag.id, label: tag.name, emoji: '#' })),
   );
 
+  readonly roomFilterOptions = computed<FilterPillOption[]>(() =>
+    this.roomOptions().map((room) => ({ id: room.id, label: room.name, emoji: '🏠' })),
+  );
+
+  readonly locationFilterOptions = computed<FilterPillOption[]>(() =>
+    this.locationOptions().map((loc) => ({
+      id: loc.id,
+      label: loc.room?.name ? `${loc.room.name} › ${loc.name}` : loc.name,
+      emoji: '📍',
+    })),
+  );
+
   readonly filterGroups = computed<FilterGroup[]>(() => [
     { key: 'season_ids', label: 'Stagioni', options: this.seasonFilterOptions() },
     { key: 'temperature_ids', label: 'Temperature', options: this.temperatureFilterOptions() },
@@ -222,6 +258,8 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     { key: 'brand_ids', label: 'Brand', options: this.brandFilterOptions() },
     { key: 'fit_ids', label: 'Fit', options: this.fitFilterOptions() },
     { key: 'material_ids', label: 'Materiali', options: this.materialFilterOptions() },
+    { key: 'room_ids', label: 'Stanze', options: this.roomFilterOptions() },
+    { key: 'location_ids', label: 'Posizioni', options: this.locationFilterOptions() },
   ]);
 
   readonly query = computed<ClothesFilters>(() => {
@@ -239,6 +277,9 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       season_ids: current.season_ids,
       temperature_ids: current.temperature_ids,
       use_case_ids: current.use_case_ids,
+      room_ids: current.room_ids,
+      location_ids: current.location_ids,
+      status: current.status,
       sort: current.sort,
       page: current.page,
       per_page: current.per_page,
@@ -256,7 +297,9 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       state.material_ids.length +
       state.season_ids.length +
       state.temperature_ids.length +
-      state.use_case_ids.length
+      state.use_case_ids.length +
+      state.room_ids.length +
+      state.location_ids.length
     );
   });
 
@@ -443,10 +486,19 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     }));
   }
 
+  setStatusFilter(status: ClothesStatus | 'all') {
+    this.filters.update((current) => ({
+      ...current,
+      status,
+      page: 1,
+    }));
+  }
+
   clearFilters() {
     this.searchForm.text().value.set('');
     this.debouncedSearch.set('');
     this.filters.set({
+      search: '',
       size: '',
       brand_ids: [],
       fit_ids: [],
@@ -457,6 +509,9 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       season_ids: [],
       temperature_ids: [],
       use_case_ids: [],
+      room_ids: [],
+      location_ids: [],
+      status: this.filters().status,
       sort: this.filters().sort,
       page: DEFAULT_PAGE,
       per_page: this.filters().per_page,
@@ -863,6 +918,213 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/wardrobe/ironing']);
   }
 
+  async onMoveToStorage() {
+    const ids = this.selectionService.selectedIds();
+    if (ids.length === 0) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open<LocationSelectModalResult>(LocationSelectModalComponent);
+    const result = await firstValueFrom(dialogRef.closed);
+    if (!result) {
+      return;
+    }
+
+    const targetLocationId = result.locationId;
+    const locItem = targetLocationId ? this.locationOptions().find((l) => l.id === targetLocationId) : null;
+
+    try {
+      if (!this.syncService?.checkIsOffline()) {
+        await this.api.bulkUpdateStatus(ids, 'in_storage', targetLocationId);
+      }
+
+      this.items.update((list) =>
+        list.map((item) =>
+          ids.includes(item.id)
+            ? {
+                ...item,
+                status: 'in_storage',
+                locationId: targetLocationId,
+                location: locItem || (targetLocationId ? ({ id: targetLocationId, name: '' } as any) : undefined),
+              }
+            : item,
+        ),
+      );
+
+      if (this.storage) {
+        const toSave: ClothesItem[] = [];
+        for (const id of ids) {
+          const existing = await this.storage.getClothes(id);
+          if (existing) {
+            toSave.push({
+              ...existing,
+              status: 'in_storage',
+              locationId: targetLocationId,
+              location: locItem || undefined,
+            });
+          }
+        }
+        if (toSave.length > 0) {
+          await this.storage.saveClothes(toSave);
+        }
+      }
+
+      if (this.syncService) {
+        for (const id of ids) {
+          await this.syncService.queueClothesChange(id, 'update', {
+            status: 'in_storage',
+            location_id: targetLocationId,
+          });
+        }
+      }
+
+      this.selectionService.clear();
+      this.toast.success(
+        `${ids.length} ${ids.length === 1 ? 'capo spostato' : 'capi spostati'} in deposito`,
+      );
+      void this.load(this.query(), { silent: true });
+    } catch {
+      this.toast.error('Errore durante lo spostamento in deposito');
+    }
+  }
+
+  async onRestoreToWardrobe() {
+    const ids = this.selectionService.selectedIds();
+    if (ids.length === 0) {
+      return;
+    }
+
+    try {
+      if (!this.syncService?.checkIsOffline()) {
+        await this.api.bulkUpdateStatus(ids, 'in_wardrobe', null);
+      }
+
+      this.items.update((list) =>
+        list.map((item) =>
+          ids.includes(item.id)
+            ? {
+                ...item,
+                status: 'in_wardrobe',
+                locationId: null,
+                location: undefined,
+              }
+            : item,
+        ),
+      );
+
+      if (this.storage) {
+        const toSave: ClothesItem[] = [];
+        for (const id of ids) {
+          const existing = await this.storage.getClothes(id);
+          if (existing) {
+            toSave.push({
+              ...existing,
+              status: 'in_wardrobe',
+              locationId: null,
+              location: undefined,
+            });
+          }
+        }
+        if (toSave.length > 0) {
+          await this.storage.saveClothes(toSave);
+        }
+      }
+
+      if (this.syncService) {
+        for (const id of ids) {
+          await this.syncService.queueClothesChange(id, 'update', {
+            status: 'in_wardrobe',
+            location_id: null,
+          });
+        }
+      }
+
+      this.selectionService.clear();
+      this.toast.success(
+        `${ids.length} ${ids.length === 1 ? 'capo riportato' : 'capi riportati'} nell'armadio`,
+      );
+      void this.load(this.query(), { silent: true });
+    } catch {
+      this.toast.error("Errore durante il ripristino nell'armadio");
+    }
+  }
+
+  async onDismissClothes() {
+    const ids = this.selectionService.selectedIds();
+    if (ids.length === 0) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
+      data: {
+        title: 'Dismetti capi selezionati',
+        message: `Vuoi contrassegnare ${ids.length === 1 ? 'questo capo come dismesso' : `questi ${ids.length} capi come dismessi`} (donati, venduti o eliminati)? Rimarranno visualizzabili nella sezione "Dismessi".`,
+        confirmText: 'Dismetti',
+        cancelText: 'Annulla',
+        isDestructive: true,
+      },
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.closed);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      if (!this.syncService?.checkIsOffline()) {
+        await this.api.bulkUpdateStatus(ids, 'dismissed', null);
+      }
+
+      this.items.update((list) =>
+        list.map((item) =>
+          ids.includes(item.id)
+            ? {
+                ...item,
+                status: 'dismissed',
+                locationId: null,
+                location: undefined,
+              }
+            : item,
+        ),
+      );
+
+      if (this.storage) {
+        const toSave: ClothesItem[] = [];
+        for (const id of ids) {
+          const existing = await this.storage.getClothes(id);
+          if (existing) {
+            toSave.push({
+              ...existing,
+              status: 'dismissed',
+              locationId: null,
+              location: undefined,
+            });
+          }
+        }
+        if (toSave.length > 0) {
+          await this.storage.saveClothes(toSave);
+        }
+      }
+
+      if (this.syncService) {
+        for (const id of ids) {
+          await this.syncService.queueClothesChange(id, 'update', {
+            status: 'dismissed',
+            location_id: null,
+          });
+        }
+      }
+
+      this.selectionService.clear();
+      this.toast.success(
+        `${ids.length} ${ids.length === 1 ? 'capo dismesso' : 'capi dismessi'}`,
+      );
+      void this.load(this.query(), { silent: true });
+    } catch {
+      this.toast.error('Errore durante la dismissione dei capi');
+    }
+  }
+
   isActionPending(id: string): boolean {
     return this.pendingActionIds().has(id);
   }
@@ -1081,6 +1343,9 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     if (query.season_ids.length > 0) params.season_ids = query.season_ids.join(',');
     if (query.temperature_ids.length > 0) params.temperature_ids = query.temperature_ids.join(',');
     if (query.use_case_ids.length > 0) params.use_case_ids = query.use_case_ids.join(',');
+    if (query.room_ids && query.room_ids.length > 0) params.room_ids = query.room_ids.join(',');
+    if (query.location_ids && query.location_ids.length > 0) params.location_ids = query.location_ids.join(',');
+    if (query.status && query.status !== 'in_wardrobe') params.status = query.status;
     if (query.sort && query.sort !== 'created_desc') params.sort = query.sort;
     if (query.page > DEFAULT_PAGE) params.page = String(query.page);
     if (query.per_page !== DEFAULT_PER_PAGE) params.per_page = String(query.per_page);

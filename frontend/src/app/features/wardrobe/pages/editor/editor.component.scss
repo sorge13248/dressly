@@ -381,7 +381,7 @@ h2 {
 
 .base-row-grid {
   display: grid;
-  grid-template-columns: minmax(160px, 2fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) minmax(65px, 80px) minmax(120px, 1.1fr) minmax(130px, 1.2fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   align-items: start;
 }

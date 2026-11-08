@@ -26,6 +26,9 @@ erDiagram
     User ||--o{ Temperature : configures
     User ||--o{ Type : configures
     User ||--o{ UseCase : configures
+    User ||--o{ Room : configures
+
+    Room ||--o{ Location : contains
 
     Clothes ||--o{ Attachment : has
     Clothes ||--o| WashingInstruction : specifies
@@ -38,6 +41,7 @@ erDiagram
     Clothes }o--o| Brand : "brandId (SET NULL)"
     Clothes }o--o| Fit : "fitId (SET NULL)"
     Clothes }o--o| Type : "typeId (SET NULL)"
+    Clothes }o--o| Location : "locationId (SET NULL)"
 
     Clothes }o--o{ Color : "clothes_colors"
     Clothes }o--o{ Material : "clothes_materials"
@@ -88,6 +92,8 @@ The primary inventory item in the user's wardrobe.
 | `brandId` | `varchar` | Nullable, FK `Brand` (`SET NULL`) | Reference to Brand |
 | `fitId` | `varchar` | Nullable, FK `Fit` (`SET NULL`) | Reference to Fit |
 | `typeId` | `varchar` | Nullable, FK `Type` (`SET NULL`) | Reference to Clothing Type |
+| `locationId` | `varchar` | Nullable, FK `Location` (`SET NULL`) | Reference to Storage Location / Box |
+| `status` | `varchar` | Default: `'in_wardrobe'`, Not Null | Status: `'in_wardrobe'`, `'in_storage'`, or `'dismissed'` |
 | `createdAt` | `datetime` | Not Null, Auto-generated | Creation timestamp |
 | `updatedAt` | `datetime` | Not Null, Auto-generated | Last modification timestamp |
 
@@ -237,6 +243,8 @@ Composite constraint: `@Unique(['userId', 'name'])` on every catalog table.
 | `materials` (`Material`) | — | Fabric composition | Cotton, Wool, Linen, Silk, Polyester, Denim, Leather |
 | `types` (`Type`) | — | Garment category | T-Shirt, Shirt, Pants, Jeans, Sweater, Jacket, Coat, Shoes |
 | `tags` (`Tag`) | — | Custom categorization | Fully custom per user (not pre-seeded) |
+| `rooms` (`Room`) | — | Physical storage rooms (e.g. "Soffitta", "Camera") | User-defined storage rooms |
+| `locations` (`Location`) | `roomId: varchar` (FK `Room`) | Storage container/spot inside a room | User-defined positions/containers |
 
 ---
 

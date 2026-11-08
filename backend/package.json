@@ -8,8 +8,8 @@
     "start:dev": "nest start --watch",
     "start": "node dist/main.js",
     "seed:run": "tsx src/database/seed.ts",
-    "lint": "eslint \"src/**/*.ts\"",
-    "test": "tsx --tsconfig tsconfig.json src/services/sync.service.spec.ts && tsx --tsconfig tsconfig.json src/services/outfits.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-tag-code.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-duplicate.spec.ts && tsx --tsconfig tsconfig.json src/services/storage-cleanup.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-sorting.spec.ts"
+    "lint": "eslint --no-error-on-unmatched-pattern \"src/**/*.ts\"",
+    "test": "tsx --tsconfig tsconfig.json src/services/sync.service.spec.ts && tsx --tsconfig tsconfig.json src/services/outfits.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-tag-code.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-duplicate.spec.ts && tsx --tsconfig tsconfig.json src/services/storage-cleanup.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-sorting.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-storage-location.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.4.0",

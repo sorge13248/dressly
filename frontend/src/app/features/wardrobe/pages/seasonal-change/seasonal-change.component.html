@@ -1,0 +1,414 @@
+<section class="wizard-shell">
+  <div class="wizard-window">
+    <!-- Window Titlebar -->
+    <header class="window-titlebar">
+      <div class="title-wrap">
+        <div class="title-icon-badge" aria-hidden="true">
+          <span style="font-size: 1.2rem; line-height: 1;">🔄</span>
+        </div>
+        <div class="title-text-group">
+          <h1>Cambio del Guardaroba</h1>
+          <span class="step-pill-badge">Procedura guidata</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="window-close-btn"
+        (click)="cancelOrClose()"
+        title="Chiudi e torna al guardaroba"
+        aria-label="Chiudi e torna al guardaroba"
+      >
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="3" x2="11" y2="11" />
+          <line x1="11" y1="3" x2="3" y2="11" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Stepper Navigation -->
+    <nav class="stepper-card" aria-label="Passaggi cambio di stagione">
+      @for (step of steps; track step.index) {
+        <button
+          type="button"
+          class="step-node"
+          [class.active]="currentStep() === step.index"
+          [class.completed]="currentStep() > step.index"
+          (click)="goToStep(step.index)"
+        >
+          <span class="step-number">{{ step.index }}</span>
+          <div class="step-text">
+            <strong>{{ step.label }}</strong>
+            <small>{{ step.hint }}</small>
+          </div>
+        </button>
+      }
+    </nav>
+
+    <!-- Wizard Content Body -->
+    <main class="wizard-card">
+      <!-- STEP 1: Seleziona Stagioni -->
+      @if (currentStep() === 1) {
+        <section class="step-panel">
+          <div class="panel-header">
+            <h2>Seleziona le stagioni per la rotazione</h2>
+            <p class="panel-desc">
+              Indica la stagione che si sta concludendo (i cui capi andranno riposti) e la stagione in arrivo (i cui capi verranno estratti dal deposito).
+            </p>
+          </div>
+
+          <div class="seasons-split">
+            <!-- Stagione da riporre -->
+            <div class="season-section">
+              <label class="section-label">
+                <span class="badge-icon">📦</span>
+                <span>Stagioni uscenti (da riporre in deposito)</span>
+              </label>
+              <div class="season-cards-grid">
+                @for (season of seasons(); track season.id) {
+                  <button
+                    type="button"
+                    class="season-card"
+                    [class.selected]="selectedOutgoingSeasonIds().has(season.id)"
+                    (click)="toggleOutgoingSeason(season)"
+                  >
+                    <span class="season-icon">{{ season.icon || '🗓️' }}</span>
+                    <span class="season-name">{{ season.name }}</span>
+                    @if (selectedOutgoingSeasonIds().has(season.id)) {
+                      <span class="check-mark">✓</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Stagione in arrivo -->
+            <div class="season-section">
+              <label class="section-label">
+                <span class="badge-icon">🚪</span>
+                <span>Stagioni entranti (da portare nell'armadio)</span>
+              </label>
+              <div class="season-cards-grid">
+                @for (season of seasons(); track season.id) {
+                  <button
+                    type="button"
+                    class="season-card"
+                    [class.selected]="selectedIncomingSeasonIds().has(season.id)"
+                    (click)="toggleIncomingSeason(season)"
+                  >
+                    <span class="season-icon">{{ season.icon || '🗓️' }}</span>
+                    <span class="season-name">{{ season.name }}</span>
+                    @if (selectedIncomingSeasonIds().has(season.id)) {
+                      <span class="check-mark">✓</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </section>
+      }
+
+      <!-- STEP 2: Capi Fuori Stagione da Riporre -->
+      @if (currentStep() === 2) {
+        <section class="step-panel">
+          <div class="panel-header">
+            <h2>Capi da riporre in deposito</h2>
+            <p class="panel-desc">
+              Capi attualmente nell'armadio abbinati a {{ outgoingSeasonsLabel() }}. Seleziona la destinazione e indica se lavarli prima di riporli.
+            </p>
+          </div>
+
+          <!-- Opzioni di Destinazione & Lavaggio -->
+          <div class="storage-options-card">
+            <div class="location-picker">
+              <label for="dest-loc-select" class="picker-label">Posizione / Contenitore di destinazione:</label>
+              <select
+                id="dest-loc-select"
+                class="location-select"
+                [value]="destinationLocationId()"
+                (change)="onDestinationLocationChange($event)"
+              >
+                <option value="">-- Nessuna specifica (solo Deposito) --</option>
+                @for (loc of locationsSorted(); track loc.id) {
+                  <option [value]="loc.id">
+                    {{ loc.room?.name ? loc.room.name + ' › ' + loc.name : loc.name }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="laundry-option" (click)="toggleSendWashing()">
+              <input
+                type="checkbox"
+                id="send-washing-check"
+                [checked]="sendOutgoingToWashing()"
+                (change)="toggleSendWashing()"
+                class="option-checkbox"
+              />
+              <label for="send-washing-check" class="option-label">
+                <span class="option-icon">🧼</span>
+                <span>Invia tutti i capi selezionati in lavatrice prima di riporli</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Toolbar selezione capi -->
+          <div class="candidates-toolbar">
+            <div class="selection-count">
+              {{ selectedOutgoingIds().size }} di {{ outgoingCandidates().length }} capi selezionati
+            </div>
+            <div class="toolbar-actions">
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="selectAllOutgoing()">
+                Seleziona tutti
+              </button>
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="deselectAllOutgoing()">
+                Deseleziona tutti
+              </button>
+            </div>
+          </div>
+
+          <!-- Griglia Capi Uscenti -->
+          @if (outgoingCandidates().length === 0) {
+            <div class="empty-state">
+              <p>Nessun capo trovato nell'armadio per questa stagione.</p>
+            </div>
+          } @else {
+            <div class="items-selection-grid">
+              @for (item of outgoingCandidates(); track item.id) {
+                <app-clothes-card
+                  [item]="item"
+                  variant="mini"
+                  [showActions]="false"
+                  [selectable]="true"
+                  [selected]="selectedOutgoingIds().has(item.id)"
+                  [linkPrefix]="null"
+                  cardClickBehavior="select"
+                  (selectionChange)="toggleOutgoingItem(item.id)"
+                />
+              }
+            </div>
+          }
+        </section>
+      }
+
+      <!-- STEP 3: Capi Nuova Stagione da Estrarre -->
+      @if (currentStep() === 3) {
+        <section class="step-panel">
+          <div class="panel-header">
+            <h2>Capi da riportare nell'armadio</h2>
+            <p class="panel-desc">
+              Capi attualmente in deposito abbinati a {{ incomingSeasonsLabel() }}.
+            </p>
+          </div>
+
+          <div class="storage-options-card">
+            <div class="laundry-option" (click)="toggleSendIroning()">
+              <input
+                type="checkbox"
+                id="send-ironing-check"
+                [checked]="sendIncomingToIroning()"
+                (change)="toggleSendIroning()"
+                class="option-checkbox"
+              />
+              <label for="send-ironing-check" class="option-label">
+                <span class="option-icon">👔</span>
+                <span>Invia tutti i capi estratti alla stiratura per rinfrescarli prima dell'uso</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Toolbar selezione capi -->
+          <div class="candidates-toolbar">
+            <div class="selection-count">
+              {{ selectedIncomingIds().size }} di {{ incomingCandidates().length }} capi selezionati
+            </div>
+            <div class="toolbar-actions">
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="selectAllIncoming()">
+                Seleziona tutti
+              </button>
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="deselectAllIncoming()">
+                Deseleziona tutti
+              </button>
+            </div>
+          </div>
+
+          <!-- Griglia Capi Entranti -->
+          @if (incomingCandidates().length === 0) {
+            <div class="empty-state">
+              <p>Nessun capo trovato in deposito per questa stagione.</p>
+            </div>
+          } @else {
+            <div class="items-selection-grid">
+              @for (item of incomingCandidates(); track item.id) {
+                <app-clothes-card
+                  [item]="item"
+                  variant="mini"
+                  [showActions]="false"
+                  [selectable]="true"
+                  [selected]="selectedIncomingIds().has(item.id)"
+                  [linkPrefix]="null"
+                  cardClickBehavior="select"
+                  (selectionChange)="toggleIncomingItem(item.id)"
+                />
+              }
+            </div>
+          }
+        </section>
+      }
+
+      <!-- STEP 4: Decluttering Rapido -->
+      @if (currentStep() === 4) {
+        <section class="step-panel">
+          <div class="panel-header">
+            <h2>Decluttering Guardaroba (Opzionale)</h2>
+            <p class="panel-desc">
+              Approfitta del cambio di stagione per fare spazio! Seleziona i capi che non indossi più da contrassegnare come <strong>Dismessi</strong> (donati, venduti o riciclati).
+            </p>
+          </div>
+
+          <div class="search-wrap">
+            <input
+              type="search"
+              placeholder="Cerca un capo da dismettere per nome, tipo o codice..."
+              class="declutter-search-input"
+              [value]="declutterSearch()"
+              (input)="onDeclutterSearchChange($event)"
+            />
+          </div>
+
+          <div class="candidates-toolbar">
+            <div class="selection-count">
+              {{ selectedDeclutterIds().size }} capi contrassegnati per la dismissione
+            </div>
+          </div>
+
+          <div class="items-selection-grid">
+            @for (item of declutterCandidates(); track item.id) {
+              <app-clothes-card
+                [item]="item"
+                variant="mini"
+                [showActions]="false"
+                [selectable]="true"
+                [selected]="selectedDeclutterIds().has(item.id)"
+                [linkPrefix]="null"
+                cardClickBehavior="select"
+                (selectionChange)="toggleDeclutterItem(item.id)"
+              />
+            }
+          </div>
+        </section>
+      }
+
+      <!-- STEP 5: Riepilogo & Conferma -->
+      @if (currentStep() === 5) {
+        <section class="step-panel">
+          <div class="panel-header">
+            <h2>Riepilogo Cambio di Stagione</h2>
+            <p class="panel-desc">
+              Verifica le operazioni che verranno eseguite e conferma per applicarle al tuo guardaroba.
+            </p>
+          </div>
+
+          <div class="summary-cards-grid">
+            <!-- Capi da riporre -->
+            <div class="summary-card">
+              <div class="summary-icon">📦</div>
+              <div class="summary-info">
+                <h3>Capi da Riporre in Deposito</h3>
+                <p class="summary-number">{{ summaryStats().outgoingCount }} capi</p>
+                <small>Destinazione: {{ summaryStats().roomName ? summaryStats().roomName + ' › ' + summaryStats().locationName : summaryStats().locationName }}</small>
+                <small>Stagioni uscenti: {{ summaryStats().outgoingSeasonsLabel }}</small>
+                @if (summaryStats().sendWashing) {
+                  <div class="sub-badge washing-badge">🧼 Verranno aggiunti alla lavatrice</div>
+                }
+              </div>
+            </div>
+
+            <!-- Capi da estrarre -->
+            <div class="summary-card">
+              <div class="summary-icon">🚪</div>
+              <div class="summary-info">
+                <h3>Capi da Portare nell'Armadio</h3>
+                <p class="summary-number">{{ summaryStats().incomingCount }} capi</p>
+                <small>Stagioni entranti: {{ summaryStats().incomingSeasonsLabel }}</small>
+                @if (summaryStats().sendIroning) {
+                  <div class="sub-badge ironing-badge">👔 Verranno aggiunti alla stiratura</div>
+                }
+              </div>
+            </div>
+
+            <!-- Capi dismessi -->
+            @if (summaryStats().declutterCount > 0) {
+              <div class="summary-card declutter">
+                <div class="summary-icon">🏷️</div>
+                <div class="summary-info">
+                  <h3>Capi Dismessi (Decluttering)</h3>
+                  <p class="summary-number">{{ summaryStats().declutterCount }} capi</p>
+                  <small>Verranno archiviati nella sezione "Dismessi"</small>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </main>
+
+    <!-- Footer Action Buttons -->
+    <footer class="wizard-footer">
+      <div class="footer-left">
+        <button
+          type="button"
+          appButton
+          variant="ghost"
+          class="ghost"
+          (click)="cancelOrClose()"
+        >
+          Annulla
+        </button>
+      </div>
+
+      <div class="footer-right">
+        @if (currentStep() > 1) {
+          <button
+            type="button"
+            appButton
+            variant="ghost"
+            class="ghost"
+            (click)="prevStep()"
+          >
+            ← Indietro
+          </button>
+        }
+
+        @if (currentStep() < steps.length) {
+          <button
+            type="button"
+            appButton
+            variant="primary"
+            class="primary"
+            [disabled]="!canProceed()"
+            (click)="nextStep()"
+          >
+            Avanti →
+          </button>
+        } @else {
+          <button
+            type="button"
+            appButton
+            variant="primary"
+            class="primary confirm-btn"
+            [disabled]="isApplying()"
+            (click)="applyRotation()"
+          >
+            @if (isApplying()) {
+              <span>Applicazione in corso...</span>
+            } @else {
+              <span>✓ Conferma Cambio di Stagione</span>
+            }
+          </button>
+        }
+      </div>
+    </footer>
+  </div>
+</section>

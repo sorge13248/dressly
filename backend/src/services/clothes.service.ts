@@ -25,6 +25,7 @@ import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { BuyDetail } from '../entities/buy-detail.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { IroningItem } from '../entities/ironing-item.entity';
+import { Location } from '../entities/location.entity';
 import { ReferenceDataService } from './reference-data.service';
 import { StorageCleanupService } from './storage-cleanup.service';
 
@@ -140,8 +141,25 @@ export class ClothesService implements OnModuleInit {
       .leftJoinAndSelect('clothes.useCases', 'useCases')
       .leftJoinAndSelect('clothes.tags', 'tags')
       .leftJoinAndSelect('clothes.attachments', 'attachments')
+      .leftJoinAndSelect('clothes.location', 'location')
+      .leftJoinAndSelect('location.room', 'room')
       .where('clothes.userId = :userId', { userId: user.id })
       .distinct(true);
+
+    const status = query.status?.trim();
+    if (status && status !== 'all') {
+      qb.andWhere('clothes.status = :status', { status });
+    }
+
+    const locationIds = Array.from(new Set([...parseCsv(query.location_id), ...parseCsv(query.location_ids)]));
+    if (locationIds.length > 0) {
+      qb.andWhere('location.id IN (:...locationIds)', { locationIds });
+    }
+
+    const roomIds = Array.from(new Set([...parseCsv(query.room_id), ...parseCsv(query.room_ids)]));
+    if (roomIds.length > 0) {
+      qb.andWhere('room.id IN (:...roomIds)', { roomIds });
+    }
 
     const brandIds = parseCsv(query.brand_id);
     if (brandIds.length > 0) {
@@ -704,6 +722,7 @@ export class ClothesService implements OnModuleInit {
         dryingInstruction: true,
         ironingInstruction: true,
         buyDetail: true,
+        location: { room: true },
       },
     });
 
@@ -748,6 +767,7 @@ export class ClothesService implements OnModuleInit {
         dryingInstruction: true,
         ironingInstruction: true,
         buyDetail: true,
+        location: { room: true },
       },
     });
 
@@ -779,6 +799,7 @@ export class ClothesService implements OnModuleInit {
         dryingInstruction: true,
         ironingInstruction: true,
         buyDetail: true,
+        location: { room: true },
       },
     });
 
@@ -817,6 +838,9 @@ export class ClothesService implements OnModuleInit {
       notes: original.notes,
       isCumulative: original.isCumulative,
       quantity: original.quantity ?? 1,
+      status: original.status ?? 'in_wardrobe',
+      location: original.location,
+      locationId: original.locationId,
       brand: original.brand,
       fit: original.fit,
       type: original.type,
@@ -1200,6 +1224,27 @@ export class ClothesService implements OnModuleInit {
       } else {
         const type = await this.referenceDataService.resolveOwnedReferences<Type>('types', user.id, [String(body.type_id)]);
         clothes.type = type[0];
+      }
+    }
+
+    if (body.status !== undefined) {
+      const rawStatus = String(body.status).trim();
+      if (['in_wardrobe', 'in_storage', 'dismissed'].includes(rawStatus)) {
+        clothes.status = rawStatus as 'in_wardrobe' | 'in_storage' | 'dismissed';
+      }
+    } else if (!existing) {
+      clothes.status = 'in_wardrobe';
+    }
+
+    const rawLocationId = body.location_id !== undefined ? body.location_id : body.locationId;
+    if (rawLocationId !== undefined) {
+      if (rawLocationId === null || String(rawLocationId).trim() === '') {
+        clothes.location = null;
+        clothes.locationId = null;
+      } else {
+        const loc = await this.referenceDataService.resolveOwnedReferences<Location>('locations', user.id, [String(rawLocationId)]);
+        clothes.location = loc[0] ?? null;
+        clothes.locationId = loc[0]?.id ?? null;
       }
     }
 
@@ -1618,6 +1663,46 @@ export class ClothesService implements OnModuleInit {
     }
 
     return path.resolve(process.cwd(), 'uploads');
+  }
+
+  async bulkUpdateStatus(
+    user: AuthUser,
+    clothesIds: string[],
+    status: 'in_wardrobe' | 'in_storage' | 'dismissed',
+    locationId?: string | null,
+  ) {
+    if (!clothesIds || clothesIds.length === 0) {
+      return { updated: 0 };
+    }
+
+    const clothesRepo = this.dataSource.getRepository(Clothes);
+    const items = await clothesRepo.find({
+      where: { id: In(clothesIds), userId: user.id },
+      relations: { location: true },
+    });
+
+    if (items.length === 0) {
+      return { updated: 0 };
+    }
+
+    let resolvedLocation: Location | null = null;
+    let resolvedLocationId: string | null = null;
+    if (locationId) {
+      const locations = await this.referenceDataService.resolveOwnedReferences<Location>('locations', user.id, [locationId]);
+      resolvedLocation = locations[0] ?? null;
+      resolvedLocationId = resolvedLocation?.id ?? null;
+    }
+
+    for (const item of items) {
+      item.status = status;
+      if (locationId !== undefined) {
+        item.location = resolvedLocation;
+        item.locationId = resolvedLocationId;
+      }
+    }
+
+    await clothesRepo.save(items);
+    return { updated: items.length };
   }
 
   private decorateResponse(item: Clothes) {

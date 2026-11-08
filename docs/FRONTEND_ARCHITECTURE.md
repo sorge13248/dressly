@@ -70,6 +70,7 @@ graph TD
         Wardrobe["/wardrobe (WardrobePageComponent)"]
         NewClothes["/wardrobe/new (WardrobeWizardPageComponent)"]
         EditClothes["/wardrobe/:id/edit (WardrobeWizardPageComponent)"]
+        SeasonalChange["/wardrobe/seasonal-change (SeasonalChangePageComponent)"]
         DetailClothes["/wardrobe/:id (WardrobeDetailPageComponent)"]
         Washing["/wardrobe/washing (WashingPageComponent)"]
         Ironing["/wardrobe/ironing (IroningPageComponent)"]
@@ -83,6 +84,7 @@ graph TD
     Shell --> Wardrobe
     Shell --> NewClothes
     Shell --> EditClothes
+    Shell --> SeasonalChange
     Shell --> DetailClothes
     Shell --> Washing
     Shell --> Ironing
@@ -94,6 +96,7 @@ graph TD
 ### Route Guards
 - **`authGuard`**: Intercepts navigation to protected shell routes. If `authService.isAuthenticated()` is false, redirects to `/login`.
 - **`canDeactivateWardrobeWizard`**: Detects unsaved modifications inside the clothing creation or editing wizard and displays a confirmation dialog before allowing navigation away.
+- **`canDeactivateSeasonalChange`**: Detects unsaved selections or pending stage modifications in the Seasonal Wardrobe Rotation wizard and prompts the user with `ConfirmModalComponent` before allowing navigation away.
 
 ---
 

@@ -37,7 +37,7 @@ graph LR
 | Object Store | Key Path | Secondary Indexes | Description |
 | :--- | :--- | :--- | :--- |
 | `clothes` | `id` | — | Local replica of clothing items with populated relations; powers instantaneous offline tag code uniqueness verification (`isTagCodeAvailable`) |
-| `reference_data` | `compoundKey` (`${kind}:${id}`) | `kind` | Local replica of catalogs (colors, brands, tags, etc.) |
+| `reference_data` | `compoundKey` (`${kind}:${id}`) | `kind` | Local replica of catalogs (colors, brands, tags, rooms, locations, etc.) |
 | `laundry` | `key` (`washing` or `ironing`) | — | Local queues of items currently in laundry |
 | `outfits` | `id` | — | Local replica of outfits and 2D canvas layouts |
 | `sync_queue` | `id` | — | Queue of pending mutations waiting for network transmission |

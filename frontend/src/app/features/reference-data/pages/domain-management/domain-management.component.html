@@ -70,6 +70,9 @@
                 <span class="row-emoji" aria-hidden="true">{{ rowEmoji(row) }}</span>
               }
               {{ row.name }}
+              @if (getRoomName(row); as roomName) {
+                <span class="location-room-badge">{{ roomName }}</span>
+              }
             </strong>
             @if (showSortOrder()) {
             <span>{{ row.sortOrder }}</span>

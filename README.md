@@ -35,16 +35,17 @@ Traditional wardrobe apps often suffer from invasive cloud tracking, cluttered i
 
 - 🔒 **OIDC Confidential Authentication**: Seamless single sign-on with Keycloak, Authentik, Google, or any compliant OIDC Identity Provider via PKCE and secure cookies.
 - 👔 **Comprehensive Clothing Catalog**: Detailed tracking of category, brand, fit, fabric materials, primary and secondary colors, suitable seasons, temperatures, use cases, size, and notes.
+- 📦 **Seasonal Wardrobe Rotation & Storage Locations**: Model real-world wardrobe changes (*cambio stagione*) with 3 operational statuses (`in_wardrobe`, `in_storage`, `dismissed`) and physical container mapping (Rooms and Locations/Boxes). Includes a dedicated 5-step seasonal change wizard (`/wardrobe/seasonal-change`) with multi-season selection, compact mini-card visualization, unsaved change guard (`canDeactivate`), laundry/ironing queue integrations, and outfit storage notifications.
 - ↕️ **Multi-Criteria Wardrobe Sorting Engine**: Sort clothes by addition date (newest/oldest), alphabetical name (A-Z/Z-A), wardrobe sequence hierarchy (tops to footwear), alphabetical type, smart seasonal relevance (current astronomical season prioritized), annual season cycle, tag codes, or laundry availability (clean items first). Integrated into the bottom floating dock with URL query param synchronization and local persistence.
 - 🏷️ **Unique 3-Character Tag Code System**: Collision-free alphanumeric codes drawn from an unambiguous 30-character set (`23456789ABCDEFGHJKMNPQRSTVWXYZ`) excluding easily confused characters (`0`/`O`, `1`/`I`/`L`, and `U`), with real-time offline uniqueness verification against IndexedDB during typing in the editor (green/red styling and V/X status icons).
 - 🧺 **Laundry Queues (Washing & Ironing)**: Track clothes currently in the wash or waiting to be ironed. Move items atomically from washing to ironing with one click.
 - 📦 **Cumulative Items & Multi-Quantity Support**: Track stacks of identical clothing (e.g. 5 identical pairs of socks) with partial laundry allocation.
-- 🎨 **Outfits with Interactive 2D Canvas**: Visually assemble and style outfits on a 2D surface. Supports multi-select bounding marquees, group dragging, rotation, scaling, and z-index ordering.
+- 🎨 **Outfits with Interactive 2D Canvas**: Visually assemble and style outfits on a 2D surface. Supports multi-select bounding marquees, group dragging, rotation, scaling, and z-index ordering, with automatic friendly alerts when member garments are in storage.
 - 🧼 **Garment Care & Purchase Tracking**: Full support for wash temperatures (including cold wash), washing types, bleaching rules, drying methods, ironing temperatures, steam permissions, and purchase metadata.
 - 📸 **High-Performance Media Pipeline**: Upload images up to 10MB. Powered by `sharp` with automatic EXIF orientation, responsive thumbnails, and progressive WebP compression.
 - 🔄 **Bi-Directional Offline Synchronization**: Automatic reconciliation between local IndexedDB (`dressly_offline_v1`) and the server with field-level Last-Write-Wins (LWW) and tombstone tracking.
 - 📲 **Installable PWA**: Responsive mobile-first UI with safe-area insets, custom Service Worker caching, and in-app update notifications.
-- 🗂️ **Personal Reference Data Management**: User-scoped catalogs for colors, brands, seasons, temperatures, occasions, fits, materials, types, and custom tags.
+- 🗂️ **Personal Reference Data Management**: User-scoped catalogs for colors, brands, seasons, temperatures, occasions, fits, materials, types, rooms, locations, and custom tags.
 
 ---
 

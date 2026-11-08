@@ -54,6 +54,36 @@
             <app-ironing-icon class="action-icon" [size]="18" />
             <span>Stira</span>
           </button>
+
+          <button
+            type="button"
+            class="toolbar-action-btn"
+            (click)="onMoveToStorage()"
+            title="Riponi in deposito i capi selezionati"
+          >
+            <span class="action-icon emoji-icon">📦</span>
+            <span>In deposito...</span>
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-action-btn"
+            (click)="onRestoreToWardrobe()"
+            title="Riporta nell'armadio i capi selezionati"
+          >
+            <span class="action-icon emoji-icon">🚪</span>
+            <span>Nell'armadio</span>
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-action-btn danger-action"
+            (click)="onDismissClothes()"
+            title="Contrassegna come dismessi (donati, venduti o eliminati)"
+          >
+            <span class="action-icon emoji-icon">🏷️</span>
+            <span>Dismetti</span>
+          </button>
         </div>
       </div>
     </aside>
@@ -109,6 +139,58 @@
     </aside>
 
     <div class="results-area">
+      <header class="wardrobe-subnav">
+        <nav class="status-tabs" aria-label="Stato capi nel guardaroba">
+          <button
+            type="button"
+            class="status-tab"
+            [class.active]="activeStatus() === 'in_wardrobe'"
+            (click)="setStatusFilter('in_wardrobe')"
+          >
+            <span class="tab-icon">🚪</span>
+            <span class="tab-label">Nell'armadio</span>
+          </button>
+          <button
+            type="button"
+            class="status-tab"
+            [class.active]="activeStatus() === 'in_storage'"
+            (click)="setStatusFilter('in_storage')"
+          >
+            <span class="tab-icon">📦</span>
+            <span class="tab-label">In deposito</span>
+          </button>
+          <button
+            type="button"
+            class="status-tab"
+            [class.active]="activeStatus() === 'dismissed'"
+            (click)="setStatusFilter('dismissed')"
+          >
+            <span class="tab-icon">🏷️</span>
+            <span class="tab-label">Dismessi</span>
+          </button>
+          <button
+            type="button"
+            class="status-tab"
+            [class.active]="activeStatus() === 'all'"
+            (click)="setStatusFilter('all')"
+          >
+            <span class="tab-icon">🌍</span>
+            <span class="tab-label">Tutti</span>
+          </button>
+        </nav>
+
+        <div class="subnav-actions">
+          <a
+            routerLink="/wardrobe/seasonal-change"
+            class="seasonal-change-btn"
+            title="Avvia la procedura guidata per il cambio di stagione del guardaroba"
+          >
+            <span class="btn-icon">🔄</span>
+            <span class="btn-text">Cambio di stagione</span>
+          </a>
+        </div>
+      </header>
+
       @if (loading()) {
         <div class="state-card">Caricamento guardaroba...</div>
       } @else if (error()) {

@@ -135,6 +135,18 @@ export class ApiService {
     return this.http.patch<ClothesItem>(`/api/clothes/${id}`, payload);
   }
 
+  bulkUpdateStatus(
+    clothesIds: string[],
+    status: 'in_wardrobe' | 'in_storage' | 'dismissed',
+    locationId?: string | null,
+  ) {
+    return this.http.patch<{ updated: number }>('/api/clothes/bulk-status', {
+      clothesIds,
+      status,
+      locationId,
+    });
+  }
+
   deleteClothes(id: string) {
     return this.http.delete<{ deleted: boolean }>(`/api/clothes/${id}`);
   }

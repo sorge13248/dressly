@@ -103,7 +103,9 @@ Retrieves or auto-provisions the authenticated user's profile and guarantees ref
 
 ## 5. Reference Catalogs & Domain Management 🔒
 
-Supported categories: `colors`, `brands`, `seasons`, `temperatures`, `use-cases`, `fits`, `materials`, `types`, `tags`.
+Supported categories: `colors`, `brands`, `seasons`, `temperatures`, `use-cases`, `fits`, `materials`, `types`, `tags`, `rooms`, `locations`.
+
+For `locations`, payloads include `roomId` linking the container or position to an existing user room.
 
 ### `GET /api/reference-data` or `GET /api/domains`
 Returns all reference data categories grouped in a single payload.
@@ -162,6 +164,9 @@ Lists all wardrobe items with support for rich filtering, pagination, and multi-
   - `use_case_ids` / `useCase` (string / CSV): Filter by Use Case ID(s).
   - `fit_ids` / `fit` (string / CSV): Filter by Fit ID(s).
   - `tag_ids` / `tag` (string / CSV): Filter by Tag ID(s).
+  - `room_ids` / `room` (string / CSV): Filter by Storage Room ID(s).
+  - `location_ids` / `location` (string / CSV): Filter by Storage Location ID(s).
+  - `status` (string, optional): Filter by operational garment status: `in_wardrobe`, `in_storage`, `dismissed`, or `all`.
   - `size` (string): Filter by garment size.
   - `sort` (string, optional): Sort criteria. Supported values:
     - `created_desc` *(default)*: Most recently created first.
@@ -229,6 +234,23 @@ Retrieves a single clothing piece with full relations.
 ### `PATCH /api/clothes/:id`
 Updates clothing attributes, relations, or nested instructions.
 - **Response `200 OK`**: Updated entity.
+
+### `PATCH /api/clothes/bulk-status`
+Batch updates the operational status and storage location for multiple garments atomically.
+- **Request Body**:
+  ```json
+  {
+    "clothes_ids": ["uuid-1", "uuid-2"],
+    "status": "in_storage",
+    "location_id": "uuid-location"
+  }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "updated": 2
+  }
+  ```
 
 ### `DELETE /api/clothes/:id`
 Removes the clothing item, deleting associated physical photos, cascaded records, and writing a `SyncTombstone`.

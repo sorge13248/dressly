@@ -183,3 +183,42 @@ Dressly equips the primary wardrobe gallery with a multi-criteria sorting engine
 - **Bi-Directional URL Synchronization**: The active sort criterion is mirrored to the URL query string (`?sort=<key>`) for shareable and bookmarkable links.
 - **Local Storage Preference**: The user's selection is persisted in `localStorage` under `dressly_wardrobe_sort`, automatically restoring their preferred ordering on subsequent visits.
 
+---
+
+## 6. Seasonal Wardrobe Rotation, Storage Locations & Decluttering
+
+To mirror the real-world ritual of seasonal wardrobe rotation (*"cambio dell'armadio"*), Dressly models garment lifecycle states and physical storage containers.
+
+### 6.1. Operational Garment Statuses
+
+Every garment in Dressly operates in one of three mutually exclusive lifecycle statuses:
+
+| Status (`status`) | UI Label | Behavior & Visibility |
+| :--- | :--- | :--- |
+| `in_wardrobe` *(Default)* | Nell'armadio | Active garments currently hanging in the user's primary closet and readily available for daily outfits. |
+| `in_storage` | In deposito | Off-season or archived garments stored away in physical containers, boxes, or auxiliary rooms. Displays location badge (e.g. `📦 Soffitta › Scatola Lana`). |
+| `dismissed` | Dismesso | Garments that have been donated, sold, handed down, or recycled during decluttering. Retained in historical records without cluttering active views. |
+
+### 6.2. Storage Hierarchy: Rooms & Locations
+
+Physical storage is structured hierarchically:
+- **Rooms (`Room`, `rooms`)**: Physical spaces in the home (e.g., *Camera da letto*, *Soffitta*, *Cantina*, *Ripostiglio*).
+- **Locations (`Location`, `locations`)**: Specific boxes, bags, or shelves within a room (e.g., *Scatola Lana 1*, *Scatola Sottovuoto*, *Armadio Ospiti*). Each location references its parent `Room`.
+- When assigned to a garment, the system tracks `locationId` and displays breadcrumb badges (`📦 Room › Location`).
+
+### 6.3. Operational Workflows
+
+1. **Fast Multi-Select Actions**: From the main wardrobe gallery, selecting multiple items surfaces bulk actions in the command bar:
+   - `📦 In deposito...`: Prompts for target location and moves selected items to `in_storage`.
+   - `🚪 Nell'armadio`: Restores selected items to active wardrobe (`in_wardrobe`) and clears location.
+   - `🏷️ Dismetti`: Confirms and flags selected items as `dismissed`.
+2. **Dedicated Seasonal Change Wizard (`/wardrobe/seasonal-change`)**:
+   A guided 5-step interactive workflow protected by `canDeactivateSeasonalChange` to guard against accidental loss of unsaved changes:
+   - **Step 1 (Stagioni)**: Multi-selection of outgoing seasons to pack away and incoming seasons to unpack.
+   - **Step 2 (In Deposito)**: Displays active garments matching any selected outgoing season rendered using compact mini cards (`ClothesCardComponent` variant="mini" with photo on the left, details and direct "open in new tab" button on the right, and quick actions disabled), target location selector, and optional checkbox to send items to the washing queue.
+   - **Step 3 (Nell'Armadio)**: Displays stored garments matching any selected incoming season with container origin badges and optional checkbox to send extracted garments to the ironing queue.
+   - **Step 4 (Decluttering)**: Rapid review with mini cards to mark unwanted garments as dismissed (donated, sold, or recycled).
+   - **Step 5 (Conferma)**: Visual summary cards and atomic batch execution.
+3. **Outfit Storage Warnings**: Outfits containing garments currently `in_storage` display an alert badge (e.g., `📦 1 capo in deposito: Scatola Lana`) in grid cards and detail views while still permitting composition and layout planning.
+
+

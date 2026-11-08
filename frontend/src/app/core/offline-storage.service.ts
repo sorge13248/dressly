@@ -291,6 +291,8 @@ export class OfflineStorageService {
       'materials',
       'types',
       'tags',
+      'rooms',
+      'locations',
     ];
     const result: Record<string, BaseReferenceItem[]> = {};
     for (const kind of kinds) {
@@ -695,6 +697,15 @@ export class OfflineStorageService {
     }
     if (query.size?.trim()) {
       result = result.filter((i) => i.size === query.size);
+    }
+    if (query.status && query.status !== 'all') {
+      result = result.filter((i) => (i.status ?? 'in_wardrobe') === query.status);
+    }
+    if (query.location_ids && query.location_ids.length > 0) {
+      result = result.filter((i) => i.locationId && query.location_ids!.includes(i.locationId));
+    }
+    if (query.room_ids && query.room_ids.length > 0) {
+      result = result.filter((i) => i.location?.roomId && query.room_ids!.includes(i.location.roomId));
     }
 
     const sortKey: ClothesSortKey = query.sort || 'created_desc';

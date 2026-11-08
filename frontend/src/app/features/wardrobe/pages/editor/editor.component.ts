@@ -20,7 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { SyncService } from '../../../../core/sync.service';
-import { ClothesItem } from '../../../../core/models';
+import { ClothesItem, ClothesStatus } from '../../../../core/models';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { SelectDropdownComponent, SelectDropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
@@ -77,6 +77,8 @@ type WizardFormModel = {
   base: {
     name: string;
     code: string;
+    status: ClothesStatus;
+    location_id: string;
     size: string;
     fit_id: string;
     brand_id: string;
@@ -113,6 +115,8 @@ const createInitialWizardModel = (): WizardFormModel => ({
   base: {
     name: '',
     code: generateRandomTagCode(),
+    status: 'in_wardrobe',
+    location_id: '',
     size: '',
     fit_id: '',
     brand_id: '',
@@ -222,6 +226,12 @@ const ironingTemperatureOptions: SelectDropdownOption[] = [
   { id: '3', label: '● ● ● (3 - Alta, max 200°C)' },
 ];
 
+const statusOptions: SelectDropdownOption[] = [
+  { id: 'in_wardrobe', label: "Nell'armadio", emoji: '🚪' },
+  { id: 'in_storage', label: 'In deposito', emoji: '📦' },
+  { id: 'dismissed', label: 'Dismesso', emoji: '🏷️' },
+];
+
 @Component({
   standalone: true,
   imports: [
@@ -315,6 +325,23 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly typeDropdownOptions = computed<SelectDropdownOption[]>(() =>
     [{ id: '', label: 'Nessun tipo' }, ...this.referenceStore.types().map((type) => ({ id: type.id, label: type.name }))],
   );
+  readonly statusOptions = statusOptions;
+  readonly locationDropdownOptions = computed<SelectDropdownOption[]>(() => {
+    const sorted = this.referenceStore.locationsSortedByRoomAndName();
+    const roomsMap = new Map(this.referenceStore.rooms().map((r) => [r.id, r.name]));
+    return [
+      { id: '', label: 'Nessuna posizione' },
+      ...sorted.map((loc) => {
+        const roomName = loc.roomId ? roomsMap.get(loc.roomId) : null;
+        const label = roomName ? `${roomName} › ${loc.name}` : loc.name;
+        return {
+          id: loc.id,
+          label,
+          emoji: '📍',
+        };
+      }),
+    ];
+  });
   readonly washTypeOptions = washTypeOptions;
   readonly bleachTypeOptions = bleachTypeOptions;
   readonly dryingTemperatureOptions = dryingTemperatureOptions;
@@ -578,6 +605,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
             name: (payload['name'] as string) ?? null,
             code: (payload['code'] as string) ?? null,
             size: (payload['size'] as string) ?? null,
+            status: (payload['status'] as ClothesStatus) ?? 'in_wardrobe',
+            locationId: (payload['location_id'] as string) ?? null,
             notes: (payload['notes'] as string) ?? null,
             updatedAt: new Date().toISOString(),
             createdAt: existing?.createdAt ?? new Date().toISOString(),
@@ -1312,6 +1341,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       base: {
         name: item.name ?? '',
         code: item.code ?? generateRandomTagCode(),
+        status: item.status ?? 'in_wardrobe',
+        location_id: item.locationId ?? item.location?.id ?? '',
         size: item.size ?? '',
         fit_id: item.fit?.id ?? '',
         brand_id: item.brand?.id ?? '',
@@ -1410,6 +1441,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     return {
       name: base.name.trim() || null,
       code: base.code ? base.code.trim().toUpperCase() : null,
+      status: base.status || 'in_wardrobe',
+      location_id: base.location_id || null,
       size: size || null,
       fit_id: base.fit_id || null,
       brand_id: base.brand_id || null,

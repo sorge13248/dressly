@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
-import { ReferenceKind, BaseReferenceItem } from '../../../../core/models';
+import { ReferenceKind, BaseReferenceItem, LocationItem, RoomItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import {
   ReferenceEditorDialogResult,
@@ -33,6 +33,8 @@ const tabs = [
   { key: 'materials', label: 'Materiali', emoji: '🧵', tone: 'teal' },
   { key: 'types', label: 'Tipi', emoji: '👕', tone: 'blue' },
   { key: 'tags', label: 'Tag', emoji: '✨', tone: 'violet' },
+  { key: 'rooms', label: 'Stanze', emoji: '🏠', tone: 'amber' },
+  { key: 'locations', label: 'Posizioni', emoji: '📍', tone: 'teal' },
 ] as const satisfies readonly TabMeta[];
 
 @Component({
@@ -42,7 +44,7 @@ const tabs = [
   styleUrl: './domain-management.component.scss',
 })
 export class DomainManagementPageComponent {
-  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
+  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials', 'rooms'];
 
   private readonly referenceStore = inject(ReferenceStoreService);
   private readonly toast = inject(ToastService);
@@ -72,6 +74,10 @@ export class DomainManagementPageComponent {
         return this.referenceStore.types();
       case 'tags':
         return this.referenceStore.tags();
+      case 'rooms':
+        return this.referenceStore.rooms();
+      case 'locations':
+        return this.referenceStore.locationsSortedByRoomAndName();
     }
   });
 
@@ -216,7 +222,24 @@ export class DomainManagementPageComponent {
     return color;
   }
 
+  getRoomName(row: BaseReferenceItem): string | null {
+    if (this.selectedKind() !== 'locations') {
+      return null;
+    }
+    const loc = row as LocationItem;
+    if (loc.room?.name) {
+      return loc.room.name;
+    }
+    if (loc.roomId) {
+      const found = this.referenceStore.rooms().find((r) => r.id === loc.roomId);
+      return found?.name ?? null;
+    }
+    return null;
+  }
+
   private async openEditorModal(mode: 'create' | 'edit', row?: ReferenceDisplayRow) {
+    const isLocation = this.selectedKind() === 'locations';
+    const isRoom = this.selectedKind() === 'rooms';
     const dialogRef = this.dialog.open<ReferenceEditorDialogResult | null>(ReferenceEditorModalComponent, {
       data: {
         mode,
@@ -225,6 +248,9 @@ export class DomainManagementPageComponent {
         extraLabel: this.extraLabel(),
         showSortOrder: this.showSortOrder(),
         usesColorPicker: this.selectedKind() === 'colors',
+        isLocation,
+        hideExtra: isLocation || isRoom || ['fits', 'materials', 'types', 'tags'].includes(this.selectedKind()),
+        roomOptions: isLocation ? this.referenceStore.rooms().map((r) => ({ id: r.id, name: r.name })) : undefined,
         initial: {
           name: row?.name ?? '',
           sortOrder: this.showSortOrder() ? String(row?.sortOrder ?? '') : '',
@@ -232,6 +258,7 @@ export class DomainManagementPageComponent {
             this.selectedKind() === 'colors'
               ? String(row?.hexCode ?? '#5a9de8')
               : String(row?.hexCode ?? row?.logoUrl ?? row?.icon ?? ''),
+          roomId: (row as LocationItem)?.roomId ?? '',
         },
       },
     });
@@ -272,6 +299,7 @@ export class DomainManagementPageComponent {
     if (this.selectedKind() === 'colors') payload['hexCode'] = result.extra || null;
     if (this.selectedKind() === 'brands') payload['logoUrl'] = result.extra || null;
     if (['seasons', 'temperatures', 'use-cases'].includes(this.selectedKind())) payload['icon'] = result.extra || null;
+    if (this.selectedKind() === 'locations') payload['roomId'] = result.roomId || null;
 
     return payload;
   }
@@ -296,6 +324,10 @@ export class DomainManagementPageComponent {
         return { type_id: id };
       case 'tags':
         return { tag_ids: id };
+      case 'rooms':
+        return { room_ids: id };
+      case 'locations':
+        return { location_ids: id };
     }
   }
 }

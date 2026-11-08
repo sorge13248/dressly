@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToM
 import { Attachment } from './attachment.entity';
 import { Brand } from './brand.entity';
 import { Color } from './color.entity';
+import { Location } from './location.entity';
 import { DryingInstruction } from './drying-instruction.entity';
 import { Fit } from './fit.entity';
 import { IroningInstruction } from './ironing-instruction.entity';
@@ -39,6 +40,16 @@ export class Clothes {
 
   @Column({ type: 'varchar', nullable: true })
   notes!: string | null;
+
+  @Column({ type: 'varchar', default: 'in_wardrobe' })
+  status!: 'in_wardrobe' | 'in_storage' | 'dismissed';
+
+  @ManyToOne(() => Location, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'locationId' })
+  location!: Location | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  locationId!: string | null;
 
   @Column({ type: 'boolean', default: false })
   isCumulative!: boolean;

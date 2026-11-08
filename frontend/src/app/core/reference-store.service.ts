@@ -7,8 +7,10 @@ import {
   BrandItem,
   ColorItem,
   FitItem,
+  LocationItem,
   MaterialItem,
   ReferenceKind,
+  RoomItem,
   SeasonItem,
   TagItem,
   TemperatureItem,
@@ -26,9 +28,22 @@ type ReferenceState = {
   materials: MaterialItem[];
   types: TypeItem[];
   tags: TagItem[];
+  rooms: RoomItem[];
+  locations: LocationItem[];
 };
 
-type ReferenceItem = ColorItem | BrandItem | SeasonItem | TemperatureItem | UseCaseItem | FitItem | MaterialItem | TypeItem | TagItem;
+type ReferenceItem =
+  | ColorItem
+  | BrandItem
+  | SeasonItem
+  | TemperatureItem
+  | UseCaseItem
+  | FitItem
+  | MaterialItem
+  | TypeItem
+  | TagItem
+  | RoomItem
+  | LocationItem;
 
 const emptyState: ReferenceState = {
   colors: [],
@@ -40,6 +55,8 @@ const emptyState: ReferenceState = {
   materials: [],
   types: [],
   tags: [],
+  rooms: [],
+  locations: [],
 };
 
 @Injectable({ providedIn: 'root' })
@@ -60,7 +77,7 @@ export class ReferenceStoreService {
     }
   }
 
-  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials'];
+  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials', 'rooms'];
 
   private isSortableKind(kind: ReferenceKind) {
     return this.sortableKinds.includes(kind);
@@ -96,6 +113,27 @@ export class ReferenceStoreService {
   readonly materials = computed(() => this.sortForKind('materials', this.state().materials));
   readonly types = computed(() => this.sortForKind('types', this.state().types));
   readonly tags = computed(() => this.sortForKind('tags', this.state().tags));
+  readonly rooms = computed(() => this.sortForKind('rooms', this.state().rooms));
+  readonly locations = computed(() => this.state().locations);
+
+  readonly locationsSortedByRoomAndName = computed(() => {
+    const roomsList = this.rooms();
+    const roomInfoMap = new Map(roomsList.map((r, idx) => [r.id, { sortOrder: r.sortOrder ?? idx, name: r.name }]));
+    return this.locations()
+      .slice()
+      .sort((a, b) => {
+        const infoA = a.roomId ? roomInfoMap.get(a.roomId) : null;
+        const infoB = b.roomId ? roomInfoMap.get(b.roomId) : null;
+        const orderA = infoA !== null && infoA !== undefined ? infoA.sortOrder : 999999;
+        const orderB = infoB !== null && infoB !== undefined ? infoB.sortOrder : 999999;
+        if (orderA !== orderB) return orderA - orderB;
+        const roomNameA = infoA?.name ?? '';
+        const roomNameB = infoB?.name ?? '';
+        const roomCmp = roomNameA.localeCompare(roomNameB, 'it', { sensitivity: 'base' });
+        if (roomCmp !== 0) return roomCmp;
+        return a.name.localeCompare(b.name, 'it', { sensitivity: 'base' });
+      });
+  });
 
   readonly isLoaded = computed(() =>
     Object.entries(this.state()).every(([kind, list]) => {
@@ -103,8 +141,8 @@ export class ReferenceStoreService {
         return false;
       }
 
-      // Tags are user-defined and may legitimately be empty.
-      if (kind === 'tags') {
+      // Tags, rooms, locations are user-defined and may legitimately be empty.
+      if (kind === 'tags' || kind === 'rooms' || kind === 'locations') {
         return true;
       }
 
@@ -129,6 +167,8 @@ export class ReferenceStoreService {
           materials: (cached['materials'] ?? []) as MaterialItem[],
           types: (cached['types'] ?? []) as TypeItem[],
           tags: (cached['tags'] ?? []) as TagItem[],
+          rooms: (cached['rooms'] ?? []) as RoomItem[],
+          locations: (cached['locations'] ?? []) as LocationItem[],
         };
 
         if (this.hasStateChanged(this.state(), nextState)) {
@@ -151,6 +191,8 @@ export class ReferenceStoreService {
       'materials',
       'types',
       'tags',
+      'rooms',
+      'locations',
     ];
     for (const kind of kinds) {
       const c = curr[kind] ?? [];
@@ -204,6 +246,11 @@ export class ReferenceStoreService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       ...(kind === 'colors' ? { hexCode: (payload['hexCode'] as string) ?? null } : {}),
+      ...(kind === 'locations'
+        ? {
+            roomId: (payload['roomId'] ?? payload['room_id'] ?? null) as string | null,
+          }
+        : {}),
     };
     this.patchAppend(kind, localItem);
     if (this.storage) {
@@ -223,6 +270,10 @@ export class ReferenceStoreService {
       name: payload['name'] !== undefined ? String(payload['name']) : existing?.name ?? '',
       sortOrder: payload['sortOrder'] !== undefined ? Number(payload['sortOrder']) : existing?.sortOrder ?? 0,
       updatedAt: new Date().toISOString(),
+      ...(kind === 'colors' && payload['hexCode'] !== undefined ? { hexCode: payload['hexCode'] as string } : {}),
+      ...(kind === 'locations' && (payload['roomId'] !== undefined || payload['room_id'] !== undefined)
+        ? { roomId: (payload['roomId'] ?? payload['room_id'] ?? null) as string | null }
+        : {}),
     };
     this.patchReplace(kind, updated);
     if (this.storage) {
