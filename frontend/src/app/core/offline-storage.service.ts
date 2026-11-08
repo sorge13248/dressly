@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { isValidTagCode, normalizeTagCode } from '../shared/utils/tag-code.utils';
 import {
   BaseReferenceItem,
   ClothesFilters,
@@ -117,6 +118,18 @@ export class OfflineStorageService {
         resolve(this.memoryStore.clothes.get(id) ?? null);
       }
     });
+  }
+
+  async isTagCodeAvailable(code: string, excludeId?: string | null): Promise<boolean> {
+    const normalized = normalizeTagCode(code);
+    if (!normalized || !isValidTagCode(normalized)) {
+      return false;
+    }
+    const all = await this.getAllClothes();
+    const collision = all.find(
+      (item) => item.code && item.code.trim().toUpperCase() === normalized && item.id !== excludeId,
+    );
+    return !collision;
   }
 
   async saveClothes(items: ClothesItem[]): Promise<void> {

@@ -104,7 +104,7 @@ graph TD
 | `ApiService` | Root | Centralized HTTP client wrapping all REST endpoints with `credentials: 'include'`. |
 | `AuthService` | Root | Exposes user profile signal (`currentUser`), auth state (`isAuthenticated`), and login/logout methods. |
 | `SyncService` | Root | Coordinates background synchronization, tracks online/offline state, processes sync queues, and surfaces sync status signals. |
-| `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`). |
+| `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`); exposes offline availability checks (e.g. `isTagCodeAvailable`). |
 | `LaundryService` | Root | Reactive store for clothes in washing and ironing queues. |
 | `PwaUpdateService` | Root | Detects new Service Worker versions and triggers the update modal. |
 | `ReferenceStoreService`| Root | Reactive cache of reference catalogs (colors, brands, tags, types). |

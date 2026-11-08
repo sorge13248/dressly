@@ -4,6 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { Dialog } from '@angular/cdk/dialog';
 import { of } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
+import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { WardrobeWizardPageComponent } from './editor.component';
 
@@ -365,5 +366,65 @@ describe('WardrobeWizardPageComponent', () => {
     expect(comp.wizardForm.care.washing.wash_type().value()).toBe('washer_ok');
     expect(comp.wizardForm.care.washing.washing_temperature().value()).toBe(0);
     expect(comp.wizardForm.care.washing.washing_temperature().invalid()).toBe(false);
+  });
+
+  describe('Tag code offline availability verification', () => {
+    it('should set codeStatus to available for a valid unused code', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+      const storage = TestBed.inject(OfflineStorageService);
+      vi.spyOn(storage, 'isTagCodeAvailable').mockResolvedValue(true);
+
+      const input = document.createElement('input');
+      input.value = '7kx';
+      comp.onCodeInput({ target: input } as any);
+
+      expect(input.value).toBe('7KX');
+      await fixture.whenStable();
+      expect(comp.codeStatus()).toBe('available');
+    });
+
+    it('should set codeStatus to taken if code already exists in offline storage', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+      const storage = TestBed.inject(OfflineStorageService);
+      vi.spyOn(storage, 'isTagCodeAvailable').mockResolvedValue(false);
+
+      const input = document.createElement('input');
+      input.value = '9AB';
+      comp.onCodeInput({ target: input } as any);
+
+      await fixture.whenStable();
+      expect(comp.codeStatus()).toBe('taken');
+      expect((comp as any).isStepValid(1)).toBe(false);
+    });
+
+    it('should set codeStatus to invalid for incomplete code', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+
+      const input = document.createElement('input');
+      input.value = '7K';
+      comp.onCodeInput({ target: input } as any);
+
+      expect(comp.codeStatus()).toBe('invalid');
+      expect((comp as any).isStepValid(1)).toBe(false);
+    });
+
+    it('should pass excludeId when editing an existing cloth', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+      const storage = TestBed.inject(OfflineStorageService);
+      const spy = vi.spyOn(storage, 'isTagCodeAvailable').mockResolvedValue(true);
+
+      comp.editingId.set('existing-cloth-1');
+      const input = document.createElement('input');
+      input.value = '8ZZ';
+      comp.onCodeInput({ target: input } as any);
+
+      await fixture.whenStable();
+      expect(spy).toHaveBeenCalledWith('8ZZ', 'existing-cloth-1');
+      expect(comp.codeStatus()).toBe('available');
+    });
   });
 });

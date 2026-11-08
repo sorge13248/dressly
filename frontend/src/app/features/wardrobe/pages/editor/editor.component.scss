@@ -393,8 +393,8 @@ h2 {
 
 .field-code {
   .inline-code-input {
+    position: relative;
     display: flex;
-    gap: 6px;
     align-items: center;
 
     input {
@@ -405,6 +405,41 @@ h2 {
       font-weight: 700;
       letter-spacing: 0.05em;
       text-align: center;
+      padding-left: 28px;
+      padding-right: 28px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+
+      &.code-valid {
+        color: #16a34a !important;
+        border-color: #22c55e !important;
+      }
+
+      &.code-invalid {
+        color: #dc2626 !important;
+        border-color: #ef4444 !important;
+      }
+    }
+
+    .code-status-icon {
+      position: absolute;
+      right: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+
+      &.code-valid {
+        color: #16a34a;
+      }
+
+      &.code-invalid {
+        color: #dc2626;
+      }
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
     }
 
     .btn-regenerate-code {

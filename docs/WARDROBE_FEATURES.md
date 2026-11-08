@@ -35,6 +35,16 @@ export const TAG_CODE_LENGTH = 3;
   @Unique(['userId', 'code'])
   ```
 
+### 1.4. Real-Time Offline Availability Verification (IndexedDB)
+When creating or editing a garment in the wardrobe wizard (`/wardrobe/editor`), the ID Etichetta textbox verifies code availability dynamically against IndexedDB (`STORE_CLOTHES`) without requiring network API calls:
+- **Instantaneous Feedback**: As the user types, characters are filtered to uppercase alphanumeric (maximum 3 characters).
+- **Validation States**:
+  - **Incomplete / Invalid (< 3 characters)**: Text in the input and the trailing status icon render in **red** with an **X** icon.
+  - **Available / Free (3 characters, unused)**: Resolved locally against `OfflineStorageService.isTagCodeAvailable()`. The textbox text and trailing status icon render in **green** with a **V** (checkmark) icon.
+  - **Collision / Already Taken (3 characters, already assigned to another garment)**: Text in the input and the trailing status icon render in **red** with an **X** icon and display the validation error message `"Codice già utilizzato"`.
+- **Edit Mode Awareness (`excludeId`)**: When editing an existing piece (`/wardrobe/editor/:id`), the garment's own tag code is excluded from collision checks, remaining available and green.
+- **Workflow Gate**: The wizard disallows stepping forward from step 1 and blocks saving whenever the tag code is taken or incomplete.
+
 ---
 
 ## 2. Laundry Management & Operational Queues
