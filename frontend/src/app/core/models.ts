@@ -166,6 +166,36 @@ export interface ClothesPageResponse {
   perPage: number;
 }
 
+export type ClothesSortKey =
+  | 'created_desc'
+  | 'created_asc'
+  | 'name_asc'
+  | 'name_desc'
+  | 'type_order'
+  | 'type_asc'
+  | 'season_current'
+  | 'season_cycle'
+  | 'code_asc'
+  | 'availability';
+
+export interface ClothesSortOption {
+  key: ClothesSortKey;
+  label: string;
+}
+
+export const CLOTHES_SORT_OPTIONS: ClothesSortOption[] = [
+  { key: 'created_desc', label: 'Più recenti' },
+  { key: 'created_asc', label: 'Meno recenti' },
+  { key: 'name_asc', label: 'Nome (A → Z)' },
+  { key: 'name_desc', label: 'Nome (Z → A)' },
+  { key: 'type_order', label: 'Tipologia (ordine armadio)' },
+  { key: 'type_asc', label: 'Tipologia (A → Z)' },
+  { key: 'season_current', label: 'Stagione corrente prima' },
+  { key: 'season_cycle', label: 'Stagione (ciclo annuale)' },
+  { key: 'code_asc', label: 'Codice etichetta (A → Z)' },
+  { key: 'availability', label: 'Disponibili prima (puliti)' },
+];
+
 export interface ClothesFilters {
   search: string;
   brand_id: string;
@@ -178,6 +208,7 @@ export interface ClothesFilters {
   use_case_ids: string[];
   type_ids: string[];
   tag_ids: string[];
+  sort?: ClothesSortKey;
   page: number;
   per_page: number;
 }

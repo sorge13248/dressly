@@ -158,6 +158,27 @@
       />
     </div>
 
+    <!-- Selettore ordinamento vestiti -->
+    <div class="sort-select-wrap">
+      <svg class="sort-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M7 3v14M7 17l-3.5-3.5M7 17l3.5-3.5M13 17V3M13 3l-3.5 3.5M13 3l3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <select
+        id="wardrobe-sort-select"
+        class="sort-select"
+        [value]="filters().sort || 'created_desc'"
+        (change)="onSortChange($event)"
+        aria-label="Ordina vestiti"
+        title="Ordina vestiti"
+      >
+        @for (option of sortOptions; track option.key) {
+          <option [value]="option.key" [selected]="option.key === (filters().sort || 'created_desc')">
+            {{ option.label }}
+          </option>
+        }
+      </select>
+    </div>
+
     <!-- Pulsante filtri (mobile / tablet) -->
     <button type="button" appButton variant="ghost" class="ghost filter-toggle" (click)="toggleFilters()" aria-label="Apri filtri">
       <svg class="filter-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">

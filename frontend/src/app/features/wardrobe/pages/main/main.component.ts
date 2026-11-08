@@ -11,7 +11,7 @@ import { LaundryService } from '../../../../core/laundry.service';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
-import { AttachmentItem, ClothesFilters, ClothesItem, OutfitDetailResponse } from '../../../../core/models';
+import { AttachmentItem, CLOTHES_SORT_OPTIONS, ClothesFilters, ClothesItem, ClothesSortKey, OutfitDetailResponse } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
@@ -39,6 +39,22 @@ type FilterKey = 'brand_ids' | 'fit_ids' | 'type_ids' | 'tag_ids' | 'color_ids' 
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 50;
+const STORAGE_KEY_SORT = 'dressly_wardrobe_sort';
+
+const getSavedSort = (): ClothesSortKey => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return 'created_desc';
+  }
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY_SORT) as ClothesSortKey | null;
+    if (saved && CLOTHES_SORT_OPTIONS.some((o) => o.key === saved)) {
+      return saved;
+    }
+  } catch {
+    // Ignore storage read errors
+  }
+  return 'created_desc';
+};
 
 const QUERY_PARAM_KEYS = [
   'search',
@@ -52,6 +68,7 @@ const QUERY_PARAM_KEYS = [
   'season_ids',
   'temperature_ids',
   'use_case_ids',
+  'sort',
   'page',
   'per_page',
 ] as const;
@@ -60,6 +77,11 @@ type KnownQueryParamKey = (typeof QUERY_PARAM_KEYS)[number];
 
 const initialFilters = (query: Record<string, string>) => {
   const parsedPerPage = Number(query['per_page'] ?? DEFAULT_PER_PAGE);
+  const sortParam = query['sort'] as ClothesSortKey | undefined;
+  const validSort = sortParam && CLOTHES_SORT_OPTIONS.some((o) => o.key === sortParam)
+    ? sortParam
+    : getSavedSort();
+
   return {
     size: query['size'] ?? '',
     brand_ids: query['brand_id'] ? query['brand_id'].split(',').filter(Boolean) : [],
@@ -71,6 +93,7 @@ const initialFilters = (query: Record<string, string>) => {
     season_ids: query['season_ids'] ? query['season_ids'].split(',').filter(Boolean) : [],
     temperature_ids: query['temperature_ids'] ? query['temperature_ids'].split(',').filter(Boolean) : [],
     use_case_ids: query['use_case_ids'] ? query['use_case_ids'].split(',').filter(Boolean) : [],
+    sort: validSort,
     page: Number(query['page'] ?? DEFAULT_PAGE) || DEFAULT_PAGE,
     per_page: parsedPerPage > 0 ? Math.min(100, parsedPerPage) : DEFAULT_PER_PAGE,
   };
@@ -147,6 +170,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   readonly useCaseOptions = this.referenceStore.useCases;
   readonly typeOptions = this.referenceStore.types;
   readonly tagOptions = this.referenceStore.tags;
+  readonly sortOptions = CLOTHES_SORT_OPTIONS;
 
   readonly brandFilterOptions = computed<FilterPillOption[]>(() =>
     this.brandOptions().map((brand) => ({ id: brand.id, label: brand.name, emoji: '🏷️' })),
@@ -215,6 +239,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       season_ids: current.season_ids,
       temperature_ids: current.temperature_ids,
       use_case_ids: current.use_case_ids,
+      sort: current.sort,
       page: current.page,
       per_page: current.per_page,
     };
@@ -397,6 +422,27 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     }
   }
 
+  onSortChange(event: Event) {
+    const target = event.target as HTMLSelectElement | null;
+    if (!target) {
+      return;
+    }
+    const nextSort = target.value as ClothesSortKey;
+    if (!CLOTHES_SORT_OPTIONS.some((o) => o.key === nextSort)) {
+      return;
+    }
+    try {
+      window.localStorage?.setItem(STORAGE_KEY_SORT, nextSort);
+    } catch {
+      // Ignore localStorage write errors
+    }
+    this.filters.update((current) => ({
+      ...current,
+      sort: nextSort,
+      page: 1,
+    }));
+  }
+
   clearFilters() {
     this.searchForm.text().value.set('');
     this.debouncedSearch.set('');
@@ -411,6 +457,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       season_ids: [],
       temperature_ids: [],
       use_case_ids: [],
+      sort: this.filters().sort,
       page: DEFAULT_PAGE,
       per_page: this.filters().per_page,
     });
@@ -1034,6 +1081,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     if (query.season_ids.length > 0) params.season_ids = query.season_ids.join(',');
     if (query.temperature_ids.length > 0) params.temperature_ids = query.temperature_ids.join(',');
     if (query.use_case_ids.length > 0) params.use_case_ids = query.use_case_ids.join(',');
+    if (query.sort && query.sort !== 'created_desc') params.sort = query.sort;
     if (query.page > DEFAULT_PAGE) params.page = String(query.page);
     if (query.per_page !== DEFAULT_PER_PAGE) params.per_page = String(query.per_page);
 

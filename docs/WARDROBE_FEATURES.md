@@ -1,6 +1,6 @@
 # Wardrobe Domain Logic & Advanced Features
 
-This document provides a deep dive into the specialized domain systems in **Dressly**: the 3-Character Tag Code System, Laundry Lifecycle & Operational Queues, Outfits & Interactive 2D Canvas, and the Media Processing Pipeline.
+This document provides a deep dive into the specialized domain systems in **Dressly**: the 3-Character Tag Code System, Laundry Lifecycle & Operational Queues, Outfits & Interactive 2D Canvas, the Media Processing Pipeline, and the Multi-Criteria Wardrobe Sorting Engine.
 
 ---
 
@@ -156,3 +156,30 @@ graph TD
 2. **Progressive Search**: Iterates through decreasing widths `[1600, 1200, 1000, 800, 640, 480, 320, 240, 160]` and quality steps `[75, 60, 50, 40, 30, 20]`.
 3. **Target Constraint**: Halts as soon as the resulting WebP file is within the maximum preview byte budget (`MAX_PREVIEW_SIZE`), preserving optimal visual clarity with minimal bytes.
 4. **Serving**: Clients can request `?variant=preview` to stream the lightweight WebP preview for cards and carousels, or omit the variant to stream the high-resolution original.
+
+---
+
+## 5. Multi-Criteria Wardrobe Sorting Engine
+
+Dressly equips the primary wardrobe gallery with a multi-criteria sorting engine that operates synchronously across both local-first offline storage (IndexedDB) and the backend database (SQLite).
+
+### 5.1. Sorting Criteria & Domain Semantics
+
+| Sort Key (`sort`) | UI Label | Behavior |
+| :--- | :--- | :--- |
+| `created_desc` *(Default)* | Più recenti | Orders by `createdAt DESC`. Newly cataloged pieces appear first. |
+| `created_asc` | Meno recenti | Orders by `createdAt ASC`. Oldest inventory items appear first. |
+| `name_asc` | Nome (A → Z) | Lexicographical order based on `item.name` with fallback to computed `fullTitle` and clothing type. |
+| `name_desc` | Nome (Z → A) | Reverse lexicographical order. |
+| `type_order` | Tipologia (ordine armadio) | Hierarchy representing natural physical wardrobe order: Tops (10) → Knitwear/Mid-layers (20) → Outerwear (30) → Bottoms (40) → Full-body dresses/suits (50) → Underwear/Loungewear (60) → Footwear (70) → Other (90). |
+| `type_asc` | Tipologia (A → Z) | Alphabetical ordering by type name. |
+| `season_current` | Stagione corrente prima | Evaluates the current astronomical season from the date. Clothes tagged with the current season or marked "Tutte le stagioni" are prioritized, pushing off-season items to the bottom. |
+| `season_cycle` | Stagione (ciclo annuale) | Progresses along the standard meteorological calendar cycle (Autumn → Winter → Spring → Summer). |
+| `code_asc` | Codice etichetta (A → Z) | Orders items by the 3-character tag code (`code ASC`), placing items without an assigned code at the end. Designed for physical closet scanning. |
+| `availability` | Disponibili prima (puliti) | Elevates clean and available garments (not queued in washing or ironing), followed by items queued in ironing, and lastly items in washing. |
+
+### 5.2. UI Integration & Persistence
+- **Floating Dock Component**: Accessible directly from the glassmorphic bottom navigation dock alongside free-text search, filter toggle, and pagination.
+- **Bi-Directional URL Synchronization**: The active sort criterion is mirrored to the URL query string (`?sort=<key>`) for shareable and bookmarkable links.
+- **Local Storage Preference**: The user's selection is persisted in `localStorage` under `dressly_wardrobe_sort`, automatically restoring their preferred ordering on subsequent visits.
+

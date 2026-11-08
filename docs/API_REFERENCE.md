@@ -150,20 +150,33 @@ Deletes a catalog item and records a tombstone in `sync_tombstones`.
 ## 6. Clothes Inventory 🔒
 
 ### `GET /api/clothes`
-Lists all wardrobe items with support for rich filtering.
+Lists all wardrobe items with support for rich filtering, pagination, and multi-criteria sorting.
 - **Query Parameters**:
   - `search` (string): Text filter matching item name, brand name, notes, or 3-char tag code.
-  - `brand` (UUID): Filter by Brand ID.
-  - `type` (UUID): Filter by Clothing Type ID.
-  - `color` (UUID): Filter by Color ID.
-  - `material` (UUID): Filter by Material ID.
-  - `season` (UUID): Filter by Season ID.
-  - `temperature` (UUID): Filter by Temperature ID.
-  - `useCase` (UUID): Filter by Use Case ID.
-  - `fit` (UUID): Filter by Fit ID.
-  - `tag` (UUID): Filter by Tag ID.
-  - `code` (string): Exact 3-character tag code lookup.
-- **Response `200 OK`**: Array of `Clothes` objects with populated relations.
+  - `brand_id` / `brand` (string / CSV): Filter by Brand ID(s).
+  - `type_ids` / `type` (string / CSV): Filter by Clothing Type ID(s).
+  - `color_ids` / `color` (string / CSV): Filter by Color ID(s).
+  - `material_ids` / `material` (string / CSV): Filter by Material ID(s).
+  - `season_ids` / `season` (string / CSV): Filter by Season ID(s).
+  - `temperature_ids` / `temperature` (string / CSV): Filter by Temperature ID(s).
+  - `use_case_ids` / `useCase` (string / CSV): Filter by Use Case ID(s).
+  - `fit_ids` / `fit` (string / CSV): Filter by Fit ID(s).
+  - `tag_ids` / `tag` (string / CSV): Filter by Tag ID(s).
+  - `size` (string): Filter by garment size.
+  - `sort` (string, optional): Sort criteria. Supported values:
+    - `created_desc` *(default)*: Most recently created first.
+    - `created_asc`: Oldest created first.
+    - `name_asc`: Alphabetical A-Z (item name or computed title).
+    - `name_desc`: Alphabetical Z-A (item name or computed title).
+    - `type_order`: Wardrobe sequence hierarchy (Tops -> Knitwear -> Outerwear -> Bottoms -> Full-body -> Underwear -> Footwear).
+    - `type_asc`: Clothing type name A-Z.
+    - `season_current`: Smart season relevance (current astronomical season and all-season garments first).
+    - `season_cycle`: Annual seasonal progression (Autumn -> Winter -> Spring -> Summer).
+    - `code_asc`: Alphanumeric 3-character tag code (items without codes placed at end).
+    - `availability`: Clean and available garments first, followed by ironing and washing queues.
+  - `page` (number, default: 1): Page number.
+  - `per_page` (number, default: 50, max: 100): Items per page.
+- **Response `200 OK`**: Object `{ items: Clothes[], total: number, page: number, perPage: number }`.
 
 ### `POST /api/clothes`
 Creates a new clothing item, automatically generating care instruction relations and a unique tag code if not supplied.

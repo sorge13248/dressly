@@ -17,8 +17,8 @@
         @for (item of navItems(); track item.path) {
           <a
             [routerLink]="item.path"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: item.exact }"
+            [class.active]="isItemActive(item)"
+            [attr.aria-current]="isItemActive(item) ? 'page' : null"
             (click)="closeNavMenu()"
             class="nav-pill-item"
             [attr.data-nav-path]="item.path"
@@ -151,8 +151,8 @@
         @for (item of navItems(); track item.path) {
           <a
             [routerLink]="item.path"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: item.exact }"
+            [class.active]="isItemActive(item)"
+            [attr.aria-current]="isItemActive(item) ? 'page' : null"
             (click)="closeNavMenu()"
             class="mobile-nav-item"
             [attr.data-nav-path]="item.path"

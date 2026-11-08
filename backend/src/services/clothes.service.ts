@@ -60,6 +60,21 @@ function normalizeStoredAttachmentPath(storedPath: string) {
 
 const MAX_PREVIEW_SIZE = 500 * 1024;
 
+function getCurrentSeasonName(date = new Date()): 'Primavera' | 'Estate' | 'Autunno' | 'Inverno' {
+  const month = date.getMonth(); // 0-indexed
+  const day = date.getDate();
+  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+    return 'Primavera';
+  }
+  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 20)) {
+    return 'Estate';
+  }
+  if ((month === 8 && day >= 21) || month === 9 || month === 10 || (month === 11 && day <= 20)) {
+    return 'Autunno';
+  }
+  return 'Inverno';
+}
+
 @Injectable()
 export class ClothesService implements OnModuleInit {
   private readonly logger = new Logger(ClothesService.name);
@@ -180,7 +195,85 @@ export class ClothesService implements OnModuleInit {
       });
     }
 
-    const [items, total] = await qb.orderBy('clothes.createdAt', 'DESC').skip((page - 1) * perPage).take(perPage).getManyAndCount();
+    const sort = (query.sort || 'created_desc').trim();
+    switch (sort) {
+      case 'created_asc':
+        qb.orderBy('clothes.createdAt', 'ASC');
+        break;
+      case 'name_asc':
+        qb.addSelect('LOWER(COALESCE(clothes.name, type.name, clothes.code, \'\'))', 'sort_name')
+          .orderBy('sort_name', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'name_desc':
+        qb.addSelect('LOWER(COALESCE(clothes.name, type.name, clothes.code, \'\'))', 'sort_name')
+          .orderBy('sort_name', 'DESC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'type_order':
+        qb.addSelect(
+          `(CASE
+            WHEN LOWER(type.name) LIKE '%t-shirt%' OR LOWER(type.name) LIKE '%polo%' OR LOWER(type.name) LIKE '%camicia%' OR LOWER(type.name) LIKE '%top%' OR LOWER(type.name) LIKE '%canotta%' THEN 10
+            WHEN LOWER(type.name) LIKE '%maglion%' OR LOWER(type.name) LIKE '%cardigan%' OR LOWER(type.name) LIKE '%felpa%' OR LOWER(type.name) LIKE '%hoodie%' THEN 20
+            WHEN LOWER(type.name) LIKE '%giacca%' OR LOWER(type.name) LIKE '%blazer%' OR LOWER(type.name) LIKE '%cappotto%' OR LOWER(type.name) LIKE '%piumino%' OR LOWER(type.name) LIKE '%trench%' OR LOWER(type.name) LIKE '%gilet%' THEN 30
+            WHEN LOWER(type.name) LIKE '%jean%' OR LOWER(type.name) LIKE '%pantalon%' OR LOWER(type.name) LIKE '%chino%' OR LOWER(type.name) LIKE '%short%' OR LOWER(type.name) LIKE '%jogger%' OR LOWER(type.name) LIKE '%legging%' OR LOWER(type.name) LIKE '%gonna%' THEN 40
+            WHEN LOWER(type.name) LIKE '%vestit%' OR LOWER(type.name) LIKE '%tuta%' OR LOWER(type.name) LIKE '%completo%' THEN 50
+            WHEN LOWER(type.name) LIKE '%intimo%' OR LOWER(type.name) LIKE '%pigiama%' OR LOWER(type.name) LIKE '%costume%' THEN 60
+            WHEN LOWER(type.name) LIKE '%scarp%' OR LOWER(type.name) LIKE '%sneaker%' OR LOWER(type.name) LIKE '%stival%' OR LOWER(type.name) LIKE '%sandal%' OR LOWER(type.name) LIKE '%ciabatt%' OR LOWER(type.name) LIKE '%mocassin%' THEN 70
+            ELSE 90
+          END)`,
+          'sort_type_order',
+        )
+          .orderBy('sort_type_order', 'ASC')
+          .addOrderBy('type.name', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'type_asc':
+        qb.orderBy('type.name', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'code_asc':
+        qb.addSelect('CASE WHEN clothes.code IS NULL OR clothes.code = \'\' THEN 1 ELSE 0 END', 'sort_code_null')
+          .orderBy('sort_code_null', 'ASC')
+          .addOrderBy('clothes.code', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'availability':
+        qb.addSelect(
+          '(CASE WHEN EXISTS (SELECT 1 FROM washing_items wi WHERE wi.clothesId = clothes.id AND wi.userId = :userId) THEN 2 ' +
+          'WHEN EXISTS (SELECT 1 FROM ironing_items ii WHERE ii.clothesId = clothes.id AND ii.userId = :userId) THEN 1 ELSE 0 END)',
+          'sort_avail',
+        )
+          .orderBy('sort_avail', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'season_current': {
+        const curSeason = getCurrentSeasonName();
+        qb.setParameter('curSeasonPattern', `%${curSeason.toLowerCase()}%`);
+        qb.addSelect(
+          '(CASE WHEN EXISTS (SELECT 1 FROM clothes_seasons cs JOIN seasons s ON s.id = cs.seasonsId WHERE cs.clothesId = clothes.id AND LOWER(s.name) LIKE :curSeasonPattern) THEN 0 ' +
+          'WHEN EXISTS (SELECT 1 FROM clothes_seasons cs JOIN seasons s ON s.id = cs.seasonsId WHERE cs.clothesId = clothes.id AND LOWER(s.name) LIKE \'%tutte%\') THEN 1 ELSE 2 END)',
+          'sort_season_current',
+        )
+          .orderBy('sort_season_current', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      }
+      case 'season_cycle':
+        qb.addSelect(
+          '(SELECT COALESCE(MIN(s.sortOrder), 99) FROM clothes_seasons cs JOIN seasons s ON s.id = cs.seasonsId WHERE cs.clothesId = clothes.id)',
+          'sort_season_cycle',
+        )
+          .orderBy('sort_season_cycle', 'ASC')
+          .addOrderBy('clothes.createdAt', 'DESC');
+        break;
+      case 'created_desc':
+      default:
+        qb.orderBy('clothes.createdAt', 'DESC');
+        break;
+    }
+
+    const [items, total] = await qb.skip((page - 1) * perPage).take(perPage).getManyAndCount();
     for (const item of items) {
       this.sortAttachments(item);
     }

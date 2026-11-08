@@ -736,4 +736,56 @@ describe('WardrobePageComponent', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('sorting controls', () => {
+    it('should initialize with default sort (created_desc) or localStorage', () => {
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      expect(component.filters().sort).toBe('created_desc');
+      expect(component.sortOptions.length).toBeGreaterThanOrEqual(8);
+    });
+
+    it('should render wardrobe-sort-select in the floating dock', () => {
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      fixture.detectChanges();
+
+      const sortSelect = fixture.nativeElement.querySelector('#wardrobe-sort-select') as HTMLSelectElement | null;
+      expect(sortSelect).not.toBeNull();
+      expect(sortSelect?.value).toBe('created_desc');
+    });
+
+    it('should update filters.sort, reset page, and persist to localStorage on onSortChange', () => {
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      component.setPage(3);
+      expect(component.filters().page).toBe(3);
+
+      const select = document.createElement('select');
+      const opt = document.createElement('option');
+      opt.value = 'name_asc';
+      select.appendChild(opt);
+      select.value = 'name_asc';
+
+      const event = { target: select } as unknown as Event;
+      component.onSortChange(event);
+
+      expect(component.filters().sort).toBe('name_asc');
+      expect(component.filters().page).toBe(1);
+      expect(window.localStorage.getItem('dressly_wardrobe_sort')).toBe('name_asc');
+    });
+
+    it('should preserve sort selection when clearFilters is called', () => {
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      component.filters.update((c) => ({ ...c, sort: 'season_current', size: 'M' }));
+      component.clearFilters();
+
+      expect(component.filters().sort).toBe('season_current');
+      expect(component.filters().size).toBe('');
+    });
+  });
 });
