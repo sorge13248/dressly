@@ -32,6 +32,9 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
    - Use Angular Signals (`signal()`, `computed()`, `effect()`) for reactive component state.
 7. **Consistent 10MB Image Upload Ceiling**:
    - Never alter the 10MB upload threshold in one layer without synchronizing all three: `deploy/nginx.unified.conf` (`client_max_body_size 10m`), `backend/src/controllers/clothes.controller.ts` (`limits: { fileSize: 10 * 1024 * 1024 }`), and frontend file size validators.
+8. **Mandatory In-Place Documentation Synchronization (No Changelogs)**:
+   - Any modification to software capabilities, models, endpoints, configuration, or architecture MUST be immediately updated across `README.md`, `README.it.md`, and affected files in `docs/`.
+   - Never append updates as a "changelog", "recent changes", or "history" section. Update the actual descriptions, tables, and specifications in place so documentation remains the single current source of truth. Refer to [AGENTS.md](../AGENTS.md) for full instructions.
 
 ---
 
@@ -77,6 +80,8 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 ├── deploy/
 │   ├── nginx.unified.conf                # Unified container Nginx proxy & caching headers
 │   └── supervisord.conf                  # Supervisor configuration managing Node + Nginx
+├── docs/                                 # Technical documentation suite
+├── AGENTS.md                             # AI agent instructions and mandatory invariants
 ├── Dockerfile                            # Multi-stage production container build
 ├── docker-compose.yml                    # Local/production container orchestration
 └── .github/workflows/
