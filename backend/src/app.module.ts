@@ -32,6 +32,7 @@ import { ReferenceDataController } from './controllers/reference-data.controller
 import { ClothesService } from './services/clothes.service';
 import { OutfitsService } from './services/outfits.service';
 import { ReferenceDataService } from './services/reference-data.service';
+import { StorageCleanupService } from './services/storage-cleanup.service';
 import { SyncService } from './services/sync.service';
 import { UsersService } from './services/users.service';
 
@@ -77,6 +78,6 @@ import { UsersService } from './services/users.service';
     OutfitsController,
     SyncController,
   ],
-  providers: [BearerJwtGuard, UsersService, ReferenceDataService, ClothesService, OutfitsService, SyncService],
+  providers: [BearerJwtGuard, UsersService, ReferenceDataService, StorageCleanupService, ClothesService, OutfitsService, SyncService],
 })
 export class AppModule {}

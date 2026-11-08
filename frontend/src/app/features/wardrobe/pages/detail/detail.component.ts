@@ -56,6 +56,7 @@ export class WardrobeDetailPageComponent implements OnInit {
   readonly laundryService = inject(LaundryService);
 
   readonly loading = signal(true);
+  readonly duplicating = signal(false);
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
   private initialLoaded = false;
@@ -442,6 +443,28 @@ export class WardrobeDetailPageComponent implements OnInit {
     }
     void this.laundryService.refreshCounts('ironing', action);
     this.toast.success(nextState ? 'Capo aggiunto alla stiratura' : 'Capo rimosso dalla stiratura');
+  }
+
+  async duplicate() {
+    const current = this.item();
+    if (!current || this.duplicating()) {
+      return;
+    }
+
+    this.duplicating.set(true);
+    try {
+      const cloned = await firstValueFrom(this.api.duplicateClothes(current.id));
+      if (this.storage) {
+        await this.storage.saveClothes([cloned]);
+      }
+      this.toast.success('Capo duplicato con successo');
+      void this.router.navigate(['/wardrobe', cloned.id, 'edit']);
+    } catch (err) {
+      console.error('Failed to duplicate cloth:', err);
+      this.toast.error('Impossibile duplicare il capo');
+    } finally {
+      this.duplicating.set(false);
+    }
   }
 
   edit() {

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In } from 'typeorm';
 import * as fs from 'fs/promises';
@@ -16,6 +16,7 @@ import { WashingItem } from '../entities/washing-item.entity';
 import { IroningItem } from '../entities/ironing-item.entity';
 import { SyncTombstone } from '../entities/sync-tombstone.entity';
 import { ReferenceDataService } from './reference-data.service';
+import { StorageCleanupService } from './storage-cleanup.service';
 
 function isDefaultAttachmentName(value: string) {
   const normalized = value.trim().toLowerCase();
@@ -34,6 +35,7 @@ export class OutfitsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly referenceDataService: ReferenceDataService,
+    @Optional() private readonly storageCleanupService: StorageCleanupService = new StorageCleanupService(dataSource),
   ) {}
 
   private getUploadsRootDir(): string {
@@ -440,18 +442,10 @@ export class OutfitsService {
     // Remove attachment files from disk
     if (outfit.attachments) {
       for (const attachment of outfit.attachments) {
-        const absolutePath = this.resolveAttachmentAbsolutePath(attachment.path);
-        try {
-          await fs.unlink(absolutePath);
-        } catch {}
-        if (attachment.previewPath) {
-          const previewPath = this.resolveAttachmentAbsolutePath(attachment.previewPath);
-          try {
-            await fs.unlink(previewPath);
-          } catch {}
-        }
+        await this.storageCleanupService.deleteAttachmentFiles(attachment);
       }
     }
+    await this.storageCleanupService.deleteOutfitFolder(user.id, outfit.id);
 
     await repository.remove(outfit);
     await this.dataSource.getRepository(SyncTombstone).save({
@@ -531,16 +525,7 @@ export class OutfitsService {
     });
     if (!attachment) throw new NotFoundException();
 
-    const absolutePath = this.resolveAttachmentAbsolutePath(attachment.path);
-    try {
-      await fs.unlink(absolutePath);
-    } catch {}
-    if (attachment.previewPath) {
-      const previewPath = this.resolveAttachmentAbsolutePath(attachment.previewPath);
-      try {
-        await fs.unlink(previewPath);
-      } catch {}
-    }
+    await this.storageCleanupService.deleteAttachmentFiles(attachment);
 
     await repository.remove(attachment);
 

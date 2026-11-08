@@ -189,53 +189,6 @@
               }
             </div>
           </div>
-
-          <div class="hero-actions">
-            <button
-              type="button"
-              class="hero-action-btn"
-              [class.active-washing]="isInWashing()"
-              (click)="toggleWashing()"
-              [title]="current.isCumulative ? 'Aggiungi alla lavatrice' : (isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare')"
-            >
-              <app-washing-icon [size]="16" />
-              <span>
-                @if (current.isCumulative) {
-                  @if (washingQuantity() >= (current.quantity || 1)) {
-                    In lavatrice ({{ washingQuantity() }}/{{ current.quantity || 1 }})
-                  } @else {
-                    Metti a lavare ({{ washingQuantity() }}/{{ current.quantity || 1 }})
-                  }
-                } @else {
-                  {{ isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare' }}
-                }
-              </span>
-            </button>
-
-            <button
-              type="button"
-              class="hero-action-btn"
-              [class.active-ironing]="isInIroning()"
-              (click)="toggleIroning()"
-              [title]="current.isCumulative ? 'Aggiungi alla stiratura' : (isInIroning() ? 'Togli da stirare' : 'Metti a stirare')"
-            >
-              <app-ironing-icon [size]="16" />
-              <span>
-                @if (current.isCumulative) {
-                  @if (ironingQuantity() >= (current.quantity || 1)) {
-                    Da stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
-                  } @else {
-                    Metti a stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
-                  }
-                } @else {
-                  {{ isInIroning() ? 'Togli da stirare' : 'Metti a stirare' }}
-                }
-              </span>
-            </button>
-
-            <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit()">Modifica</button>
-            <button type="button" appButton variant="danger" size="sm" class="danger" (click)="remove()">Elimina</button>
-          </div>
         </div>
 
         @if (current.notes) {
@@ -355,5 +308,115 @@
         }
       </div>
     </section>
+
+    <!-- Floating Dock Action Island: ancorata in basso al centro, stile Aero glass -->
+    <aside class="detail-dock floating-dock" role="region" aria-label="Azioni del capo">
+      <!-- Lavatrice -->
+      <button
+        type="button"
+        appButton
+        variant="ghost"
+        size="md"
+        class="dock-btn dock-btn-wash"
+        [class.active-washing]="isInWashing()"
+        (click)="toggleWashing()"
+        [title]="current.isCumulative ? 'Aggiungi alla lavatrice' : (isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare')"
+      >
+        <app-washing-icon [size]="16" class="dock-btn-icon" />
+        <span>
+          @if (current.isCumulative) {
+            @if (washingQuantity() >= (current.quantity || 1)) {
+              In lavatrice ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+            } @else {
+              Metti a lavare ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+            }
+          } @else {
+            {{ isInWashing() ? 'In lavatrice' : 'Metti a lavare' }}
+          }
+        </span>
+      </button>
+
+      <!-- Stiratura -->
+      <button
+        type="button"
+        appButton
+        variant="ghost"
+        size="md"
+        class="dock-btn dock-btn-iron"
+        [class.active-ironing]="isInIroning()"
+        (click)="toggleIroning()"
+        [title]="current.isCumulative ? 'Aggiungi alla stiratura' : (isInIroning() ? 'Togli da stirare' : 'Metti a stirare')"
+      >
+        <app-ironing-icon [size]="16" class="dock-btn-icon" />
+        <span>
+          @if (current.isCumulative) {
+            @if (ironingQuantity() >= (current.quantity || 1)) {
+              Da stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+            } @else {
+              Metti a stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+            }
+          } @else {
+            {{ isInIroning() ? 'Da stirare' : 'Metti a stirare' }}
+          }
+        </span>
+      </button>
+
+      <span class="dock-separator" aria-hidden="true"></span>
+
+      <!-- Duplica -->
+      <button
+        type="button"
+        appButton
+        variant="secondary"
+        size="md"
+        class="dock-btn dock-btn-duplicate"
+        [disabled]="duplicating()"
+        [loading]="duplicating()"
+        (click)="duplicate()"
+        title="Duplica interamente questo capo e le sue foto"
+      >
+        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="8" y="8" width="9" height="9" rx="2" />
+          <path d="M4 12V5a2 2 0 0 1 2-2h7" />
+        </svg>
+        <span>Duplica</span>
+      </button>
+
+      <!-- Modifica -->
+      <button
+        type="button"
+        appButton
+        variant="primary"
+        size="md"
+        class="dock-btn dock-btn-edit"
+        (click)="edit()"
+        title="Modifica capo"
+      >
+        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+          <path d="M14.5 2.5a2.121 2.121 0 0 1 3 3L10 13l-4 1 1-4 7.5-7.5z" />
+        </svg>
+        <span>Modifica</span>
+      </button>
+
+      <span class="dock-separator" aria-hidden="true"></span>
+
+      <!-- Elimina -->
+      <button
+        type="button"
+        appButton
+        variant="danger"
+        size="md"
+        class="dock-btn dock-btn-delete"
+        (click)="remove()"
+        title="Elimina capo"
+      >
+        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="3 6 5 6 17 6" />
+          <path d="M15 6v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+        </svg>
+        <span>Elimina</span>
+      </button>
+    </aside>
   }
 </section>

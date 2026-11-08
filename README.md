@@ -88,6 +88,7 @@ For comprehensive deep dives into each subsystem, explore the documentation suit
 | 🎨 **[Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md)** | Angular 22 standalone components, signals, SCSS design system, and Service Worker caching. |
 | 🚀 **[Deployment & DevOps](docs/DEPLOYMENT_AND_DEVOPS.md)** | Multi-stage Dockerfile, Supervisor, Nginx proxy, docker-compose, and GitHub Actions CI/CD. |
 | 🤖 **[LLM & Agent Guidelines](docs/LLM_GUIDELINES.md)** | High-density architectural invariants, directory cheat-sheets, and rules for AI coding assistants. |
+| 📋 **[AI Agent Operating Instructions](AGENTS.md)** | Universal standard operating instructions, verification commands, and mandatory in-place documentation rules for AI agents. |
 
 ---
 
@@ -131,6 +132,7 @@ For comprehensive deep dives into each subsystem, explore the documentation suit
 │   └── package.json
 ├── deploy/                   # Container configurations (supervisord.conf, nginx.unified.conf)
 ├── docs/                     # Comprehensive technical documentation suite
+├── AGENTS.md                 # Universal AI agent operating instructions & rules
 ├── Dockerfile                # Multi-stage production container build
 ├── docker-compose.yml        # Docker Compose deployment setup
 ├── supervisord.conf          # Root development/local supervisor config

@@ -117,6 +117,11 @@ export class ClothesController {
     return this.clothesService.remove(user, id);
   }
 
+  @Post(':id/duplicate')
+  duplicate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.clothesService.duplicate(user, id);
+  }
+
   @Post(':id/attachments')
   @UseInterceptors(
     FileInterceptor('file', {

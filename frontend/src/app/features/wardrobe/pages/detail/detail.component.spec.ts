@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { SyncService } from '../../../../core/sync.service';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
+import { ToastService } from '../../../../core/toast.service';
 import { WardrobeDetailPageComponent } from './detail.component';
 
 describe('WardrobeDetailPageComponent', () => {
@@ -302,7 +304,7 @@ describe('WardrobeDetailPageComponent', () => {
     });
     fixture.detectChanges();
 
-    const washBtn = fixture.nativeElement.querySelector('.hero-action-btn:nth-child(1)');
+    const washBtn = fixture.nativeElement.querySelector('.dock-btn-wash');
     expect(washBtn.textContent).toContain('Metti a lavare (0/5)');
 
     await comp.toggleWashing();
@@ -317,7 +319,7 @@ describe('WardrobeDetailPageComponent', () => {
     expect(washBtn.textContent).toContain('Metti a lavare (2/5)');
     expect(comp.washingQuantity()).toBe(2);
 
-    const ironBtn = fixture.nativeElement.querySelector('.hero-action-btn:nth-child(2)');
+    const ironBtn = fixture.nativeElement.querySelector('.dock-btn-iron');
     expect(ironBtn.textContent).toContain('Metti a stirare (0/5)');
 
     await comp.toggleIroning();
@@ -353,5 +355,99 @@ describe('WardrobeDetailPageComponent', () => {
     expect(comp.ironingQuantity()).toBe(1);
     expect(comp.isInWashing()).toBe(true);
     expect(comp.isInIroning()).toBe(true);
+  });
+
+  it('should render the floating dock action bar with all action buttons', () => {
+    vi.spyOn(WardrobeDetailPageComponent.prototype, 'ngOnInit').mockImplementation(function (this: any) {
+      this.loading.set(false);
+      this.error.set(null);
+    });
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.loading.set(false);
+    comp.error.set(null);
+    comp.item.set({
+      id: 'cloth-dock-test',
+      userId: 'user-1',
+      name: 'Giacca Invernale',
+      size: 'L',
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    fixture.detectChanges();
+
+    const dock = fixture.nativeElement.querySelector('.detail-dock.floating-dock');
+    expect(dock).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-wash')).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-iron')).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-duplicate')).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-edit')).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-delete')).toBeTruthy();
+  });
+
+  it('should duplicate cloth successfully, save to storage, show toast and navigate', async () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const storage = TestBed.inject(OfflineStorageService);
+    const toast = TestBed.inject(ToastService);
+    const router = TestBed.inject(Router);
+
+    const originalCloth = {
+      id: 'original-id',
+      userId: 'user-1',
+      name: 'Abito Scuro',
+      size: '48',
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const clonedCloth = {
+      ...originalCloth,
+      id: 'cloned-id',
+      name: 'Abito Scuro (copia)',
+    };
+
+    comp.item.set(originalCloth);
+
+    const dupSpy = vi.spyOn(api, 'duplicateClothes').mockReturnValue(of(clonedCloth as any));
+    const storageSpy = vi.spyOn(storage, 'saveClothes').mockResolvedValue(undefined as any);
+    const toastSpy = vi.spyOn(toast, 'success');
+    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    await comp.duplicate();
+
+    expect(dupSpy).toHaveBeenCalledWith('original-id');
+    expect(storageSpy).toHaveBeenCalledWith([clonedCloth]);
+    expect(toastSpy).toHaveBeenCalledWith('Capo duplicato con successo');
+    expect(navSpy).toHaveBeenCalledWith(['/wardrobe', 'cloned-id', 'edit']);
+    expect(comp.duplicating()).toBe(false);
+  });
+
+  it('should handle duplicate failure gracefully', async () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const toast = TestBed.inject(ToastService);
+
+    comp.item.set({
+      id: 'fail-id',
+      userId: 'user-1',
+      name: 'Capo Errore',
+      size: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    vi.spyOn(api, 'duplicateClothes').mockReturnValue(throwError(() => new Error('Network error')));
+    const toastSpy = vi.spyOn(toast, 'error');
+
+    await comp.duplicate();
+
+    expect(toastSpy).toHaveBeenCalledWith('Impossibile duplicare il capo');
+    expect(comp.duplicating()).toBe(false);
   });
 });
