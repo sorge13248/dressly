@@ -139,6 +139,10 @@ export class ApiService {
     return this.http.delete<{ deleted: boolean }>(`/api/clothes/${id}`);
   }
 
+  duplicateClothes(id: string) {
+    return this.http.post<ClothesItem>(`/api/clothes/${id}/duplicate`, {});
+  }
+
   uploadAttachment(clothesId: string, file: File, kind = 'photo', originalName?: string | null) {
     const formData = new FormData();
     formData.append('file', file);

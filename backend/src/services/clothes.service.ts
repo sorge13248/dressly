@@ -663,6 +663,197 @@ export class ClothesService implements OnModuleInit {
     return repository.save(updated);
   }
 
+  async duplicate(user: AuthUser, id: string) {
+    const clothesRepo = this.dataSource.getRepository(Clothes);
+    const attachmentRepo = this.dataSource.getRepository(Attachment);
+
+    const original = await clothesRepo.findOne({
+      where: { id, userId: user.id } as never,
+      relations: {
+        brand: true,
+        fit: true,
+        type: true,
+        colors: true,
+        materials: true,
+        seasons: true,
+        temperatures: true,
+        useCases: true,
+        tags: true,
+        attachments: true,
+        washingInstruction: true,
+        dryingInstruction: true,
+        ironingInstruction: true,
+        buyDetail: true,
+      },
+    });
+
+    if (!original) {
+      throw new NotFoundException('Capo non trovato');
+    }
+
+    const existingItems = await clothesRepo.find({
+      where: { userId: user.id },
+      select: { code: true, id: true },
+    });
+    const existingCodes = new Set(
+      existingItems.map((c) => c.code).filter(Boolean) as string[],
+    );
+    const newCode = generateUniqueTagCode(existingCodes);
+
+    let newName: string | null = null;
+    if (original.name && original.name.trim()) {
+      const baseName = original.name.trim();
+      let candidate = `${baseName} (copia)`;
+      let counter = 2;
+      while (await clothesRepo.findOne({ where: { userId: user.id, name: candidate } as never })) {
+        candidate = `${baseName} (copia ${counter})`;
+        counter++;
+      }
+      newName = candidate;
+    }
+
+    const newClothesId = randomUUID();
+    const newClothes = clothesRepo.create({
+      id: newClothesId,
+      userId: user.id,
+      code: newCode,
+      name: newName,
+      size: original.size,
+      notes: original.notes,
+      isCumulative: original.isCumulative,
+      quantity: original.quantity ?? 1,
+      brand: original.brand,
+      fit: original.fit,
+      type: original.type,
+      colors: original.colors ? [...original.colors] : [],
+      materials: original.materials ? [...original.materials] : [],
+      seasons: original.seasons ? [...original.seasons] : [],
+      temperatures: original.temperatures ? [...original.temperatures] : [],
+      useCases: original.useCases ? [...original.useCases] : [],
+      tags: original.tags ? [...original.tags] : [],
+    });
+
+    if (original.washingInstruction) {
+      newClothes.washingInstruction = this.dataSource.getRepository(WashingInstruction).create({
+        userId: user.id,
+        washType: original.washingInstruction.washType,
+        bleachType: original.washingInstruction.bleachType,
+        stretch: original.washingInstruction.stretch,
+        temperature: original.washingInstruction.temperature,
+        reverseWashing: original.washingInstruction.reverseWashing,
+        closedZips: original.washingInstruction.closedZips,
+        similarColors: original.washingInstruction.similarColors,
+        washSeparately: original.washingInstruction.washSeparately,
+        useColorCatcher: original.washingInstruction.useColorCatcher,
+        colorLossRisk: original.washingInstruction.colorLossRisk,
+        colorLossTestTemperature: original.washingInstruction.colorLossTestTemperature,
+      });
+    }
+
+    if (original.dryingInstruction) {
+      newClothes.dryingInstruction = this.dataSource.getRepository(DryingInstruction).create({
+        userId: user.id,
+        tumbleDry: original.dryingInstruction.tumbleDry,
+        tumbleDryTemperature: original.dryingInstruction.tumbleDryTemperature,
+        method: original.dryingInstruction.method,
+      });
+    }
+
+    if (original.ironingInstruction) {
+      newClothes.ironingInstruction = this.dataSource.getRepository(IroningInstruction).create({
+        userId: user.id,
+        ironType: original.ironingInstruction.ironType,
+        ironInsideOut: original.ironingInstruction.ironInsideOut,
+        temperature: original.ironingInstruction.temperature,
+      });
+    }
+
+    if (original.buyDetail) {
+      newClothes.buyDetail = this.dataSource.getRepository(BuyDetail).create({
+        userId: user.id,
+        store: original.buyDetail.store,
+        purchaseDate: original.buyDetail.purchaseDate,
+        shopUrl: original.buyDetail.shopUrl,
+        priceCents: original.buyDetail.priceCents,
+        receiptAttachmentId: original.buyDetail.receiptAttachmentId,
+      });
+    }
+
+    await clothesRepo.save(newClothes);
+
+    const oldAttachments = original.attachments ?? [];
+    if (oldAttachments.length > 0) {
+      const uploadsDir = path.join(this.getUploadsRootDir(), 'clothes', user.id, newClothesId);
+      await fs.mkdir(uploadsDir, { recursive: true });
+
+      const attachmentIdMap = new Map<string, string>();
+
+      for (const oldAtt of oldAttachments) {
+        const newAttId = randomUUID();
+        attachmentIdMap.set(oldAtt.id, newAttId);
+
+        const oldExt = path.extname(oldAtt.fileName) || path.extname(oldAtt.path) || '.jpg';
+        const newFileName = `${newAttId}${oldExt}`;
+        const newAbsoluteFilePath = path.join(uploadsDir, newFileName);
+        const newRelativeFilePath = path.posix.join('clothes', user.id, newClothesId, newFileName);
+
+        const oldAbsoluteFilePath = this.resolveAttachmentAbsolutePath(oldAtt.path);
+        try {
+          await fs.copyFile(oldAbsoluteFilePath, newAbsoluteFilePath);
+        } catch (copyErr) {
+          this.logger.warn(`Could not copy attachment file ${oldAbsoluteFilePath}: ${String(copyErr)}`);
+        }
+
+        let newRelativePreviewPath: string | null = null;
+        if (oldAtt.previewPath) {
+          const oldAbsolutePreviewPath = this.resolveAttachmentAbsolutePath(oldAtt.previewPath);
+          const newPreviewFileName = `${newAttId}.preview.webp`;
+          const newAbsolutePreviewPath = path.join(uploadsDir, newPreviewFileName);
+          newRelativePreviewPath = path.posix.join('clothes', user.id, newClothesId, newPreviewFileName);
+
+          try {
+            await fs.copyFile(oldAbsolutePreviewPath, newAbsolutePreviewPath);
+          } catch {
+            try {
+              const fileBuffer = await fs.readFile(newAbsoluteFilePath);
+              const previewBuffer = await this.createPreview(fileBuffer);
+              await fs.writeFile(newAbsolutePreviewPath, previewBuffer);
+            } catch (genErr) {
+              this.logger.warn(`Could not generate preview for cloned attachment ${newAttId}: ${String(genErr)}`);
+              newRelativePreviewPath = null;
+            }
+          }
+        }
+
+        const newAttachment = attachmentRepo.create({
+          id: newAttId,
+          userId: user.id,
+          clothesId: newClothesId,
+          kind: oldAtt.kind ?? 'photo',
+          fileName: newFileName,
+          originalName: oldAtt.originalName,
+          mimeType: oldAtt.mimeType,
+          size: oldAtt.size,
+          sortOrder: oldAtt.sortOrder,
+          path: newRelativeFilePath,
+          previewPath: newRelativePreviewPath,
+        });
+
+        await attachmentRepo.save(newAttachment);
+      }
+
+      if (newClothes.buyDetail && original.buyDetail?.receiptAttachmentId) {
+        const mappedReceiptId = attachmentIdMap.get(original.buyDetail.receiptAttachmentId);
+        if (mappedReceiptId) {
+          newClothes.buyDetail.receiptAttachmentId = mappedReceiptId;
+          await this.dataSource.getRepository(BuyDetail).save(newClothes.buyDetail);
+        }
+      }
+    }
+
+    return this.getOne(user, newClothesId);
+  }
+
   async remove(user: AuthUser, id: string) {
     const repository = this.dataSource.getRepository(Clothes);
     const item = await repository.findOne({ where: { id, userId: user.id } as never });
