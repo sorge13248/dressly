@@ -13,7 +13,7 @@ FROM node:slim AS backend-build
 WORKDIR /app/backend
 
 COPY backend/package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --no-audit --no-fund
 
 WORKDIR /app
 COPY tsconfig.base.json ./
@@ -21,7 +21,6 @@ COPY backend/nest-cli.json backend/tsconfig*.json backend/
 COPY backend/src backend/src
 WORKDIR /app/backend
 RUN npm run build
-RUN npm prune --omit=dev --ignore-scripts
 
 FROM node:slim AS runtime
 WORKDIR /app

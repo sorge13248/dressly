@@ -33,7 +33,9 @@
     "typeorm-extension": "^4.3.0",
     "typescript": "^6.0.3"
   },
-  "allowScripts": {
-    "better-sqlite3@13.0.3": true
+  "overrides": {
+    "typeorm": {
+      "better-sqlite3": "$better-sqlite3"
+    }
   }
 }
