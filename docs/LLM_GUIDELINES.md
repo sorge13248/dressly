@@ -53,14 +53,15 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 │   │   │   └── utils/                    # tag-code.util.ts (3-char charset, collision math)
 │   │   ├── controllers/
 │   │   │   ├── current-user.controller.ts# GET /api/me (triggers user provisioning & seed)
-│   │   │   ├── clothes.controller.ts     # Clothes CRUD, laundry queues, attachments
+│   │   │   ├── clothes.controller.ts     # Clothes CRUD, laundry queues, attachments, PDF export
 │   │   │   ├── outfits.controller.ts     # Outfits CRUD, 2D canvas layout persistence
 │   │   │   ├── reference-data.controller.ts # Catalogs CRUD (colors, brands, etc.)
+│   │   │   ├── backup.controller.ts      # GET /api/backup/stats, GET export, POST restore
 │   │   │   └── sync.controller.ts        # POST /api/sync, GET /api/sync
 │   │   ├── entities/                     # TypeORM SQLite entities
-│   │   ├── services/                     # Business logic and database operations
+│   │   ├── services/                     # Business logic, database operations, PDFKit, backup ZIP
 │   │   └── seed/                         # Default catalog seeds (colors, types, etc.)
-│   └── package.json                      # NestJS 12, TypeORM 1.1, better-sqlite3 12, sharp
+│   └── package.json                      # NestJS 12, TypeORM 1.1, better-sqlite3 12, sharp, pdfkit, adm-zip
 ├── frontend/
 │   ├── src/app/
 │   │   ├── app.config.ts                 # Standalone providers
@@ -68,11 +69,11 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 │   │   ├── core/                         # ApiService, AuthService, SyncService, OfflineStorageService
 │   │   ├── features/
 │   │   │   ├── auth/                     # Login & callback components
-│   │   │   ├── wardrobe/                 # Main inventory grid, detail view, wizard editor, care queues
+│   │   │   ├── wardrobe/                 # Main inventory grid, detail view, wizard editor, care queues, PDF trigger
 │   │   │   ├── outfits/                  # Outfits grid, detail view, 2D interactive canvas
-│   │   │   └── reference-data/           # Domain management page (CRUD on catalogs)
+│   │   │   └── reference-data/           # Domain management page (CRUD on catalogs, Backup & Restore action)
 │   │   ├── layout/                       # AppShellComponent (header, counters, sync badge)
-│   │   └── shared/                       # Buttons, dropdowns, modals, utilities
+│   │   └── shared/                       # Buttons, dropdowns, backup-restore modal, utilities
 │   ├── public/
 │   │   ├── manifest.webmanifest          # PWA metadata
 │   │   └── sw.js                         # Custom Service Worker (precache, network-first, skipWaiting)

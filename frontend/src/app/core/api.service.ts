@@ -30,6 +30,8 @@ import {
   OutfitItem,
   OutfitDetailResponse,
   CanvasItemLayout,
+  BackupStatsDto,
+  RestoreResultDto,
 } from './models';
 
 type OidcMetadata = {
@@ -284,6 +286,24 @@ export class ApiService {
   getOutfitAttachmentUrl(outfitId: string, attachment: AttachmentItem, variant?: 'preview' | 'original'): string {
     const base = `/api/outfits/${outfitId}/attachments/${attachment.id}/file`;
     return variant ? `${base}?variant=${variant}` : base;
+  }
+
+  downloadClothPdf(id: string): Observable<Blob> {
+    return this.http.get(`/api/clothes/${id}/pdf`, { responseType: 'blob' });
+  }
+
+  getBackupStats(): Observable<BackupStatsDto> {
+    return this.http.get<BackupStatsDto>('/api/backup/stats');
+  }
+
+  downloadBackupZip(): Observable<Blob> {
+    return this.http.get('/api/backup/export', { responseType: 'blob' });
+  }
+
+  restoreBackupZip(file: File, mode: 'replace' | 'merge'): Observable<RestoreResultDto> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<RestoreResultDto>(`/api/backup/restore?mode=${mode}`, formData);
   }
 
   private toParams(filters: Partial<ClothesFilters>) {

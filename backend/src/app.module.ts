@@ -31,12 +31,14 @@ import { SyncController } from './controllers/sync.controller';
 import { HealthController } from './health.controller';
 import { PublicController } from './public.controller';
 import { ReferenceDataController } from './controllers/reference-data.controller';
+import { BackupController } from './controllers/backup.controller';
 import { ClothesService } from './services/clothes.service';
 import { OutfitsService } from './services/outfits.service';
 import { ReferenceDataService } from './services/reference-data.service';
 import { StorageCleanupService } from './services/storage-cleanup.service';
 import { SyncService } from './services/sync.service';
 import { UsersService } from './services/users.service';
+import { BackupService } from './services/backup.service';
 
 @Module({
   imports: [
@@ -81,7 +83,17 @@ import { UsersService } from './services/users.service';
     ClothesController,
     OutfitsController,
     SyncController,
+    BackupController,
   ],
-  providers: [BearerJwtGuard, UsersService, ReferenceDataService, StorageCleanupService, ClothesService, OutfitsService, SyncService],
+  providers: [
+    BearerJwtGuard,
+    UsersService,
+    ReferenceDataService,
+    StorageCleanupService,
+    ClothesService,
+    OutfitsService,
+    SyncService,
+    BackupService,
+  ],
 })
 export class AppModule {}

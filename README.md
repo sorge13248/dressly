@@ -42,6 +42,8 @@ Traditional wardrobe apps often suffer from invasive cloud tracking, cluttered i
 - 📦 **Cumulative Items & Multi-Quantity Support**: Track stacks of identical clothing (e.g. 5 identical pairs of socks) with partial laundry allocation.
 - 🎨 **Outfits with Interactive 2D Canvas**: Visually assemble and style outfits on a 2D surface. Supports multi-select bounding marquees, group dragging, rotation, scaling, and z-index ordering, with automatic friendly alerts when member garments are in storage.
 - 🧼 **Garment Care & Purchase Tracking**: Full support for wash temperatures (including cold wash), washing types, bleaching rules, drying methods, ironing temperatures, steam permissions, and purchase metadata.
+- 📄 **Vector PDF Technical Card Export**: One-click export of individual garments into high-resolution, print-ready PDF specification sheets directly from the wardrobe detail view dock, complete with primary photo preview, status badges, tag codes, care symbol grids, and purchase info.
+- 💾 **Full Disaster Recovery & Multi-Instance ZIP Portability**: Complete export and restore of all user data (clothes, outfits, reference catalogs, laundry queues, and high-res media files) into a portable ZIP archive. Supports both "Replace All" (clean instance wipe and rebuild) and "Merge" (intelligent deduplication, 3-char tag code collision resolution, and name de-confliction) directly inside the Domain Management view.
 - 📸 **High-Performance Media Pipeline**: Upload images up to 10MB. Powered by `sharp` with automatic EXIF orientation, responsive thumbnails, and progressive WebP compression.
 - 🔄 **Bi-Directional Offline Synchronization**: Automatic reconciliation between local IndexedDB (`dressly_offline_v1`) and the server with field-level Last-Write-Wins (LWW) and tombstone tracking.
 - 📲 **Installable PWA**: Responsive mobile-first UI with safe-area insets, custom Service Worker caching, and in-app update notifications.
@@ -106,6 +108,8 @@ For comprehensive deep dives into each subsystem, explore the documentation suit
 | **Backend Framework** | **NestJS 12** | Express platform, modular controllers, decorators, and interceptors |
 | **ORM & Database** | **TypeORM & SQLite** | `typeorm` v1.1 + `better-sqlite3` v12 with WAL support |
 | **Image Processing** | **Sharp** | High-performance C-libvips image transformations and WebP generation |
+| **Document Export** | **PDFKit** | Server-side vector PDF generation with automatic image resizing and clean typography |
+| **Archive & Backup** | **Adm-Zip** | Streaming ZIP archive packaging and transaction-safe multi-instance restore engine |
 | **Authentication** | **Jose & Crypto** | OpenID Connect, PKCE (`S256`), remote JWKS signature validation |
 | **Runtime Container** | **Docker & Supervisor** | Nginx + NestJS managed concurrently in a single slim container |
 | **CI / CD Pipeline** | **GitHub Actions** | Native multi-architecture (`linux/amd64`, `linux/arm64`) Docker builds |

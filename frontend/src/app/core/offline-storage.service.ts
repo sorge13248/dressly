@@ -883,6 +883,28 @@ export class OfflineStorageService {
     });
   }
 
+  async clearAllStores(): Promise<void> {
+    await this.clearClothes();
+    await this.clearWashing();
+    await this.clearIroning();
+    await this.clearOutfits();
+    await this.clearQueue();
+    this.memoryStore.referenceData.clear();
+    const db = await this.getDB();
+    if (db) {
+      await new Promise<void>((resolve) => {
+        try {
+          const tx = db.transaction(STORE_REFERENCE, 'readwrite');
+          tx.objectStore(STORE_REFERENCE).clear();
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => resolve();
+        } catch {
+          resolve();
+        }
+      });
+    }
+  }
+
   // Metadata methods
   async getMetadata(): Promise<StorageMetadata> {
     const db = await this.getDB();

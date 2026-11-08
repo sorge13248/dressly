@@ -127,6 +127,17 @@ sequenceDiagram
 - **Conflict Resolution**: Field-level Last-Write-Wins (LWW) with server-side tombstone tracking (`SyncTombstone`) to reconcile deletions made while offline.
 - See [OFFLINE_SYNC.md](./OFFLINE_SYNC.md).
 
+### 4.6. PDF Export Subsystem
+- **Generator**: Powered by `pdfkit` for native vector layout and typography, combined with `sharp` for photo pre-processing and format normalization.
+- **Layout**: High-density A4 technical specification cards containing tag codes, badges, detailed care instructions, color swatches, and thumbnail galleries.
+- **Delivery**: Direct HTTP binary streaming via `GET /api/clothes/:id/pdf` triggered from the garment detail toolbar.
+
+### 4.7. Backup & Disaster Recovery Subsystem
+- **Engine**: Archive compression and extraction powered by `adm-zip`.
+- **Portability**: Self-contained ZIP archives carrying `manifest.json`, serialized relational JSON data, and physical photo attachments.
+- **Restoration Modes**: Supports both `replace` (clean slate restoration) and `merge` (deduplication of reference domains and automated 3-character tag code collision resolution) inside atomic database transactions.
+- See [WARDROBE_FEATURES.md](./WARDROBE_FEATURES.md).
+
 ---
 
 ## 5. Technology Stack Summary
@@ -142,6 +153,8 @@ sequenceDiagram
 | **Backend Framework** | NestJS 12 | `@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express` |
 | **ORM & Database** | TypeORM & SQLite | `typeorm`, `better-sqlite3` |
 | **Image Processing** | Sharp | `sharp` (libvips C-bindings) |
+| **Document Generation** | PDFKit | `pdfkit` (pure JS vector PDF engine) |
+| **Archival & Backup** | Adm-Zip | `adm-zip` (pure JS ZIP packaging and decompression) |
 | **Security & Auth** | Jose | `jose` (JWT verification, JWKS caching), Node `crypto` (PKCE) |
 | **Runtime & Process** | Docker & Supervisor | `supervisord`, `nginx`, `node:slim` |
 | **CI / CD Automation** | GitHub Actions | Docker Buildx, GHCR, Multi-architecture (amd64 / arm64) |

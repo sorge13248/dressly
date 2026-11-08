@@ -8,6 +8,7 @@ import { ReferenceStoreService } from '../../../../core/reference-store.service'
 import { ToastService } from '../../../../core/toast.service';
 import { ReferenceKind, BaseReferenceItem, LocationItem, RoomItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { BackupRestoreModalComponent } from '../../../../shared/components/backup-restore-modal/backup-restore-modal.component';
 import {
   ReferenceEditorDialogResult,
   ReferenceEditorModalComponent,
@@ -156,6 +157,17 @@ export class DomainManagementPageComponent {
 
   async openCreateModal() {
     await this.openEditorModal('create');
+  }
+
+  async openBackupRestoreModal() {
+    const dialogRef = this.dialog.open<boolean>(BackupRestoreModalComponent, {
+      width: 'min(640px, 94vw)',
+      disableClose: false,
+    });
+    const result = await firstValueFrom(dialogRef.closed);
+    if (result) {
+      await this.referenceStore.load(this.selectedKind());
+    }
   }
 
   async edit(row: ReferenceDisplayRow) {

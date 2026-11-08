@@ -104,10 +104,10 @@ graph TD
 
 | Service | Scope | Primary Role |
 | :--- | :--- | :--- |
-| `ApiService` | Root | Centralized HTTP client wrapping all REST endpoints with `credentials: 'include'`. |
+| `ApiService` | Root | Centralized HTTP client wrapping all REST endpoints with `credentials: 'include'`; handles binary stream downloads (PDF cards, ZIP backups) and multipart backup restoration. |
 | `AuthService` | Root | Exposes user profile signal (`currentUser`), auth state (`isAuthenticated`), and login/logout methods. |
 | `SyncService` | Root | Coordinates background synchronization, tracks online/offline state, processes sync queues, and surfaces sync status signals. |
-| `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`); handles multi-criteria query/sorting engine (`queryClothes`), offline availability checks (`isTagCodeAvailable`), and sync queues. |
+| `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`); handles multi-criteria query/sorting engine (`queryClothes`), offline availability checks (`isTagCodeAvailable`), sync queues, and complete cache purging (`clearAllStores()`). |
 | `LaundryService` | Root | Reactive store for clothes in washing and ironing queues. |
 | `PwaUpdateService` | Root | Detects new Service Worker versions and triggers the update modal. |
 | `ReferenceStoreService`| Root | Reactive cache of reference catalogs (colors, brands, tags, types). |
@@ -176,3 +176,23 @@ graph TD
 2. In production, `PwaUpdateService` listens for registration updates.
 3. When a new service worker installation completes and enters the `waiting` state, `PwaUpdateService` opens `UpdateModalComponent`.
 4. When the user clicks "Aggiorna ora" (Update now), the application sends a `SKIP_WAITING` message to the waiting worker and reloads the page.
+
+---
+
+## 7. Shared Components & Export Workflows
+
+### 7.1. Backup & Disaster Recovery Modal (`BackupRestoreModalComponent`)
+Located at `frontend/src/app/shared/components/backup-restore-modal/`, this standalone modal is accessible strictly from within the Domain Management view (`/categories`) to consolidate all system-level administration:
+
+- **Live Data Metrics**: Calls `ApiService.getBackupStats()` on open to display real-time counts of clothes, outfits, reference data items, and total media storage footprint in MB.
+- **Full ZIP Export**: Initiates streaming download of `dressly-backup-[userId]-[timestamp].zip` via `ApiService.downloadBackupZip()`.
+- **Restoration Workflow**:
+  - Drag-and-drop or manual file selection with automatic `.zip` validation and upload size warnings.
+  - Interactive mode switch: **"Sostituisci tutto (consigliato per ripristino istanza)"** (`replace`) or **"Unisci ai dati esistenti"** (`merge`).
+  - Upon successful server response, invokes `OfflineStorageService.clearAllStores()` to completely invalidate stale IndexedDB object stores before reloading the application shell to trigger an immediate clean re-sync.
+
+### 7.2. Garment Technical Card PDF Export
+Integrated into `WardrobeDetailPageComponent` (`detail-dock` action bar):
+- Triggers `ApiService.downloadClothPdf(clothId)` to fetch a vector PDF generated server-side.
+- Automatically handles binary blob streaming, creates a transient object URL (`window.URL.createObjectURL(blob)`), triggers native browser download naming the file `[code]_[name].pdf`, and releases memory via `revokeObjectURL`.
+

@@ -513,4 +513,24 @@ export interface OutfitDetailResponse {
   updatedAt: string;
 }
 
+export interface BackupStatsDto {
+  clothesCount: number;
+  outfitsCount: number;
+  referenceDataCount: number;
+  attachmentsCount: number;
+  totalFileSizeBytes: number;
+}
+
+export interface RestoreResultDto {
+  success: boolean;
+  mode: 'replace' | 'merge';
+  stats: {
+    clothesCount: number;
+    outfitsCount: number;
+    referenceDataCount: number;
+    filesCount: number;
+  };
+}
+
+
 

@@ -380,6 +380,27 @@
 
       <span class="dock-separator" aria-hidden="true"></span>
 
+      <!-- Esporta PDF -->
+      <button
+        type="button"
+        appButton
+        variant="secondary"
+        size="md"
+        class="dock-btn dock-btn-pdf"
+        [disabled]="exportingPdf()"
+        [loading]="exportingPdf()"
+        (click)="exportPdf()"
+        title="Esporta scheda capo in PDF"
+      >
+        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
+          <polyline points="12 2 12 7 17 7" />
+          <line x1="8" y1="11" x2="12" y2="11" />
+          <line x1="8" y1="14" x2="12" y2="14" />
+        </svg>
+        <span>Esporta PDF</span>
+      </button>
+
       <!-- Duplica -->
       <button
         type="button"

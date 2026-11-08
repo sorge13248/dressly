@@ -450,4 +450,65 @@ describe('WardrobeDetailPageComponent', () => {
     expect(toastSpy).toHaveBeenCalledWith('Impossibile duplicare il capo');
     expect(comp.duplicating()).toBe(false);
   });
+
+  it('should export PDF successfully when exportPdf is called', async () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const toast = TestBed.inject(ToastService);
+
+    comp.item.set({
+      id: 'pdf-cloth-1',
+      code: '7KX',
+      userId: 'user-1',
+      name: 'Camicia PDF',
+      size: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const dummyBlob = new Blob(['%PDF-1.4 test'], { type: 'application/pdf' });
+    vi.spyOn(api, 'downloadClothPdf').mockReturnValue(of(dummyBlob));
+    const toastSuccessSpy = vi.spyOn(toast, 'success');
+
+    // Mock URL.createObjectURL and URL.revokeObjectURL
+    const createUrlSpy = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:http://localhost/test');
+    const revokeUrlSpy = vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    await comp.exportPdf();
+
+    expect(api.downloadClothPdf).toHaveBeenCalledWith('pdf-cloth-1');
+    expect(toastSuccessSpy).toHaveBeenCalledWith('Scheda PDF scaricata con successo');
+    expect(comp.exportingPdf()).toBe(false);
+
+    createUrlSpy.mockRestore();
+    revokeUrlSpy.mockRestore();
+  });
+
+  it('should show error toast if exportPdf fails', async () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const api = TestBed.inject(ApiService);
+    const toast = TestBed.inject(ToastService);
+
+    comp.item.set({
+      id: 'pdf-cloth-2',
+      code: '7KX',
+      userId: 'user-1',
+      name: 'Camicia Errore',
+      size: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    vi.spyOn(api, 'downloadClothPdf').mockReturnValue(throwError(() => new Error('Server error')));
+    const toastErrorSpy = vi.spyOn(toast, 'error');
+
+    await comp.exportPdf();
+
+    expect(toastErrorSpy).toHaveBeenCalledWith('Impossibile esportare il PDF del capo');
+    expect(comp.exportingPdf()).toBe(false);
+  });
 });

@@ -5,6 +5,11 @@ import { CurrentUser } from '../common/auth/current-user.decorator';
 import { AuthUser } from '../common/auth/auth.types';
 import { ClothesService } from '../services/clothes.service';
 
+interface ResponseWriter {
+  setHeader(name: string, value: string | number): void;
+  end(data?: Buffer): void;
+}
+
 interface UploadFile {
   buffer: Buffer;
   originalname: string;
@@ -117,6 +122,19 @@ export class ClothesController {
   @Get(':id')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.clothesService.getOne(user, id);
+  }
+
+  @Get(':id/pdf')
+  async exportPdf(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Res() res: ResponseWriter,
+  ) {
+    const { buffer, filename } = await this.clothesService.generateClothPdf(user, id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
   }
 
   @Patch(':id')

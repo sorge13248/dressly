@@ -231,6 +231,15 @@ Creates a new clothing item, automatically generating care instruction relations
 Retrieves a single clothing piece with full relations.
 - **Response `200 OK`**: `Clothes` entity.
 
+### `GET /api/clothes/:id/pdf`
+Generates and downloads a complete, print-ready PDF specification card for the clothing item.
+- **Auth**: Required 🔒
+- **Features**: Embedded Sharp-converted photo, 3-character tag code badge, wardrobe/storage/dismissed status badge, full attributes table (brand, category, fit, size, seasons, temperatures, occasions, colors with visual hex swatches, materials with percentages, tags), 4-panel structured care grid (washing, drying, ironing, dry cleaning), purchase details, personal notes, and secondary thumbnail gallery.
+- **Headers**:
+  - `Content-Type`: `application/pdf`
+  - `Content-Disposition`: `attachment; filename="capo-[code]-[slug].pdf"`
+- **Response `200 OK`**: PDF binary stream.
+
 ### `PATCH /api/clothes/:id`
 Updates clothing attributes, relations, or nested instructions.
 - **Response `200 OK`**: Updated entity.
@@ -407,3 +416,62 @@ Bi-directional offline sync endpoint processing client-side mutations and return
 Polls server changes since a specific timestamp without transmitting client mutations.
 - **Query Parameters**: `since` (ISO 8601 string, optional).
 - **Response `200 OK`**: Same response structure as `POST /api/sync`.
+
+---
+
+## 11. Backup & Disaster Recovery 🔒
+
+### `GET /api/backup/stats`
+Retrieves pre-export statistical counts and physical storage metrics for the authenticated user.
+- **Auth**: Required 🔒
+- **Response `200 OK`**:
+  ```json
+  {
+    "clothesCount": 42,
+    "outfitsCount": 8,
+    "referenceDataCount": 95,
+    "attachmentsCount": 54,
+    "totalFileSizeBytes": 15482910
+  }
+  ```
+
+### `GET /api/backup/export`
+Generates and streams a full self-contained backup archive in ZIP format containing all user entities and physical media.
+- **Auth**: Required 🔒
+- **Headers**:
+  - `Content-Type`: `application/zip`
+  - `Content-Disposition`: `attachment; filename="dressly-backup-YYYY-MM-DD.zip"`
+- **Archive Contents**:
+  - `manifest.json`: Schema version, app version, export timestamp, and data stats.
+  - `data/reference-data.json`: All catalogs (brands, colors, fits, materials, seasons, tags, temperatures, types, use cases, rooms, locations).
+  - `data/clothes.json`: Full clothes items with care instructions, purchase details, relations, and attachment metadata.
+  - `data/outfits.json`: Outfits with associated clothes IDs, canvas layouts, and context tags.
+  - `data/laundry.json`: Current washing and ironing queue states.
+  - `files/clothes/{clothesId}/*`: Physical photo files and WebP previews.
+  - `files/outfits/{outfitId}/*`: Physical outfit attachments and WebP previews.
+- **Response `200 OK`**: ZIP binary stream.
+
+### `POST /api/backup/restore`
+Restores a previously exported Dressly backup ZIP archive with support for full replacement or safe merge.
+- **Auth**: Required 🔒
+- **Content-Type**: `multipart/form-data`
+- **Query Parameters**:
+  - `mode` (string, optional, default: `replace`):
+    - `replace`: Atomically purges all existing user data and files, then populates the database identically from the backup.
+    - `merge`: Preserves existing data, deduplicates reference catalogs by name, generates new clothes/outfit UUIDs, and resolves 3-character tag code collisions automatically with unique charset codes.
+- **Form Fields**:
+  - `file`: The `.zip` backup archive (Up to 500MB).
+- **Transaction Safety**: All database mutations and file extractions are executed inside an atomic transaction. Any error rolls back changes immediately.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "mode": "replace",
+    "stats": {
+      "clothesCount": 42,
+      "outfitsCount": 8,
+      "referenceDataCount": 95,
+      "filesCount": 54
+    }
+  }
+  ```
