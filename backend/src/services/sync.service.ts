@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
@@ -31,6 +31,7 @@ import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { ReferenceDataService, ReferenceDataType } from './reference-data.service';
+import { StorageCleanupService } from './storage-cleanup.service';
 
 const REFERENCE_KINDS: ReferenceDataType[] = [
   'colors',
@@ -57,6 +58,7 @@ export class SyncService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly referenceDataService: ReferenceDataService,
+    @Optional() private readonly storageCleanupService: StorageCleanupService = new StorageCleanupService(dataSource),
   ) {}
 
   async sync(user: AuthUser, payload: SyncPayloadDto): Promise<SyncResponseDto> {
@@ -275,6 +277,13 @@ export class SyncService {
         if (existing) {
           const serverTime = new Date(existing.updatedAt).getTime();
           if (clientTime >= serverTime) {
+            if (existing.attachments && existing.attachments.length > 0) {
+              for (const attachment of existing.attachments) {
+                await this.storageCleanupService.deleteAttachmentFiles(attachment);
+              }
+            }
+            await this.storageCleanupService.deleteClothesFolder(user.id, existing.id);
+
             await clothesRepo.remove(existing);
             await tombstoneRepo.save(
               tombstoneRepo.create({
@@ -458,11 +467,18 @@ export class SyncService {
     for (const change of outfitChanges) {
       const existing = await outfitRepo.findOne({
         where: { id: change.id, userId: user.id },
-        relations: { clothes: true, seasons: true, temperatures: true, useCases: true },
+        relations: { clothes: true, seasons: true, temperatures: true, useCases: true, attachments: true },
       });
 
       if (change.deleted) {
         if (existing) {
+          if (existing.attachments && existing.attachments.length > 0) {
+            for (const attachment of existing.attachments) {
+              await this.storageCleanupService.deleteAttachmentFiles(attachment);
+            }
+          }
+          await this.storageCleanupService.deleteOutfitFolder(user.id, existing.id);
+
           await outfitRepo.remove(existing);
         }
         await tombstoneRepo.save({

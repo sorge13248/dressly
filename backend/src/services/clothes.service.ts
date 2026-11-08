@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
@@ -26,6 +26,7 @@ import { BuyDetail } from '../entities/buy-detail.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { IroningItem } from '../entities/ironing-item.entity';
 import { ReferenceDataService } from './reference-data.service';
+import { StorageCleanupService } from './storage-cleanup.service';
 
 function parseCsv(value: string | undefined) {
   return (value ?? '')
@@ -66,6 +67,7 @@ export class ClothesService implements OnModuleInit {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly referenceDataService: ReferenceDataService,
+    @Optional() private readonly storageCleanupService: StorageCleanupService = new StorageCleanupService(dataSource),
   ) {}
 
   async onModuleInit() {
@@ -856,8 +858,19 @@ export class ClothesService implements OnModuleInit {
 
   async remove(user: AuthUser, id: string) {
     const repository = this.dataSource.getRepository(Clothes);
-    const item = await repository.findOne({ where: { id, userId: user.id } as never });
+    const item = await repository.findOne({
+      where: { id, userId: user.id } as never,
+      relations: { attachments: true },
+    });
     if (!item) throw new NotFoundException();
+
+    if (item.attachments && item.attachments.length > 0) {
+      for (const attachment of item.attachments) {
+        await this.storageCleanupService.deleteAttachmentFiles(attachment);
+      }
+    }
+    await this.storageCleanupService.deleteClothesFolder(user.id, item.id);
+
     await this.dataSource
       .createQueryBuilder()
       .delete()
@@ -940,20 +953,7 @@ export class ClothesService implements OnModuleInit {
     const attachment = await repository.findOne({ where: { id: attachmentId, clothesId, userId: user.id } as never });
     if (!attachment) throw new NotFoundException();
 
-    const absolutePath = this.resolveAttachmentAbsolutePath(attachment.path);
-    try {
-      await fs.unlink(absolutePath);
-    } catch {
-      // Keep delete idempotent even if file is already missing.
-    }
-
-    if (attachment.previewPath) {
-      try {
-        await fs.unlink(this.resolveAttachmentAbsolutePath(attachment.previewPath));
-      } catch {
-        // Keep delete idempotent even if the preview is already missing.
-      }
-    }
+    await this.storageCleanupService.deleteAttachmentFiles(attachment);
 
     await repository.remove(attachment);
     return { deleted: true };
