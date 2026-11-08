@@ -1,6 +1,7 @@
 import { NgOptimizedImage } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { LaundryService } from '../../core/laundry.service';
 import { PwaUpdateService } from '../../core/pwa-update.service';
@@ -15,7 +16,6 @@ import { WashingIconComponent, IroningIconComponent } from '../../shared/compone
   imports: [
     NgOptimizedImage,
     RouterLink,
-    RouterLinkActive,
     RouterOutlet,
     ToastStackComponent,
     SyncIndicatorComponent,
@@ -26,10 +26,48 @@ import { WashingIconComponent, IroningIconComponent } from '../../shared/compone
   styleUrl: './shell.component.scss',
 })
 export class AppShellComponent implements OnInit {
+  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly referenceStore = inject(ReferenceStoreService);
   readonly laundryService = inject(LaundryService);
   readonly pwaUpdateService = inject(PwaUpdateService);
+
+  readonly currentUrl = signal(this.router.url);
+
+  constructor() {
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        this.currentUrl.set(event.urlAfterRedirects || event.url);
+      });
+  }
+
+  isItemActive(item: { path: string }): boolean {
+    const rawUrl = this.currentUrl();
+    const cleanUrl = (rawUrl || '').split('?')[0].split('#')[0];
+
+    if (item.path === 'wardrobe') {
+      return (
+        cleanUrl === '/wardrobe' ||
+        (cleanUrl.startsWith('/wardrobe/') &&
+          !cleanUrl.startsWith('/wardrobe/washing') &&
+          !cleanUrl.startsWith('/wardrobe/ironing'))
+      );
+    }
+    if (item.path === 'wardrobe/washing') {
+      return cleanUrl.startsWith('/wardrobe/washing');
+    }
+    if (item.path === 'wardrobe/ironing') {
+      return cleanUrl.startsWith('/wardrobe/ironing');
+    }
+    if (item.path === 'outfits') {
+      return cleanUrl.startsWith('/outfits') || cleanUrl.startsWith('/abbinamenti');
+    }
+    if (item.path === 'categories') {
+      return cleanUrl.startsWith('/categories');
+    }
+    return false;
+  }
 
   readonly navItems = computed(() => {
     const washingState = this.laundryService.washingState ? this.laundryService.washingState() : { count: this.laundryService.washingCount(), displayedCount: this.laundryService.washingCount(), animating: 'idle' as const };

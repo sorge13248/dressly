@@ -125,4 +125,61 @@ describe('AppShellComponent', () => {
     updateBtn?.click();
     expect(promptUpdateSpy).toHaveBeenCalled();
   });
+
+  describe('isItemActive navigation highlighting', () => {
+    it('should highlight Guardaroba on /wardrobe with or without query params', () => {
+      const fixture = TestBed.createComponent(AppShellComponent);
+      const component = fixture.componentInstance;
+      const wardrobeItem = component.navItems().find((i) => i.path === 'wardrobe')!;
+
+      component.currentUrl.set('/wardrobe');
+      expect(component.isItemActive(wardrobeItem)).toBe(true);
+
+      // With sorting / filtering query parameters
+      component.currentUrl.set('/wardrobe?sort=name_asc&type_ids=abc&page=2');
+      expect(component.isItemActive(wardrobeItem)).toBe(true);
+
+      // Subroutes of wardrobe (e.g. /wardrobe/new, /wardrobe/:id)
+      component.currentUrl.set('/wardrobe/new');
+      expect(component.isItemActive(wardrobeItem)).toBe(true);
+
+      component.currentUrl.set('/wardrobe/cloth-uuid-123');
+      expect(component.isItemActive(wardrobeItem)).toBe(true);
+
+      component.currentUrl.set('/wardrobe/cloth-uuid-123/edit');
+      expect(component.isItemActive(wardrobeItem)).toBe(true);
+    });
+
+    it('should NOT highlight Guardaroba when on Lavatrice or Stiratura', () => {
+      const fixture = TestBed.createComponent(AppShellComponent);
+      const component = fixture.componentInstance;
+      const wardrobeItem = component.navItems().find((i) => i.path === 'wardrobe')!;
+      const washingItem = component.navItems().find((i) => i.path === 'wardrobe/washing')!;
+      const ironingItem = component.navItems().find((i) => i.path === 'wardrobe/ironing')!;
+
+      component.currentUrl.set('/wardrobe/washing');
+      expect(component.isItemActive(wardrobeItem)).toBe(false);
+      expect(component.isItemActive(washingItem)).toBe(true);
+
+      component.currentUrl.set('/wardrobe/ironing');
+      expect(component.isItemActive(wardrobeItem)).toBe(false);
+      expect(component.isItemActive(ironingItem)).toBe(true);
+    });
+
+    it('should highlight Outfits and Categories correctly', () => {
+      const fixture = TestBed.createComponent(AppShellComponent);
+      const component = fixture.componentInstance;
+      const outfitsItem = component.navItems().find((i) => i.path === 'outfits')!;
+      const categoriesItem = component.navItems().find((i) => i.path === 'categories')!;
+
+      component.currentUrl.set('/outfits');
+      expect(component.isItemActive(outfitsItem)).toBe(true);
+
+      component.currentUrl.set('/outfits/detail-id-1');
+      expect(component.isItemActive(outfitsItem)).toBe(true);
+
+      component.currentUrl.set('/categories');
+      expect(component.isItemActive(categoriesItem)).toBe(true);
+    });
+  });
 });

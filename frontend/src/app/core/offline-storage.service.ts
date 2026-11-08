@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
+import { isValidTagCode, normalizeTagCode } from '../shared/utils/tag-code.utils';
 import {
   BaseReferenceItem,
   ClothesFilters,
   ClothesItem,
+  ClothesSortKey,
   IroningClothesItem,
   ReferenceKind,
   SyncConflict,
@@ -26,6 +28,63 @@ export interface StorageMetadata {
   lastSyncAt: string | null;
   lastSyncStatus: SyncStatus;
   conflicts: SyncConflict[];
+}
+
+function getClothesPreferredName(item: ClothesItem): string {
+  return (item.name?.trim() || item.fullTitle?.trim() || item.type?.name?.trim() || '').toLowerCase();
+}
+
+function getCurrentAstronomicalSeason(date = new Date()): 'Primavera' | 'Estate' | 'Autunno' | 'Inverno' {
+  const month = date.getMonth(); // 0 = Jan, 11 = Dec
+  const day = date.getDate();
+  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+    return 'Primavera';
+  }
+  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 20)) {
+    return 'Estate';
+  }
+  if ((month === 8 && day >= 21) || month === 9 || month === 10 || (month === 11 && day <= 20)) {
+    return 'Autunno';
+  }
+  return 'Inverno';
+}
+
+function getSeasonCycleRank(item: ClothesItem): number {
+  if (!item.seasons || item.seasons.length === 0) return 99;
+  let minRank = 99;
+  for (const s of item.seasons) {
+    const lower = (s.name || '').toLowerCase();
+    if (lower.includes('primavera')) minRank = Math.min(minRank, 1);
+    else if (lower.includes('estate')) minRank = Math.min(minRank, 2);
+    else if (lower.includes('autunno')) minRank = Math.min(minRank, 3);
+    else if (lower.includes('inverno')) minRank = Math.min(minRank, 4);
+    else if (lower.includes('tutte')) minRank = Math.min(minRank, 5);
+    else if (typeof s.sortOrder === 'number') minRank = Math.min(minRank, s.sortOrder);
+  }
+  return minRank;
+}
+
+function getSeasonCurrentScore(item: ClothesItem, currentSeason: string): number {
+  if (!item.seasons || item.seasons.length === 0) return 2;
+  const currentLower = currentSeason.toLowerCase();
+  const hasCurrent = item.seasons.some((s) => (s.name || '').toLowerCase().includes(currentLower));
+  if (hasCurrent) return 0;
+  const hasAll = item.seasons.some((s) => (s.name || '').toLowerCase().includes('tutte'));
+  if (hasAll) return 1;
+  return 3;
+}
+
+function getTypeWardrobeRank(typeName?: string | null): number {
+  if (!typeName) return 90;
+  const lower = typeName.toLowerCase();
+  if (lower.includes('t-shirt') || lower.includes('polo') || lower.includes('camicia') || lower.includes('top') || lower.includes('canotta')) return 10;
+  if (lower.includes('maglion') || lower.includes('cardigan') || lower.includes('felpa') || lower.includes('hoodie')) return 20;
+  if (lower.includes('giacca') || lower.includes('blazer') || lower.includes('cappotto') || lower.includes('piumino') || lower.includes('trench') || lower.includes('gilet')) return 30;
+  if (lower.includes('jean') || lower.includes('pantalon') || lower.includes('chino') || lower.includes('short') || lower.includes('jogger') || lower.includes('legging') || lower.includes('gonna')) return 40;
+  if (lower.includes('vestit') || lower.includes('tuta') || lower.includes('completo')) return 50;
+  if (lower.includes('intimo') || lower.includes('pigiama') || lower.includes('costume')) return 60;
+  if (lower.includes('scarp') || lower.includes('sneaker') || lower.includes('stival') || lower.includes('sandal') || lower.includes('ciabatt') || lower.includes('mocassin')) return 70;
+  return 90;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -117,6 +176,18 @@ export class OfflineStorageService {
         resolve(this.memoryStore.clothes.get(id) ?? null);
       }
     });
+  }
+
+  async isTagCodeAvailable(code: string, excludeId?: string | null): Promise<boolean> {
+    const normalized = normalizeTagCode(code);
+    if (!normalized || !isValidTagCode(normalized)) {
+      return false;
+    }
+    const all = await this.getAllClothes();
+    const collision = all.find(
+      (item) => item.code && item.code.trim().toUpperCase() === normalized && item.id !== excludeId,
+    );
+    return !collision;
   }
 
   async saveClothes(items: ClothesItem[]): Promise<void> {
@@ -626,10 +697,76 @@ export class OfflineStorageService {
       result = result.filter((i) => i.size === query.size);
     }
 
+    const sortKey: ClothesSortKey = query.sort || 'created_desc';
+    const currentSeason = getCurrentAstronomicalSeason();
+
     result.sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime();
       const timeB = new Date(b.createdAt || 0).getTime();
-      return timeB - timeA;
+
+      switch (sortKey) {
+        case 'created_asc':
+          return timeA - timeB || timeB - timeA;
+
+        case 'name_asc': {
+          const comp = getClothesPreferredName(a).localeCompare(getClothesPreferredName(b), 'it', { sensitivity: 'base' });
+          return comp !== 0 ? comp : timeB - timeA;
+        }
+
+        case 'name_desc': {
+          const comp = getClothesPreferredName(b).localeCompare(getClothesPreferredName(a), 'it', { sensitivity: 'base' });
+          return comp !== 0 ? comp : timeB - timeA;
+        }
+
+        case 'type_order': {
+          const rankA = getTypeWardrobeRank(a.type?.name);
+          const rankB = getTypeWardrobeRank(b.type?.name);
+          if (rankA !== rankB) return rankA - rankB;
+          const nameComp = (a.type?.name || '').localeCompare(b.type?.name || '', 'it', { sensitivity: 'base' });
+          return nameComp !== 0 ? nameComp : timeB - timeA;
+        }
+
+        case 'type_asc': {
+          const nameComp = (a.type?.name || '').localeCompare(b.type?.name || '', 'it', { sensitivity: 'base' });
+          return nameComp !== 0 ? nameComp : timeB - timeA;
+        }
+
+        case 'season_current': {
+          const scoreA = getSeasonCurrentScore(a, currentSeason);
+          const scoreB = getSeasonCurrentScore(b, currentSeason);
+          if (scoreA !== scoreB) return scoreA - scoreB;
+          return timeB - timeA;
+        }
+
+        case 'season_cycle': {
+          const rankA = getSeasonCycleRank(a);
+          const rankB = getSeasonCycleRank(b);
+          if (rankA !== rankB) return rankA - rankB;
+          return timeB - timeA;
+        }
+
+        case 'code_asc': {
+          const codeA = normalizeTagCode(a.code);
+          const codeB = normalizeTagCode(b.code);
+          if (!codeA && !codeB) return timeB - timeA;
+          if (!codeA) return 1;
+          if (!codeB) return -1;
+          const comp = codeA.localeCompare(codeB, 'it', { sensitivity: 'base' });
+          return comp !== 0 ? comp : timeB - timeA;
+        }
+
+        case 'availability': {
+          // Available (clean and ready): 0; Ironing: 1; Washing: 2
+          const scoreA = a.isInWashing ? 2 : a.isInIroning ? 1 : 0;
+          const scoreB = b.isInWashing ? 2 : b.isInIroning ? 1 : 0;
+          if (scoreA !== scoreB) return scoreA - scoreB;
+          return timeB - timeA;
+        }
+
+        case 'created_desc':
+        default:
+          return timeB - timeA;
+      }
     });
 
     const total = result.length;

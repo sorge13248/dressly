@@ -277,6 +277,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly quickTagBusy = signal(false);
   readonly submitAttempted = signal(false);
   readonly blockedStep = signal<StepIndex | null>(null);
+  readonly codeStatus = signal<'available' | 'taken' | 'invalid'>('available');
+  private latestCodeCheckValue = '';
 
   readonly wizardModel = signal<WizardFormModel>(createInitialWizardModel());
   readonly wizardForm = form(this.wizardModel, (schema) => {
@@ -391,6 +393,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     if (id) {
       this.editingId.set(id);
       void this.loadClothes(id);
+    } else {
+      void this.checkCodeAvailability(this.wizardModel().base.code, null);
     }
 
     const stepParam = this.route.snapshot.queryParamMap.get('step');
@@ -572,6 +576,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
             ...(existing ?? ({} as ClothesItem)),
             id: clothesId,
             name: (payload['name'] as string) ?? null,
+            code: (payload['code'] as string) ?? null,
             size: (payload['size'] as string) ?? null,
             notes: (payload['notes'] as string) ?? null,
             updatedAt: new Date().toISOString(),
@@ -1098,6 +1103,25 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     this.wizardForm.base.size().value.set(uppercaseValue);
   }
 
+  async checkCodeAvailability(code: string, excludeId?: string | null): Promise<void> {
+    const clean = code?.trim().toUpperCase() ?? '';
+    this.latestCodeCheckValue = clean;
+
+    if (clean.length !== 3 || !/^[A-Z0-9]{3}$/i.test(clean)) {
+      this.codeStatus.set('invalid');
+      return;
+    }
+
+    if (this.storage) {
+      const isAvailable = await this.storage.isTagCodeAvailable(clean, excludeId);
+      if (this.latestCodeCheckValue === clean) {
+        this.codeStatus.set(isAvailable ? 'available' : 'taken');
+      }
+    } else {
+      this.codeStatus.set('available');
+    }
+  }
+
   onCodeInput(event: Event) {
     const input = event.target as HTMLInputElement;
     const clean = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
@@ -1105,6 +1129,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       input.value = clean;
     }
     this.wizardForm.base.code().value.set(clean);
+    void this.checkCodeAvailability(clean, this.editingId());
   }
 
   onCumulativeChange(event: Event | boolean) {
@@ -1169,6 +1194,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         return (
           !this.wizardForm.base.size().invalid() &&
           !this.wizardForm.base.code().invalid() &&
+          this.codeStatus() === 'available' &&
           !this.wizardForm.buy.detail.shop_url().invalid()
         );
       case 2:
@@ -1363,6 +1389,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
     this.allPhotos.set(initialPhotos);
     this.attachmentsToDelete.set([]);
+    void this.checkCodeAvailability(this.wizardModel().base.code, item.id);
   }
 
   private buildPayload() {

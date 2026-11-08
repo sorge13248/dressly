@@ -130,9 +130,27 @@
                       [formField]="wizardForm.base.code"
                       placeholder="es. 7KX"
                       (input)="onCodeInput($event)"
+                      [class.code-valid]="codeStatus() === 'available'"
+                      [class.code-invalid]="codeStatus() === 'taken' || codeStatus() === 'invalid'"
                     />
+                    @if (codeStatus() === 'available') {
+                      <span class="code-status-icon code-valid" title="Codice etichetta disponibile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
+                    } @else if (codeStatus() === 'taken' || codeStatus() === 'invalid') {
+                      <span class="code-status-icon code-invalid" title="Codice etichetta non valido o già occupato">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </span>
+                    }
                   </div>
-                  @if (showFieldError(wizardForm.base.code(), 1)) {
+                  @if (codeStatus() === 'taken') {
+                    <small class="field-error-text">Codice già utilizzato</small>
+                  } @else if (showFieldError(wizardForm.base.code(), 1)) {
                     <small class="field-error-text">{{
                       fieldError(wizardForm.base.code(), 'Codice di 3 caratteri')
                     }}</small>

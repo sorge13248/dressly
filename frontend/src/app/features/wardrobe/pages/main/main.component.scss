@@ -176,6 +176,49 @@
   }
 }
 
+.sort-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+
+  .sort-icon {
+    position: absolute;
+    left: 11px;
+    width: 14px;
+    height: 14px;
+    color: #436993;
+    pointer-events: none;
+  }
+}
+
+.sort-select {
+  min-height: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(80, 130, 215, 0.35);
+  padding: 0 14px 0 32px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #102e54;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(10, 35, 75, 0.06);
+  transition: all 140ms ease;
+
+  &:hover {
+    border-color: #2b7cd8;
+    background: #ffffff;
+  }
+
+  &:focus {
+    border-color: #2b7cd8;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(43, 124, 216, 0.2), inset 0 1px 2px rgba(10, 35, 75, 0.05);
+  }
+}
+
 .search-banner .primary {
   flex: 0 0 auto;
 
@@ -1013,6 +1056,21 @@
     display: inline-flex;
   }
 
+  .sort-select-wrap {
+    .sort-icon {
+      left: 9px;
+      width: 13px;
+      height: 13px;
+    }
+  }
+
+  .sort-select {
+    min-height: 36px;
+    height: 36px;
+    font-size: 0.82rem;
+    padding: 0 12px 0 28px;
+  }
+
   .pager-btn-text {
     display: none;
   }
@@ -1123,9 +1181,29 @@
 
   .search-input-wrap {
     order: 1;
-    flex: 1 1 130px;
-    min-width: 100px;
+    flex: 1 1 100%;
+    min-width: 100%;
     max-width: none;
+  }
+
+  .sort-select-wrap {
+    order: 2;
+    flex: 1 1 140px;
+    min-width: 110px;
+
+    .sort-icon {
+      left: 8px;
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  .sort-select {
+    width: 100%;
+    min-height: 36px;
+    height: 36px;
+    font-size: 0.78rem;
+    padding: 0 8px 0 24px;
   }
 
   .search-banner input {
@@ -1140,7 +1218,7 @@
   }
 
   .search-banner .filter-toggle {
-    order: 2;
+    order: 3;
     min-height: 36px;
     padding: 0 8px;
     font-size: 0.8rem;
@@ -1149,7 +1227,7 @@
 
   .search-banner .new-item-btn,
   .search-banner .primary {
-    order: 3;
+    order: 4;
     min-height: 36px;
     padding: 0 10px;
     font-size: 0.82rem;
@@ -1167,7 +1245,7 @@
 
   .dock-pager,
   .pager {
-    order: 4;
+    order: 5;
     width: 100%;
     justify-content: space-between;
     padding-top: 6px;
