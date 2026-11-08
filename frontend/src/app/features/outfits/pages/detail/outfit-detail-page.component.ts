@@ -56,6 +56,19 @@ export class OutfitDetailPageComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly actionBusy = signal(false);
 
+  readonly storageWarning = computed(() => {
+    const o = this.outfit();
+    if (!o?.clothes || o.clothes.length === 0) return null;
+    const inStorage = o.clothes.filter((c) => c.status === 'in_storage');
+    if (inStorage.length === 0) return null;
+    if (inStorage.length === 1) {
+      const cloth = inStorage[0];
+      const loc = cloth.location?.name ? `: ${cloth.location.name}` : '';
+      return `1 capo di questo abbinamento è attualmente in deposito${loc}.`;
+    }
+    return `${inStorage.length} capi di questo abbinamento sono attualmente in deposito.`;
+  });
+
   // Edit details mode
   readonly isEditingDetails = signal(false);
   readonly editName = signal('');

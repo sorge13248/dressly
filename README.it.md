@@ -35,16 +35,19 @@ Le tipiche applicazioni per la gestione del guardaroba presentano spesso traccia
 
 - 🔒 **Autenticazione OIDC confidenziale**: Accesso sicuro con Keycloak, Authentik, Google o qualunque provider OIDC conforme tramite PKCE e cookie di sessione protetti.
 - 👔 **Catalogo capi completo**: Tracciamento dettagliato di tipo capo, brand, vestibilità, materiali, colori primari e secondari, stagioni, temperature, occasioni d'uso, taglia e note.
+- 📦 **Cambio di stagione & Posizioni di deposito**: Gestione realistica del cambio armadio stagionale con 3 stati operativi (`in_wardrobe` - nell'armadio, `in_storage` - in deposito, `dismissed` - dismesso) e gerarchia di contenitori fisici (Stanze e Posizioni/Scatole). Include una procedura guidata in 5 passaggi (`/wardrobe/seasonal-change`) con selezione multi-stagione, visualizzazione capi in formato card mini, blocco di sicurezza sulle modifiche non salvate (`canDeactivate`), integrazione diretta nelle code di lavaggio e stiratura e avvisi amichevoli sulle schede degli outfit contenenti capi riposti.
 - ↕️ **Motore di ordinamento guardaroba multi-criterio**: Ordinamento capi per data di aggiunta (recenti/meno recenti), nome alfabetico (A-Z/Z-A), gerarchia di vestizione consigliata (dalla parte superiore alle calzature), tipologia A-Z, stagionalità smart (stagione astronomica corrente in cima), ciclo annuale, codice etichetta e disponibilità puliti/lavanderia. Integrato nel pannello fluttuante inferiore con sincronizzazione parametri URL e persistenza locale.
 - 🏷️ **Sistema di codici etichetta a 3 caratteri**: Codici alfanumerici univoci generati da un set di 30 caratteri privo di ambiguità (`23456789ABCDEFGHJKMNPQRSTVWXYZ`), escludendo caratteri facilmente confondibili a mano (`0`/`O`, `1`/`I`/`L` e `U`), con verifica immediata di unicità offline su IndexedDB durante la digitazione nell'editor (feedback visivo verde/rosso e icona V/X).
 - 🧺 **Code bucato (Lavaggio e Stiratura)**: Monitoraggio dei capi in lavaggio o in attesa di stiratura. Spostamento atomico dei capi da lavaggio a stiratura con un singolo clic.
 - 📦 **Supporto capi cumulativi e quantità multipla**: Gestione di gruppi di capi identici (es. 5 paia di calzini uguali) con allocazione parziale nelle code del bucato.
-- 🎨 **Outfit con Canvas interattiva 2D**: Creazione e stile degli outfit su superficie 2D. Supporta selezione multipla tramite rettangolo di selezione (marquee), trascinamento di gruppo, rotazione, ridimensionamento e ordinamento dei livelli z-index.
+- 🎨 **Outfit con Canvas interattiva 2D**: Creazione e stile degli outfit su superficie 2D. Supporta selezione multipla tramite rettangolo di selezione (marquee), trascinamento di gruppo, rotazione, ridimensionamento e ordinamento dei livelli z-index, con segnalazione di capi in deposito.
 - 🧼 **Istruzioni di cura e dettagli di acquisto**: Gestione di temperature di lavaggio (incluso lavaggio a freddo), tipo di lavaggio, candeggio, modalità di asciugatura, temperature di stiratura, uso del vapore e dettagli di acquisto con prezzo e negozio.
+- 📄 **Esportazione scheda tecnica in PDF vettoriale**: Esportazione istantanea con un clic del singolo capo in formato PDF pronto per la stampa direttamente dalla barra inferiore di dettaglio, con anteprima fotografica principale, badge di stato, codice etichetta a 3 caratteri, griglia dei simboli di cura e dati di acquisto.
+- 💾 **Disaster Recovery completo & Portabilità ZIP multi-istanza**: Esportazione e ripristino integrale di tutti i dati utente (capi, outfit, cataloghi di riferimento, code bucato e allegati fotografici ad alta risoluzione) in un archivio ZIP portatile. Supporta sia la modalità "Sostituisci tutto" (ripristino pulito dell'istanza) sia la modalità "Unisci" (deduplica intelligente dei cataloghi, risoluzione automatica delle collisioni dei codici a 3 caratteri e risoluzione dei conflitti di denominazione) posizionato esclusivamente nella pagina di Gestione domini.
 - 📸 **Elaborazione immagini ad alte prestazioni**: Upload fino a 10MB gestiti da `sharp` con correzione automatica dell'orientamento EXIF, anteprime responsive e compressione progressiva WebP.
 - 🔄 **Sincronizzazione offline bidirezionale**: Riconciliazione automatica tra IndexedDB locale (`dressly_offline_v1`) e il server con risoluzione conflitti a livello di campo Last-Write-Wins (LWW) e tracciamento delle eliminazioni tramite tombstone.
 - 📲 **PWA installabile**: Interfaccia ottimizzata per dispositivi mobili con rispetto dei safe-area insets, Service Worker personalizzato per la memorizzazione nella cache e notifiche di aggiornamento in-app.
-- 🗂️ **Gestione dati di riferimento personali**: Cataloghi configurabili per singolo utente per colori, brand, stagioni, temperature, occasioni d'uso, vestibilità, materiali, tipi e tag personalizzati.
+- 🗂️ **Gestione dati di riferimento personali**: Cataloghi configurabili per singolo utente per colori, brand, stagioni, temperature, occasioni d'uso, vestibilità, materiali, tipi, stanze, posizioni e tag personalizzati.
 
 ---
 
@@ -105,6 +108,8 @@ Per consultare approfondimenti tecnici dettagliati su ogni componente, visita la
 | **Framework Backend** | **NestJS 12** | Piattaforma Express, controller modulari, guard e interceptor |
 | **ORM e Database** | **TypeORM & SQLite** | `typeorm` v1.1 + `better-sqlite3` v12 con supporto WAL |
 | **Elaborazione Immagini** | **Sharp** | Compressione grafica basata su libvips ad alte prestazioni con output WebP |
+| **Esportazione Documenti** | **PDFKit** | Generazione vettoriale PDF server-side con dimensionamento automatico delle immagini e tipografia pulita |
+| **Archivio & Backup** | **Adm-Zip** | Creazione pacchetti ZIP in streaming e motore di ripristino multi-istanza protetto da transazioni |
 | **Sicurezza e Auth** | **Jose & Crypto** | Flusso confidenziale OpenID Connect, PKCE (`S256`), convalida firme tramite JWKS |
 | **Container Runtime** | **Docker & Supervisor** | Nginx e NestJS coordinati in un unico container slim |
 | **Pipeline CI / CD** | **GitHub Actions** | Build Docker multi-architettura native (`linux/amd64`, `linux/arm64`) e rilascio semantico |

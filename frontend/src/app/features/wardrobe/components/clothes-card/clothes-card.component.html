@@ -1,10 +1,27 @@
 <a
   class="item-card"
+  [class.variant-mini]="variant() === 'mini'"
   [class.selected]="selected()"
-  [routerLink]="[linkPrefix(), item().id]"
+  [routerLink]="linkPrefix() ? [linkPrefix(), item().id] : null"
+  (click)="onCardClick($event)"
   [attr.data-item-id]="item().id"
   [attr.aria-label]="'Apri dettaglio ' + getPreferredLabel(item())"
 >
+  @if (variant() === 'mini') {
+    <button
+      type="button"
+      class="mini-open-btn"
+      (click)="openDetailInNewTab($event)"
+      title="Apri dettaglio in una nuova scheda"
+      aria-label="Apri dettaglio in una nuova scheda"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" y1="14" x2="21" y2="3" />
+      </svg>
+    </button>
+  }
   <div class="thumb">
     @if (selectable()) {
       <label
@@ -49,33 +66,52 @@
       </button>
     }
 
-    @if (item().isInWashing || item().isInIroning) {
-      <div class="card-status-badges">
-        @if (item().isInWashing) {
-          <span
-            class="status-badge status-badge--washing"
-            [title]="'In lavatrice' + (item().isCumulative && (item().washingQuantity ?? 0) > 0 ? ': ' + item().washingQuantity : '')"
-            [attr.aria-label]="'In lavatrice' + (item().isCumulative && (item().washingQuantity ?? 0) > 0 ? ': ' + item().washingQuantity : '')"
-          >
-            <app-washing-icon [size]="14" [strokeWidth]="2" />
-            @if (item().isCumulative && (item().washingQuantity ?? 0) > 0) {
-              <span class="status-badge-count">{{ item().washingQuantity }}</span>
-            }
-          </span>
-        }
-        @if (item().isInIroning) {
-          <span
-            class="status-badge status-badge--ironing"
-            [title]="'Da stirare' + (item().isCumulative && (item().ironingQuantity ?? 0) > 0 ? ': ' + item().ironingQuantity : '')"
-            [attr.aria-label]="'Da stirare' + (item().isCumulative && (item().ironingQuantity ?? 0) > 0 ? ': ' + item().ironingQuantity : '')"
-          >
-            <app-ironing-icon [size]="14" [strokeWidth]="2" />
-            @if (item().isCumulative && (item().ironingQuantity ?? 0) > 0) {
-              <span class="status-badge-count">{{ item().ironingQuantity }}</span>
-            }
-          </span>
-        }
-      </div>
+    @if (variant() !== 'mini') {
+      @if (item().status === 'in_storage' || item().status === 'dismissed' || item().isInWashing || item().isInIroning) {
+        <div class="card-status-badges">
+          @if (item().status === 'in_storage') {
+            <span
+              class="status-badge status-badge--storage"
+              [title]="getLocationLabel(item())"
+              [attr.aria-label]="getLocationLabel(item())"
+            >
+              📦 {{ getLocationLabel(item()) }}
+            </span>
+          } @else if (item().status === 'dismissed') {
+            <span
+              class="status-badge status-badge--dismissed"
+              title="Capo dismesso"
+              aria-label="Capo dismesso"
+            >
+              🏷️ Dismesso
+            </span>
+          }
+          @if (item().isInWashing) {
+            <span
+              class="status-badge status-badge--washing"
+              [title]="'In lavatrice' + (item().isCumulative && (item().washingQuantity ?? 0) > 0 ? ': ' + item().washingQuantity : '')"
+              [attr.aria-label]="'In lavatrice' + (item().isCumulative && (item().washingQuantity ?? 0) > 0 ? ': ' + item().washingQuantity : '')"
+            >
+              <app-washing-icon [size]="14" [strokeWidth]="2" />
+              @if (item().isCumulative && (item().washingQuantity ?? 0) > 0) {
+                <span class="status-badge-count">{{ item().washingQuantity }}</span>
+              }
+            </span>
+          }
+          @if (item().isInIroning) {
+            <span
+              class="status-badge status-badge--ironing"
+              [title]="'Da stirare' + (item().isCumulative && (item().ironingQuantity ?? 0) > 0 ? ': ' + item().ironingQuantity : '')"
+              [attr.aria-label]="'Da stirare' + (item().isCumulative && (item().ironingQuantity ?? 0) > 0 ? ': ' + item().ironingQuantity : '')"
+            >
+              <app-ironing-icon [size]="14" [strokeWidth]="2" />
+              @if (item().isCumulative && (item().ironingQuantity ?? 0) > 0) {
+                <span class="status-badge-count">{{ item().ironingQuantity }}</span>
+              }
+            </span>
+          }
+        </div>
+      }
     }
 
     @if (getPrimaryAttachment(item()); as attachment) {
@@ -91,7 +127,7 @@
 
   <div class="card-body">
     <div class="card-top">
-      <div>
+      <div class="card-title-col">
         <p class="brand">{{ item().brand?.name || 'Marchio non assegnato' }}</p>
         <h3>{{ getPreferredLabel(item()) }}</h3>
       </div>
@@ -105,6 +141,52 @@
         }
       </div>
     </div>
+
+    @if (variant() === 'mini' && (item().status === 'in_storage' || item().status === 'dismissed' || item().isInWashing || item().isInIroning)) {
+      <div class="card-status-row">
+        @if (item().status === 'in_storage') {
+          <span
+            class="status-badge status-badge--storage"
+            [title]="getLocationLabel(item())"
+            [attr.aria-label]="getLocationLabel(item())"
+          >
+            📦 {{ getLocationLabel(item()) }}
+          </span>
+        } @else if (item().status === 'dismissed') {
+          <span
+            class="status-badge status-badge--dismissed"
+            title="Capo dismesso"
+            aria-label="Capo dismesso"
+          >
+            🏷️ Dismesso
+          </span>
+        }
+        @if (item().isInWashing) {
+          <span
+            class="status-badge status-badge--washing"
+            [title]="'In lavatrice' + (item().isCumulative && (item().washingQuantity ?? 0) > 0 ? ': ' + item().washingQuantity : '')"
+            [attr.aria-label]="'In lavatrice' + (item().isCumulative && (item().washingQuantity ?? 0) > 0 ? ': ' + item().washingQuantity : '')"
+          >
+            <app-washing-icon [size]="13" [strokeWidth]="2" />
+            @if (item().isCumulative && (item().washingQuantity ?? 0) > 0) {
+              <span class="status-badge-count">{{ item().washingQuantity }}</span>
+            }
+          </span>
+        }
+        @if (item().isInIroning) {
+          <span
+            class="status-badge status-badge--ironing"
+            [title]="'Da stirare' + (item().isCumulative && (item().ironingQuantity ?? 0) > 0 ? ': ' + item().ironingQuantity : '')"
+            [attr.aria-label]="'Da stirare' + (item().isCumulative && (item().ironingQuantity ?? 0) > 0 ? ': ' + item().ironingQuantity : '')"
+          >
+            <app-ironing-icon [size]="13" [strokeWidth]="2" />
+            @if (item().isCumulative && (item().ironingQuantity ?? 0) > 0) {
+              <span class="status-badge-count">{{ item().ironingQuantity }}</span>
+            }
+          </span>
+        }
+      </div>
+    }
 
     <div class="meta-line">
       @if (item().fit?.name) {
@@ -155,41 +237,43 @@
       <p class="notes">{{ item().notes }}</p>
     }
 
-    <div class="card-quick-actions" (click)="$event.stopPropagation()">
-      @if (showOutfit()) {
+    @if (showActions()) {
+      <div class="card-quick-actions" (click)="$event.stopPropagation()">
+        @if (showOutfit()) {
+          <button
+            type="button"
+            class="quick-action-btn outfit-action-btn"
+            [disabled]="actionPending()"
+            (click)="onAddToOutfit($event)"
+            title="Aggiungi ad un abbinamento"
+            aria-label="Aggiungi ad un abbinamento"
+          >
+            <app-outfit-icon class="quick-icon" [size]="18" />
+          </button>
+        }
         <button
           type="button"
-          class="quick-action-btn outfit-action-btn"
+          class="quick-action-btn"
+          [class.active-washing]="item().isInWashing"
           [disabled]="actionPending()"
-          (click)="onAddToOutfit($event)"
-          title="Aggiungi ad un abbinamento"
-          aria-label="Aggiungi ad un abbinamento"
+          (click)="onToggleWashing($event)"
+          [title]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
+          [attr.aria-label]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
         >
-          <app-outfit-icon class="quick-icon" [size]="18" />
+          <app-washing-icon class="quick-icon" [size]="18" />
         </button>
-      }
-      <button
-        type="button"
-        class="quick-action-btn"
-        [class.active-washing]="item().isInWashing"
-        [disabled]="actionPending()"
-        (click)="onToggleWashing($event)"
-        [title]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
-        [attr.aria-label]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
-      >
-        <app-washing-icon class="quick-icon" [size]="18" />
-      </button>
-      <button
-        type="button"
-        class="quick-action-btn"
-        [class.active-ironing]="item().isInIroning"
-        [disabled]="actionPending()"
-        (click)="onToggleIroning($event)"
-        [title]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
-        [attr.aria-label]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
-      >
-        <app-ironing-icon class="quick-icon" [size]="18" />
-      </button>
-    </div>
+        <button
+          type="button"
+          class="quick-action-btn"
+          [class.active-ironing]="item().isInIroning"
+          [disabled]="actionPending()"
+          (click)="onToggleIroning($event)"
+          [title]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
+          [attr.aria-label]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
+        >
+          <app-ironing-icon class="quick-icon" [size]="18" />
+        </button>
+      </div>
+    }
   </div>
 </a>

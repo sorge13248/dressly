@@ -198,4 +198,44 @@ export class ReferenceDataController {
   deleteTag(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.referenceDataService.remove('tags', user, id);
   }
+
+  @Get('rooms')
+  listRooms(@CurrentUser() user: AuthUser) {
+    return this.referenceDataService.list('rooms', user);
+  }
+
+  @Post('rooms')
+  createRoom(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.create('rooms', user, body);
+  }
+
+  @Put('rooms/:id')
+  updateRoom(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.update('rooms', user, id, body);
+  }
+
+  @Delete('rooms/:id')
+  deleteRoom(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.referenceDataService.remove('rooms', user, id);
+  }
+
+  @Get('locations')
+  listLocations(@CurrentUser() user: AuthUser) {
+    return this.referenceDataService.list('locations', user);
+  }
+
+  @Post('locations')
+  createLocation(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.create('locations', user, body);
+  }
+
+  @Put('locations/:id')
+  updateLocation(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.update('locations', user, id, body);
+  }
+
+  @Delete('locations/:id')
+  deleteLocation(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.referenceDataService.remove('locations', user, id);
+  }
 }

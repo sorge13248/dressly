@@ -8,6 +8,7 @@ import { NotFoundPageComponent } from './features/errors/pages/not-found/not-fou
 import { WardrobeDetailPageComponent } from './features/wardrobe/pages/detail/detail.component';
 import { WardrobePageComponent } from './features/wardrobe/pages/main/main.component';
 import { WardrobeWizardPageComponent, canDeactivateWardrobeWizard } from './features/wardrobe/pages/editor/editor.component';
+import { SeasonalChangePageComponent, canDeactivateSeasonalChange } from './features/wardrobe/pages/seasonal-change/seasonal-change.component';
 import { IroningPageComponent } from './features/wardrobe/pages/ironing/ironing.component';
 import { WashingPageComponent } from './features/wardrobe/pages/washing/washing.component';
 import { OutfitsPageComponent } from './features/outfits/pages/list/outfits-page.component';
@@ -24,6 +25,7 @@ export const routes: Routes = [
 		children: [
 			{ path: 'wardrobe', component: WardrobePageComponent },
 			{ path: 'wardrobe/new', component: WardrobeWizardPageComponent, canDeactivate: [canDeactivateWardrobeWizard] },
+			{ path: 'wardrobe/seasonal-change', component: SeasonalChangePageComponent, canDeactivate: [canDeactivateSeasonalChange] },
 			{ path: 'wardrobe/washing', component: WashingPageComponent },
 			{ path: 'wardrobe/ironing', component: IroningPageComponent },
 			{ path: 'wardrobe/:id', component: WardrobeDetailPageComponent },

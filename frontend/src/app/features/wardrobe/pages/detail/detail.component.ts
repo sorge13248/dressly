@@ -57,6 +57,7 @@ export class WardrobeDetailPageComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly duplicating = signal(false);
+  readonly exportingPdf = signal(false);
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
   private initialLoaded = false;
@@ -443,6 +444,40 @@ export class WardrobeDetailPageComponent implements OnInit {
     }
     void this.laundryService.refreshCounts('ironing', action);
     this.toast.success(nextState ? 'Capo aggiunto alla stiratura' : 'Capo rimosso dalla stiratura');
+  }
+
+  async exportPdf() {
+    const current = this.item();
+    if (!current || this.exportingPdf()) {
+      return;
+    }
+
+    if (!navigator.onLine) {
+      this.toast.error("L'esportazione PDF avanzata richiede una connessione al server");
+      return;
+    }
+
+    this.exportingPdf.set(true);
+    try {
+      const blob = await firstValueFrom(this.api.downloadClothPdf(current.id));
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const slug = (current.name || current.code || 'capo')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .slice(0, 30);
+      a.download = `capo-${current.code ? current.code + '-' : ''}${slug}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      this.toast.success('Scheda PDF scaricata con successo');
+    } catch {
+      this.toast.error('Impossibile esportare il PDF del capo');
+    } finally {
+      this.exportingPdf.set(false);
+    }
   }
 
   async duplicate() {

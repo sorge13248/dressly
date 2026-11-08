@@ -138,4 +138,83 @@ describe('ClothesCardComponent', () => {
     expect(ironCountBadge).toBeTruthy();
     expect(ironCountBadge.textContent.trim()).toBe('2');
   });
+
+  it('should render in mini variant with variant-mini class and status row', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    const storageItem: ClothesItem = {
+      ...fakeItem,
+      status: 'in_storage',
+      location: {
+        id: 'loc-1',
+        name: 'Scatola Lana',
+        userId: 'user-1',
+        roomId: 'room-1',
+        sortOrder: 0,
+        room: { id: 'room-1', name: 'Salotto', userId: 'user-1', sortOrder: 0, createdAt: '', updatedAt: '' },
+        createdAt: '',
+        updatedAt: '',
+      },
+    };
+    fixture.componentRef.setInput('item', storageItem);
+    fixture.componentRef.setInput('variant', 'mini');
+    fixture.componentRef.setInput('showActions', false);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('.item-card');
+    expect(card.classList.contains('variant-mini')).toBe(true);
+
+    // Quick actions should not be rendered
+    const actions = fixture.nativeElement.querySelector('.card-quick-actions');
+    expect(actions).toBeNull();
+
+    // Storage badge in mini status row
+    const statusRow = fixture.nativeElement.querySelector('.card-status-row');
+    expect(statusRow).toBeTruthy();
+    expect(statusRow.textContent).toContain('Salotto › Scatola Lana');
+  });
+
+  it('should emit selectionChange when cardClickBehavior is select and card is clicked', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    fixture.componentRef.setInput('item', fakeItem);
+    fixture.componentRef.setInput('selectable', true);
+    fixture.componentRef.setInput('cardClickBehavior', 'select');
+    fixture.componentRef.setInput('linkPrefix', null);
+    fixture.detectChanges();
+
+    const selectionSpy = vi.fn();
+    fixture.componentInstance.selectionChange.subscribe(selectionSpy);
+
+    const card = fixture.nativeElement.querySelector('.item-card') as HTMLAnchorElement;
+    card.click();
+
+    expect(selectionSpy).toHaveBeenCalledTimes(1);
+    expect(selectionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: fakeItem.id,
+      }),
+    );
+  });
+
+  it('should render mini-open-btn in mini variant and open detail in new tab without triggering selection', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    fixture.componentRef.setInput('item', fakeItem);
+    fixture.componentRef.setInput('variant', 'mini');
+    fixture.componentRef.setInput('selectable', true);
+    fixture.componentRef.setInput('cardClickBehavior', 'select');
+    fixture.detectChanges();
+
+    const openBtn = fixture.nativeElement.querySelector('.mini-open-btn') as HTMLButtonElement;
+    expect(openBtn).toBeTruthy();
+
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const selectionSpy = vi.fn();
+    fixture.componentInstance.selectionChange.subscribe(selectionSpy);
+
+    openBtn.click();
+
+    expect(windowOpenSpy).toHaveBeenCalledWith('/wardrobe/' + fakeItem.id, '_blank', 'noopener,noreferrer');
+    expect(selectionSpy).not.toHaveBeenCalled();
+
+    windowOpenSpy.mockRestore();
+  });
 });

@@ -36,23 +36,37 @@
       </label>
     }
 
-    <label>
-      <span>{{ data.extraLabel }}</span>
-      @if (data.usesColorPicker) {
-        <div class="color-input-row">
-          <input
-            type="color"
-            class="color-picker"
-            [value]="colorPickerValue()"
-            (input)="onColorPicked($event)"
-            aria-label="Seleziona colore"
-          />
-          <input [formField]="modalForm.extra" class="hex-input" placeholder="#5a9de8" />
-        </div>
-      } @else {
-        <input [formField]="modalForm.extra" />
-      }
-    </label>
+    @if (data.isLocation) {
+      <label>
+        <span>Stanza</span>
+        <select [formField]="modalForm.roomId" class="styled-select">
+          <option value="">-- Nessuna stanza --</option>
+          @for (room of data.roomOptions ?? []; track room.id) {
+            <option [value]="room.id">{{ room.name }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    @if (!data.hideExtra) {
+      <label>
+        <span>{{ data.extraLabel }}</span>
+        @if (data.usesColorPicker) {
+          <div class="color-input-row">
+            <input
+              type="color"
+              class="color-picker"
+              [value]="colorPickerValue()"
+              (input)="onColorPicked($event)"
+              aria-label="Seleziona colore"
+            />
+            <input [formField]="modalForm.extra" class="hex-input" placeholder="#5a9de8" />
+          </div>
+        } @else {
+          <input [formField]="modalForm.extra" />
+        }
+      </label>
+    }
   </div>
 
   <footer>

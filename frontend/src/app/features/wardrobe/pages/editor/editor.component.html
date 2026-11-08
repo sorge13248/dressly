@@ -156,6 +156,25 @@
                     }}</small>
                   }
                 </label>
+                <label class="field-status">
+                  <span>Stato</span>
+                  <app-select-dropdown
+                    placeholder="Seleziona stato"
+                    [options]="statusOptions"
+                    [selectedId]="wizardForm.base.status().value()"
+                    (selectedIdChange)="setSelectValue(wizardForm.base.status, $event)"
+                  />
+                </label>
+                <label class="field-location">
+                  <span>Posizione</span>
+                  <app-select-dropdown
+                    placeholder="Seleziona posizione"
+                    [searchable]="true"
+                    [options]="locationDropdownOptions()"
+                    [selectedId]="wizardForm.base.location_id().value()"
+                    (selectedIdChange)="setSelectValue(wizardForm.base.location_id, $event)"
+                  />
+                </label>
               </div>
 
               <div class="cumulative-row">

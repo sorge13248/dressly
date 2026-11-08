@@ -30,6 +30,8 @@ import { UseCase } from '../entities/use-case.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
+import { Room } from '../entities/room.entity';
+import { Location } from '../entities/location.entity';
 import { ReferenceDataService, ReferenceDataType } from './reference-data.service';
 import { StorageCleanupService } from './storage-cleanup.service';
 
@@ -43,6 +45,8 @@ const REFERENCE_KINDS: ReferenceDataType[] = [
   'materials',
   'types',
   'tags',
+  'rooms',
+  'locations',
 ];
 
 function toPlainObject(value: unknown): Record<string, unknown> | null {
@@ -182,6 +186,9 @@ export class SyncService {
         if (kind === 'colors') {
           entityData['hexCode'] = fields['hexCode']?.value ?? item.data?.['hexCode'] ?? null;
         }
+        if (kind === 'locations') {
+          entityData['roomId'] = fields['roomId']?.value ?? fields['room_id']?.value ?? item.data?.['roomId'] ?? item.data?.['room_id'] ?? null;
+        }
 
         const newEntity = repo.create(entityData as never) as unknown as Record<string, unknown>;
         newEntity['updatedAt'] = new Date(item.updatedAt);
@@ -267,6 +274,7 @@ export class SyncService {
           ironingInstruction: true,
           buyDetail: true,
           attachments: true,
+          location: { room: true },
         },
       });
 
@@ -605,6 +613,8 @@ export class SyncService {
       .leftJoinAndSelect('clothes.dryingInstruction', 'dryingInstruction')
       .leftJoinAndSelect('clothes.ironingInstruction', 'ironingInstruction')
       .leftJoinAndSelect('clothes.buyDetail', 'buyDetail')
+      .leftJoinAndSelect('clothes.location', 'location')
+      .leftJoinAndSelect('location.room', 'room')
       .where('clothes.userId = :userId', { userId: user.id });
 
     if (lastSyncDate) {
@@ -633,14 +643,20 @@ export class SyncService {
     for (const kind of REFERENCE_KINDS) {
       const repo = this.referenceDataService.repository(kind);
       if (lastSyncDate) {
-        const rows = await repo
+        const qb = repo
           .createQueryBuilder('r')
           .where('r.userId = :userId', { userId: user.id })
-          .andWhere('r.updatedAt > :lastSyncDate', { lastSyncDate })
-          .getMany();
+          .andWhere('r.updatedAt > :lastSyncDate', { lastSyncDate });
+        if (kind === 'locations') {
+          qb.leftJoinAndSelect('r.room', 'room');
+        }
+        const rows = await qb.getMany();
         serverReferenceData[kind] = rows;
       } else {
-        const rows = await repo.find({ where: { userId: user.id } as never });
+        const rows = await repo.find({
+          where: { userId: user.id } as never,
+          relations: kind === 'locations' ? ({ room: true } as never) : undefined,
+        });
         serverReferenceData[kind] = rows;
       }
     }
@@ -766,6 +782,11 @@ export class SyncService {
         return clothes.size;
       case 'notes':
         return clothes.notes;
+      case 'status':
+        return clothes.status ?? 'in_wardrobe';
+      case 'location_id':
+      case 'locationId':
+        return clothes.locationId ?? clothes.location?.id ?? null;
       case 'brand_id':
       case 'brandId':
         return clothes.brandId ?? clothes.brand?.id ?? null;
@@ -851,6 +872,26 @@ export class SyncService {
       case 'notes':
         clothes.notes = value === null || value === undefined ? null : String(value).trim();
         break;
+      case 'status': {
+        const rawStatus = value ? String(value).trim() : 'in_wardrobe';
+        if (['in_wardrobe', 'in_storage', 'dismissed'].includes(rawStatus)) {
+          clothes.status = rawStatus as 'in_wardrobe' | 'in_storage' | 'dismissed';
+        }
+        break;
+      }
+      case 'location_id':
+      case 'locationId': {
+        const id = value ? String(value).trim() : null;
+        if (!id) {
+          clothes.location = null;
+          clothes.locationId = null;
+        } else {
+          const locs = await this.referenceDataService.resolveOwnedReferences<Location>('locations', user.id, [id]);
+          clothes.location = locs[0] ?? null;
+          clothes.locationId = locs[0]?.id ?? null;
+        }
+        break;
+      }
       case 'brand_id':
       case 'brandId': {
         const id = value ? String(value).trim() : null;

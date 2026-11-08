@@ -21,6 +21,8 @@ import { User } from '../entities/user.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
+import { Room } from '../entities/room.entity';
+import { Location } from '../entities/location.entity';
 import { OutfitsService } from './outfits.service';
 import { ReferenceDataService } from './reference-data.service';
 import { AuthUser } from '../common/auth/auth.types';
@@ -51,6 +53,8 @@ async function runOutfitTests() {
       WashingItem,
       IroningItem,
       Outfit,
+      Room,
+      Location,
       SyncTombstone,
     ],
     synchronize: true,

@@ -183,3 +183,120 @@ Dressly equips the primary wardrobe gallery with a multi-criteria sorting engine
 - **Bi-Directional URL Synchronization**: The active sort criterion is mirrored to the URL query string (`?sort=<key>`) for shareable and bookmarkable links.
 - **Local Storage Preference**: The user's selection is persisted in `localStorage` under `dressly_wardrobe_sort`, automatically restoring their preferred ordering on subsequent visits.
 
+---
+
+## 6. Seasonal Wardrobe Rotation, Storage Locations & Decluttering
+
+To mirror the real-world ritual of seasonal wardrobe rotation (*"cambio dell'armadio"*), Dressly models garment lifecycle states and physical storage containers.
+
+### 6.1. Operational Garment Statuses
+
+Every garment in Dressly operates in one of three mutually exclusive lifecycle statuses:
+
+| Status (`status`) | UI Label | Behavior & Visibility |
+| :--- | :--- | :--- |
+| `in_wardrobe` *(Default)* | Nell'armadio | Active garments currently hanging in the user's primary closet and readily available for daily outfits. |
+| `in_storage` | In deposito | Off-season or archived garments stored away in physical containers, boxes, or auxiliary rooms. Displays location badge (e.g. `📦 Soffitta › Scatola Lana`). |
+| `dismissed` | Dismesso | Garments that have been donated, sold, handed down, or recycled during decluttering. Retained in historical records without cluttering active views. |
+
+### 6.2. Storage Hierarchy: Rooms & Locations
+
+Physical storage is structured hierarchically:
+- **Rooms (`Room`, `rooms`)**: Physical spaces in the home (e.g., *Camera da letto*, *Soffitta*, *Cantina*, *Ripostiglio*).
+- **Locations (`Location`, `locations`)**: Specific boxes, bags, or shelves within a room (e.g., *Scatola Lana 1*, *Scatola Sottovuoto*, *Armadio Ospiti*). Each location references its parent `Room`.
+- When assigned to a garment, the system tracks `locationId` and displays breadcrumb badges (`📦 Room › Location`).
+
+### 6.3. Operational Workflows
+
+1. **Fast Multi-Select Actions**: From the main wardrobe gallery, selecting multiple items surfaces bulk actions in the command bar:
+   - `📦 In deposito...`: Prompts for target location and moves selected items to `in_storage`.
+   - `🚪 Nell'armadio`: Restores selected items to active wardrobe (`in_wardrobe`) and clears location.
+   - `🏷️ Dismetti`: Confirms and flags selected items as `dismissed`.
+2. **Dedicated Seasonal Change Wizard (`/wardrobe/seasonal-change`)**:
+   A guided 5-step interactive workflow protected by `canDeactivateSeasonalChange` to guard against accidental loss of unsaved changes:
+   - **Step 1 (Stagioni)**: Multi-selection of outgoing seasons to pack away and incoming seasons to unpack.
+   - **Step 2 (In Deposito)**: Displays active garments matching any selected outgoing season rendered using compact mini cards (`ClothesCardComponent` variant="mini" with photo on the left, details and direct "open in new tab" button on the right, and quick actions disabled), target location selector, and optional checkbox to send items to the washing queue.
+   - **Step 3 (Nell'Armadio)**: Displays stored garments matching any selected incoming season with container origin badges and optional checkbox to send extracted garments to the ironing queue.
+   - **Step 4 (Decluttering)**: Rapid review with mini cards to mark unwanted garments as dismissed (donated, sold, or recycled).
+   - **Step 5 (Conferma)**: Visual summary cards and atomic batch execution.
+3. **Outfit Storage Warnings**: Outfits containing garments currently `in_storage` display an alert badge (e.g., `📦 1 capo in deposito: Scatola Lana`) in grid cards and detail views while still permitting composition and layout planning.
+
+---
+
+## 7. Print-Ready Vector PDF Export
+
+Dressly enables exporting a comprehensive, beautifully styled technical specification sheet for any clothing piece directly from the item detail page (`/wardrobe/:id`).
+
+### 7.1. Floating Dock Action
+The floating action dock (`aside.detail-dock`) provides a dedicated **"Esporta PDF"** button with real-time loading feedback. Clicking the action invokes `GET /api/clothes/:id/pdf` to stream a vector PDF document directly to the browser.
+
+### 7.2. Document Visual Layout
+The generated A4 PDF is produced using `PDFKit` on the backend, complemented by `Sharp` for converting uploaded photos (WebP, PNG, JPEG) into high-fidelity embedded imagery:
+- **Header Bar**: Dressly brand mark, technical sheet title, generation date, and a prominent rounded pill displaying the 3-character tag code (`[ 7KX ]`).
+- **Hero Two-Column Block**:
+  - **Left**: Primary photo framed in a bordered card container (or placeholder text if no photo is attached).
+  - **Right**: Garment title, operational status badge (`Nell'armadio`, `In Deposito: Stanza › Contenitore`, or `Dismesso`), laundry state chips, and key attributes (Size, Quantity, Brand, Category, Fit, Seasons, Temperatures, Occasions, Colors with visual hex-filled circles, Materials, and Tags).
+- **Personal Notes**: Stylized callout box for user notes.
+- **4-Panel Care & Maintenance Grid**:
+  - **Lavaggio**: Machine/hand wash mode, maximum temperature (°C or cold wash), bleach allowance, inside-out and zip closure instructions.
+  - **Asciugatura**: Tumble dryer allowance and temperature level (* / ** / ***), drying method (line dry, flat dry, in shade).
+  - **Stiratura**: Ironing mode (with or without steam, forbidden), iron heat level (110°C / 150°C / 200°C), reverse-side ironing.
+  - **Acquisto**: Purchase store, acquisition date, price formatted in Euros, and store link.
+- **Secondary Photo Gallery**: Thumbnail row displaying up to 4 additional garment attachments.
+- **Footer**: Brand credit and page pagination.
+
+---
+
+## 8. Portable ZIP Backup & Multi-Instance Disaster Recovery
+
+To guarantee long-term data sovereignty, Dressly provides a full backup export and restoration engine accessible directly from the **Gestione domini** (`DomainManagementPageComponent`) page.
+
+### 8.1. Full ZIP Archive Format
+The backup export (`GET /api/backup/export`) packages all data belonging to the authenticated user into a self-contained `.zip` archive:
+- `manifest.json`: Schema metadata, app version (`1.6.0`), export timestamp, user identifier, and statistical counts.
+- `data/reference-data.json`: All custom catalogs (brands, colors with hex codes, fits, materials, seasons, tags, temperatures, types, use cases, rooms, and storage locations).
+- `data/clothes.json`: Full inventory records with 1:1 nested instructions (`washingInstruction`, `dryingInstruction`, `ironingInstruction`, `buyDetail`), N:M relationships, and attachment metadata.
+- `data/outfits.json`: Outfit definitions with 2D canvas layouts, clothing associations, and context tags.
+- `data/laundry.json`: Active washing and ironing queues.
+- `files/clothes/{clothesId}/*`: Physical photo files and WebP thumbnail previews.
+- `files/outfits/{outfitId}/*`: Physical outfit attachments and WebP previews.
+
+### 8.2. Dual Restoration Engine (`POST /api/backup/restore`)
+Users can restore a backup ZIP onto a fresh or existing Dressly instance with a choice between two operational strategies:
+
+```mermaid
+flowchart TD
+    Zip["Uploaded Backup ZIP"] --> Modal["BackupRestoreModalComponent"]
+    Modal --> Mode{"Select Mode"}
+    
+    Mode -->|"Sostituisci tutto<br/>(Replace)"| TX1["Atomic Transaction (Replace)"]
+    TX1 --> P1["1. Purge current user data & files"]
+    P1 --> I1["2. Restore identical records & original IDs"]
+    I1 --> E1["3. Extract files directly to uploads/"]
+    E1 --> S1["4. Clear IndexedDB stores & reload catalogs"]
+
+    Mode -->|"Unisci ai dati esistenti<br/>(Merge)"| TX2["Atomic Transaction (Merge)"]
+    TX2 --> D2["1. Deduplicate reference data by name"]
+    D2 --> C2["2. Check & resolve 3-char tag code collisions"]
+    C2 --> N2["3. Generate fresh UUIDs & remap relations"]
+    N2 --> E2["4. Extract files to remapped entity folders"]
+    E2 --> S2["5. Clear IndexedDB stores & reload catalogs"]
+```
+
+1. **Sostituisci tutto (`replace`)**:
+   - Designed for disaster recovery or importing onto a fresh Dressly instance.
+   - Clears existing laundry queues, outfits, clothes, storage locations, rooms, and custom reference catalogs for the user.
+   - Restores records using original entity IDs whenever available, and extracts files directly into the destination storage tree.
+   - Protected by an explicit confirmation checkbox in the UI.
+2. **Unisci ai dati esistenti (`merge`)**:
+   - Designed for combining wardrobes or importing collections without losing current garments.
+   - Deduplicates reference catalogs: existing colors, brands, and types matching by name are reused, while new ones are created.
+   - Automatically detects and resolves 3-character tag code collisions using `generateUniqueTagCode` against the unambiguous charset (`23456789ABCDEFGHJKMNPQRSTVWXYZ`).
+   - Resolves clothes name conflicts by appending `(importato)`.
+   - Generates fresh UUIDs and re-maps relations atomically.
+
+### 8.3. Offline Synchronization Alignment
+Upon completing a restore, the frontend resets all local IndexedDB stores (`clearAllStores()`) and triggers a fresh catalog reload (`ReferenceStoreService.loadAll()`), ensuring zero stale cache or synchronization divergence.
+
+
+

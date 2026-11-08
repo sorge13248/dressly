@@ -1,0 +1,266 @@
+<div class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <!-- Modal Header -->
+  <header class="modal-header">
+    <div class="title-wrap">
+      <div class="header-icon-pill" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      </div>
+      <div>
+        <h2 id="modal-title">Backup e Ripristino Guardaroba</h2>
+        <p class="subtitle">Esporta tutti i tuoi dati in un archivio ZIP o ripristina un backup precedente.</p>
+      </div>
+    </div>
+    <button type="button" class="btn-close" (click)="close()" aria-label="Chiudi modale">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- Segmented Tabs -->
+  <nav class="tab-pill-bar" aria-label="Modalita">
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="activeTab() === 'export'"
+      (click)="setTab('export')"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      <span>Esporta Backup (.ZIP)</span>
+    </button>
+
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="activeTab() === 'restore'"
+      (click)="setTab('restore')"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+      <span>Ripristina Dati</span>
+    </button>
+  </nav>
+
+  <!-- TAB 1: EXPORT -->
+  @if (activeTab() === 'export') {
+    <div class="tab-content">
+      @if (loadingStats()) {
+        <div class="loading-state">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Calcolo dei dati del guardaroba...</span>
+        </div>
+      } @else if (stats(); as s) {
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon" aria-hidden="true">👔</span>
+            <div class="stat-info">
+              <span class="stat-val">{{ s.clothesCount }}</span>
+              <span class="stat-lbl">Capi nel Guardaroba</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-icon" aria-hidden="true">✨</span>
+            <div class="stat-info">
+              <span class="stat-val">{{ s.outfitsCount }}</span>
+              <span class="stat-lbl">Abbinamenti</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-icon" aria-hidden="true">🏷️</span>
+            <div class="stat-info">
+              <span class="stat-val">{{ s.referenceDataCount }}</span>
+              <span class="stat-lbl">Voci di Catalogo</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-icon" aria-hidden="true">📸</span>
+            <div class="stat-info">
+              <span class="stat-val">{{ s.attachmentsCount }}</span>
+              <span class="stat-lbl">Foto & Allegati ({{ formatBytes(s.totalFileSizeBytes) }})</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-callout">
+          <p>
+            <strong>Cosa conterra l'archivio ZIP?</strong><br />
+            L'intero catalogo dei tuoi capi, dettagli d'acquisto, istruzioni di cura e lavaggio, armadi e stanze di deposito, abbinamenti e tutti i file fotografici originali.
+          </p>
+        </div>
+
+        <div class="action-bar">
+          <button
+            type="button"
+            appButton
+            variant="primary"
+            size="lg"
+            class="export-btn"
+            [disabled]="downloading()"
+            [loading]="downloading()"
+            (click)="downloadBackup()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Scarica Archivio Backup (.ZIP)</span>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 2: RESTORE -->
+  @if (activeTab() === 'restore') {
+    <div class="tab-content">
+      <!-- File Selector Dropzone -->
+      <div class="file-dropzone" [class.has-file]="selectedFile() !== null">
+        <input
+          type="file"
+          id="backup-file-input"
+          class="file-input"
+          accept=".zip,application/zip"
+          (change)="onFileSelected($event)"
+          [disabled]="restoring()"
+        />
+        <label for="backup-file-input" class="dropzone-label">
+          @if (selectedFile(); as file) {
+            <div class="selected-file-info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="file-icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <div>
+                <strong>{{ file.name }}</strong>
+                <span>({{ formatBytes(file.size) }})</span>
+              </div>
+              <span class="change-file-btn">Cambia file</span>
+            </div>
+          } @else {
+            <div class="dropzone-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="upload-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <strong>Trascina qui il file .ZIP di backup oppure clicca per selezionarlo</strong>
+              <span>Supporta archivi generati da qualsiasi istanza Dressly</span>
+            </div>
+          }
+        </label>
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="mode-section">
+        <h3>Modalita di Ripristino</h3>
+
+        <div class="mode-options">
+          <label class="mode-card" [class.selected]="restoreMode() === 'replace'">
+            <div class="mode-radio-wrap">
+              <input
+                type="radio"
+                name="restoreMode"
+                value="replace"
+                [checked]="restoreMode() === 'replace'"
+                (change)="restoreMode.set('replace')"
+                [disabled]="restoring()"
+              />
+            </div>
+            <div class="mode-copy">
+              <strong>Sostituisci tutto (Ripristino completo)</strong>
+              <p>Consigliato per nuove istanze o ripristino di emergenza. Elimina tutti i capi, foto, domini e abbinamenti attuali e ricrea l'archivio identico al backup.</p>
+            </div>
+          </label>
+
+          <label class="mode-card" [class.selected]="restoreMode() === 'merge'">
+            <div class="mode-radio-wrap">
+              <input
+                type="radio"
+                name="restoreMode"
+                value="merge"
+                [checked]="restoreMode() === 'merge'"
+                (change)="restoreMode.set('merge')"
+                [disabled]="restoring()"
+              />
+            </div>
+            <div class="mode-copy">
+              <strong>Unisci ai dati esistenti (Merge)</strong>
+              <p>Consigliato per non perdere i dati attuali. Aggiunge i capi e abbinamenti del backup senza cancellare nulla, deduplica le categorie e risolve automaticamente i codici tag duplicati.</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Warning if Replace mode -->
+      @if (restoreMode() === 'replace') {
+        <div class="warning-callout">
+          <div class="warning-title">⚠️ Attenzione: Sostituzione irreversibile</div>
+          <p>Tutti i capi, gli abbinamenti e le categorie correnti del tuo account verranno eliminati e sostituiti dai dati presenti nel file ZIP.</p>
+          <label class="confirm-checkbox-label">
+            <input
+              type="checkbox"
+              [checked]="confirmReplace()"
+              (change)="confirmReplace.set(!confirmReplace())"
+              [disabled]="restoring()"
+            />
+            <span>Confermo di voler procedere con la sostituzione completa dei dati</span>
+          </label>
+        </div>
+      }
+
+      <!-- Result Feedback -->
+      @if (restoreResult(); as res) {
+        <div class="success-callout">
+          <strong>✓ Ripristino completato con successo!</strong>
+          <p>
+            Importati {{ res.stats.clothesCount }} capi, {{ res.stats.outfitsCount }} abbinamenti e {{ res.stats.filesCount }} file fotografici.
+          </p>
+        </div>
+      }
+
+      <!-- Action buttons -->
+      <div class="action-bar">
+        <button
+          type="button"
+          appButton
+          variant="secondary"
+          size="md"
+          (click)="close(restoreResult() !== null)"
+          [disabled]="restoring()"
+        >
+          {{ restoreResult() ? 'Chiudi' : 'Annulla' }}
+        </button>
+
+        @if (!restoreResult()) {
+          <button
+            type="button"
+            appButton
+            [variant]="restoreMode() === 'replace' ? 'danger' : 'primary'"
+            size="md"
+            [disabled]="!canRestore()"
+            [loading]="restoring()"
+            (click)="startRestore()"
+          >
+            <span>{{ restoreMode() === 'replace' ? 'Sostituisci e Ripristina' : 'Unisci e Ripristina' }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

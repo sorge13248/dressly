@@ -40,6 +40,36 @@
   background: linear-gradient(180deg, #5f97cf 0%, #3f7fbe 45%, #316ca9 100%);
 }
 
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .backup-titlebar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    padding: 3px 10px;
+
+    .btn-icon {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.backup-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  .btn-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 .title-wrap {
   display: inline-flex;
   align-items: center;
@@ -273,6 +303,18 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.location-room-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e3edf7;
+  color: #2b5580;
+  margin-left: 6px;
 }
 
 .drag-handle {

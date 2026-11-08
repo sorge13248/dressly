@@ -8,17 +8,19 @@
     "start:dev": "nest start --watch",
     "start": "node dist/main.js",
     "seed:run": "tsx src/database/seed.ts",
-    "lint": "eslint \"src/**/*.ts\"",
-    "test": "tsx --tsconfig tsconfig.json src/services/sync.service.spec.ts && tsx --tsconfig tsconfig.json src/services/outfits.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-tag-code.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-duplicate.spec.ts && tsx --tsconfig tsconfig.json src/services/storage-cleanup.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-sorting.spec.ts"
+    "lint": "eslint --no-error-on-unmatched-pattern \"src/**/*.ts\"",
+    "test": "tsx --tsconfig tsconfig.json src/services/sync.service.spec.ts && tsx --tsconfig tsconfig.json src/services/outfits.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-tag-code.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-duplicate.spec.ts && tsx --tsconfig tsconfig.json src/services/storage-cleanup.service.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-sorting.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-storage-location.spec.ts && tsx --tsconfig tsconfig.json src/services/clothes-pdf.spec.ts && tsx --tsconfig tsconfig.json src/services/backup.service.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.4.0",
     "@nestjs/core": "^12.4.0",
     "@nestjs/platform-express": "^12.4.0",
     "@nestjs/typeorm": "^12.0.3",
+    "adm-zip": "^0.6.1",
     "better-sqlite3": "^13.0.3",
     "dotenv": "^18.0.9",
     "jose": "^6.2.15",
+    "pdfkit": "^0.20.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.35.5",
@@ -27,7 +29,9 @@
   "devDependencies": {
     "@nestjs/cli": "^12.0.12",
     "@nestjs/schematics": "^12.0.13",
+    "@types/adm-zip": "^0.5.8",
     "@types/node": "^26.6.6",
+    "@types/pdfkit": "^0.17.7",
     "eslint": "^10.14.0",
     "tsx": "^4.23.15",
     "typeorm-extension": "^4.3.0",

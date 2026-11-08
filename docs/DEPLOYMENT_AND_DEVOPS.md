@@ -89,7 +89,9 @@ stderr_logfile_maxbytes=0
 
 The Nginx configuration (`deploy/nginx.unified.conf`) handles HTTP requests on port `8080`:
 
-- **Upload Ceiling**: `client_max_body_size 10m;` allows uploads of high-resolution smartphone camera photos without 413 Payload Too Large errors.
+- **Upload Ceilings**:
+  - `client_max_body_size 10m;` applied globally for standard photo attachments and wardrobe media uploads.
+  - `client_max_body_size 500m;` dedicated to `location /api/backup/restore` to accommodate large multi-gigabyte disaster recovery archives containing full photographic wardrobes.
 - **Health Check Passthrough**: Directs `GET /health` to NestJS `http://127.0.0.1:3000/health`.
 - **API Passthrough**: Proxies `/api/` to `http://127.0.0.1:3000/` preserving `Host`, `X-Real-IP`, and `X-Forwarded-*` headers.
 - **PWA Integrity**: Disables caching for `sw.js` and `manifest.webmanifest`.

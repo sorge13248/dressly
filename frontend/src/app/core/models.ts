@@ -1,4 +1,17 @@
-export type ReferenceKind = 'colors' | 'brands' | 'seasons' | 'temperatures' | 'use-cases' | 'fits' | 'materials' | 'types' | 'tags';
+export type ReferenceKind =
+  | 'colors'
+  | 'brands'
+  | 'seasons'
+  | 'temperatures'
+  | 'use-cases'
+  | 'fits'
+  | 'materials'
+  | 'types'
+  | 'tags'
+  | 'rooms'
+  | 'locations';
+
+export type ClothesStatus = 'in_wardrobe' | 'in_storage' | 'dismissed';
 
 export interface OidcConfig {
   issuerUrl: string;
@@ -50,6 +63,13 @@ export interface MaterialItem extends BaseReferenceItem {}
 export interface TypeItem extends BaseReferenceItem {}
 
 export interface TagItem extends BaseReferenceItem {}
+
+export interface RoomItem extends BaseReferenceItem {}
+
+export interface LocationItem extends BaseReferenceItem {
+  roomId: string | null;
+  room?: RoomItem | null;
+}
 
 export interface AttachmentItem {
   id: string;
@@ -135,6 +155,9 @@ export interface ClothesItem {
   name: string | null;
   size: string | null;
   notes: string | null;
+  status?: ClothesStatus;
+  locationId?: string | null;
+  location?: LocationItem | null;
   brand?: BrandItem | null;
   fit?: FitItem | null;
   type?: TypeItem | null;
@@ -208,6 +231,9 @@ export interface ClothesFilters {
   use_case_ids: string[];
   type_ids: string[];
   tag_ids: string[];
+  room_ids?: string[];
+  location_ids?: string[];
+  status?: ClothesStatus | 'all';
   sort?: ClothesSortKey;
   page: number;
   per_page: number;
@@ -229,6 +255,8 @@ export interface ClothesWizardFormValue {
   brand_id: string;
   type_id: string;
   notes: string;
+  status: ClothesStatus;
+  location_id: string;
   is_cumulative: boolean;
   quantity: number;
   color_ids: string[];
@@ -445,6 +473,9 @@ export interface OutfitClothesSummary {
   code?: string | null;
   name: string | null;
   fullTitle?: string | null;
+  status?: ClothesStatus;
+  locationId?: string | null;
+  location?: LocationItem | null;
   brand?: BrandItem | null;
   type?: TypeItem | null;
   colors?: ColorItem[];
@@ -481,5 +512,25 @@ export interface OutfitDetailResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface BackupStatsDto {
+  clothesCount: number;
+  outfitsCount: number;
+  referenceDataCount: number;
+  attachmentsCount: number;
+  totalFileSizeBytes: number;
+}
+
+export interface RestoreResultDto {
+  success: boolean;
+  mode: 'replace' | 'merge';
+  stats: {
+    clothesCount: number;
+    outfitsCount: number;
+    referenceDataCount: number;
+    filesCount: number;
+  };
+}
+
 
 

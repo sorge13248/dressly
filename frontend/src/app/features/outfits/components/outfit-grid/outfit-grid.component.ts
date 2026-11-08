@@ -84,6 +84,22 @@ export class OutfitGridComponent implements OnInit {
     return `/api/clothes/${clothId}/attachments/${attachment.id}/file${variant}`;
   }
 
+  getStorageWarning(outfit: OutfitItem): string | null {
+    if (!outfit.clothes || outfit.clothes.length === 0) {
+      return null;
+    }
+    const inStorage = outfit.clothes.filter((c) => c.status === 'in_storage');
+    if (inStorage.length === 0) {
+      return null;
+    }
+    if (inStorage.length === 1) {
+      const cloth = inStorage[0];
+      const loc = cloth.location?.name ? `: ${cloth.location.name}` : '';
+      return `1 capo in deposito${loc}`;
+    }
+    return `${inStorage.length} capi in deposito`;
+  }
+
   async openCreateOutfitModal() {
     const dialogRef = this.dialog.open<string | null>(CreateNameModalComponent, {
       data: {

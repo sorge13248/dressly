@@ -4,6 +4,25 @@
       <div class="title-wrap">
         <h1>Gestione domini</h1>
       </div>
+      <div class="titlebar-actions">
+        <button
+          type="button"
+          appButton
+          variant="secondary"
+          size="sm"
+          class="backup-titlebar-btn"
+          (click)="openBackupRestoreModal()"
+          [disabled]="busy()"
+          title="Backup completo e ripristino dati utente"
+        >
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Backup & Ripristino</span>
+        </button>
+      </div>
     </header>
 
     <section class="hero-row window-card">
@@ -33,6 +52,14 @@
     <section class="window-card editor-card">
       <div class="editor-actions">
         <button type="button" appButton variant="primary" class="primary" (click)="openCreateModal()" [disabled]="busy()">Nuovo valore</button>
+        <button type="button" appButton variant="secondary" class="backup-action-btn" (click)="openBackupRestoreModal()" [disabled]="busy()" title="Backup completo e ripristino dati">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Backup & Ripristino</span>
+        </button>
         <span class="message">Crea e modifica un valore di dominio</span>
       </div>
     </section>
@@ -70,6 +97,9 @@
                 <span class="row-emoji" aria-hidden="true">{{ rowEmoji(row) }}</span>
               }
               {{ row.name }}
+              @if (getRoomName(row); as roomName) {
+                <span class="location-room-badge">{{ roomName }}</span>
+              }
             </strong>
             @if (showSortOrder()) {
             <span>{{ row.sortOrder }}</span>

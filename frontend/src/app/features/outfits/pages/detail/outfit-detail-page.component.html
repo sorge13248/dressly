@@ -19,6 +19,13 @@
         <button type="button" class="retry-btn" (click)="loadOutfit()">Riprova</button>
       </div>
     } @else if (outfit(); as o) {
+      @if (storageWarning(); as warning) {
+        <div class="storage-notice-banner" role="status">
+          <span class="notice-icon">📦</span>
+          <span class="notice-text">{{ warning }}</span>
+        </div>
+      }
+
       <!-- Riga Superiore: View mode (2 card) vs Edit mode (1 form con 2 card) -->
       @if (isEditingDetails()) {
         <!-- Form unico di modifica dettagli abbinamento -->

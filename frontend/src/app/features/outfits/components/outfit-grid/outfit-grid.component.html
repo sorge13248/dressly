@@ -55,9 +55,16 @@
             <div class="card-header">
               <div class="header-text">
                 <h3 class="outfit-title" [title]="outfit.name">{{ outfit.name }}</h3>
-                <span class="clothes-count-badge">
-                  {{ outfit.clothesCount }} {{ outfit.clothesCount === 1 ? 'capo' : 'capi' }}
-                </span>
+                <div class="badges-row">
+                  <span class="clothes-count-badge">
+                    {{ outfit.clothesCount }} {{ outfit.clothesCount === 1 ? 'capo' : 'capi' }}
+                  </span>
+                  @if (getStorageWarning(outfit); as warning) {
+                    <span class="storage-warning-badge" [title]="warning">
+                      📦 {{ warning }}
+                    </span>
+                  }
+                </div>
               </div>
             </div>
 
@@ -172,9 +179,16 @@
             <!-- Didascalia sotto l'icona stile Windows -->
             <div class="icon-caption">
               <span class="outfit-title" [title]="outfit.name">{{ outfit.name }}</span>
-              <span class="clothes-count-badge">
-                {{ outfit.clothesCount }} {{ outfit.clothesCount === 1 ? 'capo' : 'capi' }}
-              </span>
+              <div class="badges-row">
+                <span class="clothes-count-badge">
+                  {{ outfit.clothesCount }} {{ outfit.clothesCount === 1 ? 'capo' : 'capi' }}
+                </span>
+                @if (getStorageWarning(outfit); as warning) {
+                  <span class="storage-warning-badge" [title]="warning">
+                    📦 {{ warning }}
+                  </span>
+                }
+              </div>
             </div>
           </div>
         }

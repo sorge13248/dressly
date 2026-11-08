@@ -26,6 +26,9 @@ erDiagram
     User ||--o{ Temperature : configures
     User ||--o{ Type : configures
     User ||--o{ UseCase : configures
+    User ||--o{ Room : configures
+
+    Room ||--o{ Location : contains
 
     Clothes ||--o{ Attachment : has
     Clothes ||--o| WashingInstruction : specifies
@@ -38,6 +41,7 @@ erDiagram
     Clothes }o--o| Brand : "brandId (SET NULL)"
     Clothes }o--o| Fit : "fitId (SET NULL)"
     Clothes }o--o| Type : "typeId (SET NULL)"
+    Clothes }o--o| Location : "locationId (SET NULL)"
 
     Clothes }o--o{ Color : "clothes_colors"
     Clothes }o--o{ Material : "clothes_materials"
@@ -88,6 +92,8 @@ The primary inventory item in the user's wardrobe.
 | `brandId` | `varchar` | Nullable, FK `Brand` (`SET NULL`) | Reference to Brand |
 | `fitId` | `varchar` | Nullable, FK `Fit` (`SET NULL`) | Reference to Fit |
 | `typeId` | `varchar` | Nullable, FK `Type` (`SET NULL`) | Reference to Clothing Type |
+| `locationId` | `varchar` | Nullable, FK `Location` (`SET NULL`) | Reference to Storage Location / Box |
+| `status` | `varchar` | Default: `'in_wardrobe'`, Not Null | Status: `'in_wardrobe'`, `'in_storage'`, or `'dismissed'` |
 | `createdAt` | `datetime` | Not Null, Auto-generated | Creation timestamp |
 | `updatedAt` | `datetime` | Not Null, Auto-generated | Last modification timestamp |
 
@@ -237,6 +243,8 @@ Composite constraint: `@Unique(['userId', 'name'])` on every catalog table.
 | `materials` (`Material`) | — | Fabric composition | Cotton, Wool, Linen, Silk, Polyester, Denim, Leather |
 | `types` (`Type`) | — | Garment category | T-Shirt, Shirt, Pants, Jeans, Sweater, Jacket, Coat, Shoes |
 | `tags` (`Tag`) | — | Custom categorization | Fully custom per user (not pre-seeded) |
+| `rooms` (`Room`) | — | Physical storage rooms (e.g. "Soffitta", "Camera") | User-defined storage rooms |
+| `locations` (`Location`) | `roomId: varchar` (FK `Room`) | Storage container/spot inside a room | User-defined positions/containers |
 
 ---
 
@@ -269,3 +277,59 @@ TypeORM automatically manages junction tables connecting `Clothes` and `Outfit` 
 - `outfit_seasons` (`outfitId`, `seasonId`)
 - `outfit_temperatures` (`outfitId`, `temperatureId`)
 - `outfit_use_cases` (`outfitId`, `useCaseId`)
+
+---
+
+## 8. Backup Archive Data Structure & Manifest Format
+
+The Dressly disaster recovery and data portability engine exports user data as a compressed `.zip` archive containing a structured JSON manifest and all physical media files.
+
+### 8.1. Archive File System Layout
+
+```text
+dressly-backup-[userId]-[timestamp].zip
+├── manifest.json
+└── media/
+    ├── clothes/
+    │   └── [originalUserId]/
+    │       └── [clothesId]/
+    │           ├── [filename].webp
+    │           └── [thumbFilename].webp
+    └── outfits/
+        └── [originalUserId]/
+            └── [outfitId]/
+                └── [filename].webp
+```
+
+### 8.2. Manifest Schema (`manifest.json`)
+
+The manifest contains metadata, item counts, and full entity graphs:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `version` | `number` | Schema version (currently `1`) |
+| `exportedAt` | `string` (ISO 8601) | Timestamp of archive creation |
+| `user` | `object` | Snapshot of user profile (`id`, `subject`, `displayName`, `email`) |
+| `stats` | `object` | Item and media counts for quick verification |
+| `data.referenceCatalogs` | `object` | Catalogs: `colors`, `brands`, `seasons`, `temperatures`, `useCases`, `fits`, `materials`, `types`, `rooms`, `locations`, `tags` |
+| `data.clothes` | `array` | Complete `Clothes` entities including one-to-one instructions (`washingInstruction`, `dryingInstruction`, `ironingInstruction`, `buyDetail`), reference relations, and `attachments` |
+| `data.outfits` | `array` | Complete `Outfit` entities including 2D canvas layout JSON, item references, and attachments |
+| `data.laundry` | `object` | Operational laundry state: `{ washingItems: WashingItem[], ironingItems: IroningItem[] }` |
+
+### 8.3. Restoration Mapping & Conflict Resolution
+
+Restoration is performed within a TypeORM database transaction (`dataSource.transaction`):
+
+1. **`replace` Mode (Disaster Recovery)**:
+   - Purges all existing data for the authenticated user (`clothes`, `outfits`, `washing_items`, `ironing_items`, and reference catalogs).
+   - Wipes user uploads directory on disk.
+   - Restores catalog entities, clothes, outfits, and laundry queues from the archive.
+   - When restoring onto a different user ID, maps entity IDs to new UUIDs while preserving all intra-graph foreign key relationships and copies media files to the new user's upload directory.
+
+2. **`merge` Mode (Additive Import)**:
+   - **Reference Catalogs**: Deduplicates against existing user catalogs by case-insensitive `name`. Existing items are reused; new items are inserted with freshly generated UUIDs.
+   - **Tag Codes**: Checks collision against existing clothes. If a 3-character tag code already exists in the target account, a new unambiguous code is generated using `generateUniqueTagCode(usedCodes)`.
+   - **Clothing Names**: If a clothing item name already exists, the imported item is suffixed with `(importato)` to satisfy the `@Unique(['userId', 'name'])` database constraint.
+   - **Media Attachments**: Physical files are extracted into the user's directory structure with new attachment UUIDs.
+   - **Outfits & Laundry**: Re-links outfits and queued items to the remapped clothing IDs.
+

@@ -20,6 +20,8 @@ import { SyncTombstone } from './entities/sync-tombstone.entity';
 import { WashingItem } from './entities/washing-item.entity';
 import { IroningItem } from './entities/ironing-item.entity';
 import { Outfit } from './entities/outfit.entity';
+import { Room } from './entities/room.entity';
+import { Location } from './entities/location.entity';
 import { AuthController } from './auth.controller';
 import { BearerJwtGuard } from './common/auth/bearer-jwt.guard';
 import { CurrentUserController } from './controllers/current-user.controller';
@@ -29,12 +31,14 @@ import { SyncController } from './controllers/sync.controller';
 import { HealthController } from './health.controller';
 import { PublicController } from './public.controller';
 import { ReferenceDataController } from './controllers/reference-data.controller';
+import { BackupController } from './controllers/backup.controller';
 import { ClothesService } from './services/clothes.service';
 import { OutfitsService } from './services/outfits.service';
 import { ReferenceDataService } from './services/reference-data.service';
 import { StorageCleanupService } from './services/storage-cleanup.service';
 import { SyncService } from './services/sync.service';
 import { UsersService } from './services/users.service';
+import { BackupService } from './services/backup.service';
 
 @Module({
   imports: [
@@ -61,6 +65,8 @@ import { UsersService } from './services/users.service';
         WashingItem,
         IroningItem,
         Outfit,
+        Room,
+        Location,
         SyncTombstone,
       ],
       autoLoadEntities: process.env.DB_AUTO_LOAD_ENTITIES !== 'false',
@@ -77,7 +83,17 @@ import { UsersService } from './services/users.service';
     ClothesController,
     OutfitsController,
     SyncController,
+    BackupController,
   ],
-  providers: [BearerJwtGuard, UsersService, ReferenceDataService, StorageCleanupService, ClothesService, OutfitsService, SyncService],
+  providers: [
+    BearerJwtGuard,
+    UsersService,
+    ReferenceDataService,
+    StorageCleanupService,
+    ClothesService,
+    OutfitsService,
+    SyncService,
+    BackupService,
+  ],
 })
 export class AppModule {}
