@@ -18,8 +18,6 @@ The project is structured as a lightweight npm monorepo with an **Angular 22** f
   <img src="docs/assets/screenshot-wardrobe.webp" alt="Dressly Wardrobe Interface" width="100%" />
 </p>
 
----
-
 ## 🌟 Why Dressly?
 
 Traditional wardrobe apps often suffer from invasive cloud tracking, cluttered interfaces, lack of offline reliability, or inability to handle real-world physical laundry workflows. Dressly was engineered with clear priorities:

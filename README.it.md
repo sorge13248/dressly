@@ -18,8 +18,6 @@ Il progetto è strutturato come un monorepo npm leggero con frontend in **Angula
   <img src="docs/assets/screenshot-wardrobe.webp" alt="Interfaccia Guardaroba Dressly" width="100%" />
 </p>
 
----
-
 ## 🌟 Perché esiste Dressly?
 
 Le tipiche applicazioni per la gestione del guardaroba presentano spesso tracciamento cloud invasivo, interfacce sovraccariche, assenza di supporto offline e incapacità di gestire il reale flusso di lavaggio dei capi. Dressly nasce con obiettivi precisi:
