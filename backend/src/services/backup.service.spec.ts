@@ -165,7 +165,14 @@ async function runBackupTests() {
     assert.ok(testZip.getEntry('data/outfits.json'));
     assert.ok(testZip.getEntry('data/laundry.json'));
     assert.ok(testZip.getEntry(`files/clothes/${cloth1.id}/${photoFile}`));
-    console.log(`✓ Test 2 passed! Generated ZIP size: ${exportResult.buffer.length} bytes`);
+
+    // Assert that NO preview files are included in the backup ZIP
+    const zipEntries = testZip.getEntries().map((e) => e.entryName);
+    assert.ok(
+      !zipEntries.some((name) => name.includes('.preview.webp')),
+      'Backup ZIP must NOT contain any preview files',
+    );
+    console.log(`✓ Test 2 passed! Generated ZIP size: ${exportResult.buffer.length} bytes (previews excluded)`);
 
     // Test 3: restoreBackup in REPLACE mode on User B
     console.log('Test 3: restoreBackup in REPLACE mode on user B');
@@ -200,7 +207,19 @@ async function runBackupTests() {
     const restoredFile = path.join(testUploadsDir, 'clothes', userB.id, userBClothes[0].id, photoFile);
     const restoredFileExists = await fs.stat(restoredFile).then(() => true).catch(() => false);
     assert.strictEqual(restoredFileExists, true, 'File must exist on disk for user B');
-    console.log('✓ Test 3 passed!');
+
+    // Verify preview file was NOT in the zip and was not written to disk during restore
+    const userBAttachments = await dataSource.getRepository(Attachment).find({ where: { clothesId: userBClothes[0].id } });
+    assert.strictEqual(userBAttachments.length, 1);
+    const previewFilePath = path.join(testUploadsDir, 'clothes', userB.id, userBClothes[0].id, `${userBAttachments[0].id}.preview.webp`);
+    assert.strictEqual(await fs.stat(previewFilePath).then(() => true).catch(() => false), false, 'Preview should not exist before on-demand request');
+
+    // Verify on-demand dynamic preview generation in clothesService
+    const previewResult = await clothesService.getAttachmentFile(userB, userBClothes[0].id, userBAttachments[0].id, 'preview');
+    assert.strictEqual(previewResult.mimeType, 'image/webp');
+    assert.ok(previewResult.content.length > 0);
+    assert.strictEqual(await fs.stat(previewFilePath).then(() => true).catch(() => false), true, 'Preview must be generated on disk on demand');
+    console.log('✓ Test 3 passed! On-demand preview verified.');
 
     // Test 4: restoreBackup in MERGE mode on User B
     console.log('Test 4: restoreBackup in MERGE mode on user B');
@@ -229,6 +248,49 @@ async function runBackupTests() {
     }
     assert.strictEqual(errCaught, true);
     console.log('✓ Test 5 passed!');
+
+    // Test 6: restoreBackup using file path on disk (diskStorage streaming)
+    console.log('Test 6: restoreBackup using file path on disk (Multer diskStorage)');
+    const diskZipPath = path.join(testUploadsDir, 'temp-restore-test.zip');
+    await fs.writeFile(diskZipPath, exportResult.buffer);
+    const diskRestoreResult = await backupService.restoreBackup(userB, diskZipPath, 'replace');
+    assert.strictEqual(diskRestoreResult.success, true);
+    assert.strictEqual(diskRestoreResult.stats.clothesCount, 1);
+    await fs.unlink(diskZipPath).catch(() => {});
+    console.log('✓ Test 6 passed!');
+
+    // Test 7: SafeBackupDiskStorage deletes partial file on client abort
+    console.log('Test 7: SafeBackupDiskStorage cleans up immediately if client aborts');
+    const { SafeBackupDiskStorage } = await import('../controllers/backup.controller');
+    const storageEngine = new SafeBackupDiskStorage(() => testUploadsDir);
+    const { EventEmitter } = await import('node:events');
+    const { Readable } = await import('node:stream');
+
+    const fakeReq = new EventEmitter() as any;
+    fakeReq.complete = false;
+
+    const brokenStream = new Readable({
+      read() {
+        this.push(Buffer.from('partial zip data'));
+        process.nextTick(() => {
+          fakeReq.emit('close');
+        });
+      },
+    });
+
+    await new Promise<void>((resolve) => {
+      storageEngine._handleFile(
+        fakeReq,
+        { stream: brokenStream, originalname: 'broken.zip' } as any,
+        () => {},
+      );
+      setTimeout(resolve, 80);
+    });
+
+    const remainingFiles = await fs.readdir(testUploadsDir);
+    const orphanBroken = remainingFiles.filter((f) => f.startsWith('dressly-restore-'));
+    assert.strictEqual(orphanBroken.length, 0, 'Partial file must be unlinked when request closes prematurely');
+    console.log('✓ Test 7 passed!');
 
     console.log('🎉 ALL BACKUP & RESTORE INTEGRATION TESTS PASSED! 🎉');
   } finally {

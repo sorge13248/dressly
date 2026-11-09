@@ -89,9 +89,9 @@ stderr_logfile_maxbytes=0
 
 The Nginx configuration (`deploy/nginx.unified.conf`) handles HTTP requests on port `8080`:
 
-- **Upload Ceilings**:
+- **Upload Ceilings & Timeouts**:
   - `client_max_body_size 10m;` applied globally for standard photo attachments and wardrobe media uploads.
-  - `client_max_body_size 500m;` dedicated to `location /api/backup/restore` to accommodate large multi-gigabyte disaster recovery archives containing full photographic wardrobes.
+  - `client_max_body_size 2g;` and `proxy_read_timeout 600s;` dedicated to `location /api/backup/` to accommodate large multi-gigabyte disaster recovery archives containing full photographic wardrobes and prevent timeouts during streaming export or restore operations.
 - **Health Check Passthrough**: Directs `GET /health` to NestJS `http://127.0.0.1:3000/health`.
 - **API Passthrough**: Proxies `/api/` to `http://127.0.0.1:3000/` preserving `Host`, `X-Real-IP`, and `X-Forwarded-*` headers.
 - **PWA Integrity**: Disables caching for `sw.js` and `manifest.webmanifest`.

@@ -35,6 +35,8 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 8. **Mandatory In-Place Documentation Synchronization (No Changelogs)**:
    - Any modification to software capabilities, models, endpoints, configuration, or architecture MUST be immediately updated across `README.md`, `README.it.md`, and affected files in `docs/`.
    - Never append updates as a "changelog", "recent changes", or "history" section. Update the actual descriptions, tables, and specifications in place so documentation remains the single current source of truth. Refer to [AGENTS.md](../AGENTS.md) for full instructions.
+9. **Re-use code**:
+   - Any modification to the software code **MUST** take into account avoiding code duplication, by re-using and adapting existing code, implementing sharable components, helper functions and classes
 
 ---
 

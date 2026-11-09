@@ -282,7 +282,7 @@ TypeORM automatically manages junction tables connecting `Clothes` and `Outfit` 
 
 ## 8. Backup Archive Data Structure & Manifest Format
 
-The Dressly disaster recovery and data portability engine exports user data as a compressed `.zip` archive containing a structured JSON manifest and all physical media files.
+The Dressly disaster recovery and data portability engine exports user data as a compressed `.zip` archive containing a structured JSON manifest and original physical media files. Image previews (`*.preview.webp`) are intentionally excluded from the archive to minimize size and transfer latency; the backend regenerates them dynamically on demand when requested.
 
 ### 8.1. Archive File System Layout
 
@@ -293,8 +293,7 @@ dressly-backup-[userId]-[timestamp].zip
     ├── clothes/
     │   └── [originalUserId]/
     │       └── [clothesId]/
-    │           ├── [filename].webp
-    │           └── [thumbFilename].webp
+    │           └── [filename].webp
     └── outfits/
         └── [originalUserId]/
             └── [outfitId]/

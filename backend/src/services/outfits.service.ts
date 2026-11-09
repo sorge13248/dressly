@@ -6,6 +6,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import sharp from 'sharp';
 import { AuthUser } from '../common/auth/auth.types';
+import { createImagePreview, resolveAttachmentFile } from '../common/utils/attachment-preview.util';
 import { Clothes } from '../entities/clothes.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { Attachment } from '../entities/attachment.entity';
@@ -48,14 +49,6 @@ export class OutfitsService {
 
   private resolveAttachmentAbsolutePath(relativePath: string): string {
     return path.resolve(this.getUploadsRootDir(), relativePath);
-  }
-
-  private async createPreview(buffer: Buffer): Promise<Buffer> {
-    return sharp(buffer)
-      .rotate()
-      .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer();
   }
 
   private normalizeAttachmentOriginalName(value: string | null | undefined): string | null {
@@ -489,7 +482,7 @@ export class OutfitsService {
     if (file.mimetype.startsWith('image/')) {
       const previewFileName = `${id}.preview.webp`;
       const absolutePreviewPath = path.join(uploadsDir, previewFileName);
-      const previewBuffer = await this.createPreview(file.buffer);
+      const previewBuffer = await createImagePreview(file.buffer);
       await fs.writeFile(absolutePreviewPath, previewBuffer);
       previewPath = path.posix.join('outfits', user.id, outfit.id, previewFileName);
     }
@@ -557,25 +550,15 @@ export class OutfitsService {
     });
     if (!attachment) throw new NotFoundException();
 
-    let targetPath = attachment.path;
-    let mimeType = attachment.mimeType;
-
-    if (variant === 'preview' && attachment.previewPath) {
-      targetPath = attachment.previewPath;
-      mimeType = 'image/webp';
-    }
-
-    const absolutePath = this.resolveAttachmentAbsolutePath(targetPath);
-    try {
-      const content = await fs.readFile(absolutePath);
-      return {
-        content,
-        fileName: attachment.originalName ?? attachment.fileName,
-        mimeType,
-      };
-    } catch {
-      throw new NotFoundException('File non trovato');
-    }
+    return resolveAttachmentFile({
+      attachment,
+      variant,
+      resolveAbsolutePath: (rel) => this.resolveAttachmentAbsolutePath(rel),
+      onPreviewPersisted: async (previewRelPath) => {
+        await repository.update(attachment.id, { previewPath: previewRelPath });
+        attachment.previewPath = previewRelPath;
+      },
+    });
   }
 
   async reorderAttachments(user: AuthUser, outfitId: string, attachmentIds: unknown) {

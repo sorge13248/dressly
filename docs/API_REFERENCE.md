@@ -460,7 +460,7 @@ Restores a previously exported Dressly backup ZIP archive with support for full 
     - `replace`: Atomically purges all existing user data and files, then populates the database identically from the backup.
     - `merge`: Preserves existing data, deduplicates reference catalogs by name, generates new clothes/outfit UUIDs, and resolves 3-character tag code collisions automatically with unique charset codes.
 - **Form Fields**:
-  - `file`: The `.zip` backup archive (Up to 500MB).
+  - `file`: The `.zip` backup archive (Up to 2GB, streamed directly to temporary disk storage).
 - **Transaction Safety**: All database mutations and file extractions are executed inside an atomic transaction. Any error rolls back changes immediately.
 - **Response `200 OK`**:
   ```json

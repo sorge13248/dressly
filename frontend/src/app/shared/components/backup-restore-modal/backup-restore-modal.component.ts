@@ -89,12 +89,18 @@ export class BackupRestoreModalComponent implements OnInit {
     }
   }
 
+  readonly MAX_RESTORE_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB ceiling
+
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       if (!file.name.toLowerCase().endsWith('.zip')) {
         this.toast.error('Seleziona un file archivio valido con estensione .zip');
+        return;
+      }
+      if (file.size > this.MAX_RESTORE_SIZE_BYTES) {
+        this.toast.error('Il file selezionato supera la dimensione massima consentita di 2 GB');
         return;
       }
       this.selectedFile.set(file);
@@ -131,7 +137,13 @@ export class BackupRestoreModalComponent implements OnInit {
       // Refresh stats
       await this.fetchStats();
     } catch (err: any) {
-      const msg = err?.error?.message || 'Errore durante il ripristino del backup';
+      let msg = err?.error?.message;
+      if (!msg && err?.status === 413) {
+        msg = 'Il file caricato supera la dimensione massima consentita (2 GB).';
+      } else if (msg === 'File too large') {
+        msg = 'Il file di backup supera la dimensione massima consentita di 2 GB.';
+      }
+      msg = msg || 'Errore durante il ripristino del backup';
       this.toast.error(msg);
     } finally {
       this.restoring.set(false);

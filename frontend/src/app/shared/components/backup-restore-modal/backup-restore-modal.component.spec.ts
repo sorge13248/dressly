@@ -99,6 +99,18 @@ describe('BackupRestoreModalComponent', () => {
     expect(comp.canRestore()).toBe(true);
   });
 
+  it('should reject file selection when file exceeds 2GB ceiling', () => {
+    const fixture = TestBed.createComponent(BackupRestoreModalComponent);
+    const comp = fixture.componentInstance;
+
+    const oversizedFile = { name: 'huge-backup.zip', size: 3 * 1024 * 1024 * 1024 } as File;
+    const event = { target: { files: [oversizedFile] } } as unknown as Event;
+
+    comp.onFileSelected(event);
+    expect(toastMock.error).toHaveBeenCalledWith('Il file selezionato supera la dimensione massima consentita di 2 GB');
+    expect(comp.selectedFile()).toBeNull();
+  });
+
   it('should execute restore and reset offline stores upon success', async () => {
     const fixture = TestBed.createComponent(BackupRestoreModalComponent);
     const comp = fixture.componentInstance;

@@ -328,23 +328,6 @@ export class BackupService {
           this.logger.warn(`Could not read attachment file ${att.path} for backup`);
         }
       }
-
-      // Add preview file if exists
-      if (att.previewPath) {
-        try {
-          const absPreview = this.resolveAttachmentAbsolutePath(att.previewPath);
-          const previewBuf = await fs.readFile(absPreview);
-          const previewFileName = path.basename(att.previewPath);
-          const zipEntryPath = att.clothesId
-            ? `files/clothes/${att.clothesId}/${previewFileName}`
-            : `files/outfits/${att.outfitId}/${previewFileName}`;
-          zip.addFile(zipEntryPath, previewBuf);
-          filesCount++;
-          totalFileSizeBytes += previewBuf.length;
-        } catch {
-          // Preview files are non-critical
-        }
-      }
     }
 
     const stats: BackupStatsDto = {
@@ -389,12 +372,12 @@ export class BackupService {
     return { buffer, filename };
   }
 
-  async restoreBackup(user: AuthUser, zipBuffer: Buffer, mode: 'replace' | 'merge'): Promise<RestoreResultDto> {
+  async restoreBackup(user: AuthUser, zipSource: Buffer | string, mode: 'replace' | 'merge'): Promise<RestoreResultDto> {
     this.logger.log(`Starting backup restore for user ${user.id} in mode: ${mode}`);
 
     let zip: AdmZip;
     try {
-      zip = new AdmZip(zipBuffer);
+      zip = new AdmZip(zipSource);
     } catch (err) {
       throw new BadRequestException(`Archivio ZIP non valido o corrotto: ${String(err)}`);
     }
@@ -846,7 +829,7 @@ export class BackupService {
               restoredFilesCount++;
             }
 
-            let newPreviewRelPath: string | null = null;
+            let newPreviewRelPath = path.posix.join('clothes', user.id, newClothesId, `${newAttId}.preview.webp`);
             if (att.previewPath) {
               const previewBase = path.basename(att.previewPath);
               const zipPreviewEntry = zip.getEntry(`files/clothes/${c.id}/${previewBase}`);
@@ -915,7 +898,7 @@ export class BackupService {
               restoredFilesCount++;
             }
 
-            let newPreviewRelPath: string | null = null;
+            let newPreviewRelPath = path.posix.join('outfits', user.id, newOutfitId, `${newAttId}.preview.webp`);
             if (att.previewPath) {
               const previewBase = path.basename(att.previewPath);
               const zipPreviewEntry = zip.getEntry(`files/outfits/${o.id}/${previewBase}`);

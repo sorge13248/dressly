@@ -118,7 +118,7 @@ sequenceDiagram
 
 ### 4.4. Media Pipeline Subsystem
 - **Upload Ingress**: Handles multi-part image uploads up to 10MB (aligned across Nginx `client_max_body_size`, Multer middleware, and frontend validators).
-- **Processing Engine**: Powered by `sharp`. Converts images into optimized WebP formats and automatically computes responsive thumbnails/previews with progressive quality degradation until within target byte limits.
+- **Processing Engine**: Powered by `sharp` via the unified `attachment-preview.util.ts` helper. Converts images into optimized WebP formats (max 640x640, quality 80), auto-rotates via EXIF orientation metadata, generates responsive previews on ingestion, and handles dynamic on-demand regeneration whenever an archive is restored or a preview file is missing from disk.
 - **Storage**: Media files are stored on disk with paths tracked in SQLite.
 
 ### 4.5. Offline Synchronization Subsystem
@@ -135,6 +135,7 @@ sequenceDiagram
 ### 4.7. Backup & Disaster Recovery Subsystem
 - **Engine**: Archive compression and extraction powered by `adm-zip`.
 - **Portability**: Self-contained ZIP archives carrying `manifest.json`, serialized relational JSON data, and physical photo attachments.
+- **Large Archive Ingress & Safeguards**: Multer `SafeBackupDiskStorage` streams uploads up to 2GB directly to disk with live connection abortion tracking (`req.on('aborted')` / `req.on('close')`), `finally` unlink guarantees, and automated startup purge of stale temporary archives via `StorageCleanupService`.
 - **Restoration Modes**: Supports both `replace` (clean slate restoration) and `merge` (deduplication of reference domains and automated 3-character tag code collision resolution) inside atomic database transactions.
 - See [WARDROBE_FEATURES.md](./WARDROBE_FEATURES.md).
 

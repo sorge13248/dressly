@@ -74,12 +74,14 @@ export class SeasonalChangePageComponent implements OnInit {
 
   // Computed candidate lists
   readonly outgoingCandidates = computed<ClothesItem[]>(() => {
-    const seasonIds = this.selectedOutgoingSeasonIds();
-    if (seasonIds.size === 0) return [];
+    const outgoingSeasonIds = this.selectedOutgoingSeasonIds();
+    const incomingSeasonIds = this.selectedIncomingSeasonIds();
+    if (outgoingSeasonIds.size === 0) return [];
     return this.allClothes().filter(
       (c) =>
         (c.status || 'in_wardrobe') === 'in_wardrobe' &&
-        c.seasons?.some((s) => seasonIds.has(s.id)),
+        c.seasons?.some((s) => outgoingSeasonIds.has(s.id)) &&
+        !c.seasons?.some((s) => incomingSeasonIds.has(s.id)),
     );
   });
 
@@ -173,22 +175,7 @@ export class SeasonalChangePageComponent implements OnInit {
     this.selectedOutgoingSeasonIds.set(nextSet);
 
     // Auto-update candidate item selection
-    const currentSelected = new Set(this.selectedOutgoingIds());
-    if (isAdding) {
-      for (const item of this.allClothes()) {
-        if ((item.status || 'in_wardrobe') === 'in_wardrobe' && item.seasons?.some((s) => s.id === season.id)) {
-          currentSelected.add(item.id);
-        }
-      }
-    } else {
-      for (const id of Array.from(currentSelected)) {
-        const item = this.allClothes().find((c) => c.id === id);
-        if (!item || !item.seasons?.some((s) => nextSet.has(s.id))) {
-          currentSelected.delete(id);
-        }
-      }
-    }
-    this.selectedOutgoingIds.set(currentSelected);
+    this.selectedOutgoingIds.set(new Set(this.outgoingCandidates().map((c) => c.id)));
   }
 
   toggleIncomingSeason(season: SeasonItem) {
@@ -201,22 +188,12 @@ export class SeasonalChangePageComponent implements OnInit {
     }
     this.selectedIncomingSeasonIds.set(nextSet);
 
-    const currentSelected = new Set(this.selectedIncomingIds());
-    if (isAdding) {
-      for (const item of this.allClothes()) {
-        if (item.status === 'in_storage' && item.seasons?.some((s) => s.id === season.id)) {
-          currentSelected.add(item.id);
-        }
-      }
-    } else {
-      for (const id of Array.from(currentSelected)) {
-        const item = this.allClothes().find((c) => c.id === id);
-        if (!item || !item.seasons?.some((s) => nextSet.has(s.id))) {
-          currentSelected.delete(id);
-        }
-      }
-    }
-    this.selectedIncomingIds.set(currentSelected);
+    // Auto-update incoming candidate item selection
+    this.selectedIncomingIds.set(new Set(this.incomingCandidates().map((c) => c.id)));
+
+    // Since incoming seasons affect outgoing candidates (excluding clothes matching incoming seasons),
+    // update outgoing candidate selection as well
+    this.selectedOutgoingIds.set(new Set(this.outgoingCandidates().map((c) => c.id)));
   }
 
   toggleOutgoingItem(id: string) {

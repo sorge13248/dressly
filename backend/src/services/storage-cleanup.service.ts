@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import * as os from 'node:os';
 import { Attachment } from '../entities/attachment.entity';
 
 export interface CleanupStats {
@@ -20,6 +21,7 @@ export class StorageCleanupService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     await this.cleanupOrphans();
+    await this.cleanupOrphanTempBackups();
   }
 
   getUploadsRootDir(): string {
@@ -200,6 +202,43 @@ export class StorageCleanupService implements OnApplicationBootstrap {
         }
       }
     }
+  }
+
+  async cleanupOrphanTempBackups(maxAgeMs = 15 * 60 * 1000): Promise<{ removedFiles: number; freedBytes: number }> {
+    const tmpDir = os.tmpdir();
+    const stats = { removedFiles: 0, freedBytes: 0 };
+
+    try {
+      const entries = await fs.readdir(tmpDir).catch(() => []);
+      const now = Date.now();
+
+      for (const entry of entries) {
+        if (entry.startsWith('dressly-restore-') && entry.endsWith('.zip')) {
+          const filePath = path.join(tmpDir, entry);
+          try {
+            const stat = await fs.stat(filePath);
+            if (now - stat.mtimeMs >= maxAgeMs) {
+              await fs.unlink(filePath);
+              stats.removedFiles += 1;
+              stats.freedBytes += stat.size;
+              this.logger.debug(`Deleted orphaned temp restore file: ${filePath} (${stat.size} bytes)`);
+            }
+          } catch {
+            // Ignore if file was already unlinked or inaccessible
+          }
+        }
+      }
+    } catch {
+      // Ignore if tmpDir cannot be scanned
+    }
+
+    if (stats.removedFiles > 0) {
+      this.logger.log(
+        `Temporary backup cleanup completed: removed ${stats.removedFiles} orphaned file(s) (${this.formatBytes(stats.freedBytes)}) from ${tmpDir}.`,
+      );
+    }
+
+    return stats;
   }
 
   private formatBytes(bytes: number): string {

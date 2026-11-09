@@ -17,7 +17,11 @@ import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
 import { ClothesCardComponent } from '../../components/clothes-card/clothes-card.component';
-import { LocationSelectModalComponent, LocationSelectModalResult } from '../../components/location-select-modal/location-select-modal.component';
+import {
+  LocationSelectModalComponent,
+  LocationSelectModalData,
+  LocationSelectModalResult,
+} from '../../components/location-select-modal/location-select-modal.component';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 interface FilterPillOption {
@@ -924,7 +928,12 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const dialogRef = this.dialog.open<LocationSelectModalResult>(LocationSelectModalComponent);
+    const dialogRef = this.dialog.open<LocationSelectModalResult, LocationSelectModalData>(
+      LocationSelectModalComponent,
+      {
+        data: { count: ids.length },
+      },
+    );
     const result = await firstValueFrom(dialogRef.closed);
     if (!result) {
       return;

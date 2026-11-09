@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
@@ -8,6 +8,11 @@ import PDFDocument from 'pdfkit';
 import { DataSource, In, IsNull, Not } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
 import { generateUniqueTagCode, isValidTagCode, normalizeTagCode } from '../common/utils/tag-code.util';
+import {
+  createImagePreview,
+  ensureAttachmentPreview,
+  resolveAttachmentFile,
+} from '../common/utils/attachment-preview.util';
 import { Attachment } from '../entities/attachment.entity';
 import { Brand } from '../entities/brand.entity';
 import { Clothes } from '../entities/clothes.entity';
@@ -59,8 +64,6 @@ function trimToNull(value: unknown) {
 function normalizeStoredAttachmentPath(storedPath: string) {
   return storedPath.replace(/\\/g, '/');
 }
-
-const MAX_PREVIEW_SIZE = 500 * 1024;
 
 function getCurrentSeasonName(date = new Date()): 'Primavera' | 'Estate' | 'Autunno' | 'Inverno' {
   const month = date.getMonth(); // 0-indexed
@@ -936,7 +939,7 @@ export class ClothesService implements OnModuleInit {
           } catch {
             try {
               const fileBuffer = await fs.readFile(newAbsoluteFilePath);
-              const previewBuffer = await this.createPreview(fileBuffer);
+              const previewBuffer = await createImagePreview(fileBuffer);
               await fs.writeFile(newAbsolutePreviewPath, previewBuffer);
             } catch (genErr) {
               this.logger.warn(`Could not generate preview for cloned attachment ${newAttId}: ${String(genErr)}`);
@@ -1026,7 +1029,7 @@ export class ClothesService implements OnModuleInit {
     if (file.mimetype.startsWith('image/')) {
       const previewFileName = `${id}.preview.webp`;
       const absolutePreviewPath = path.join(uploadsDir, previewFileName);
-      const previewBuffer = await this.createPreview(file.buffer);
+      const previewBuffer = await createImagePreview(file.buffer);
       await fs.writeFile(absolutePreviewPath, previewBuffer);
       previewPath = path.posix.join('clothes', user.id, clothes.id, previewFileName);
     }
@@ -1119,7 +1122,8 @@ export class ClothesService implements OnModuleInit {
   }
 
   async getAttachmentFile(user: AuthUser, clothesId: string, attachmentId: string, variant?: string) {
-    const attachment = await this.dataSource.getRepository(Attachment).findOne({
+    const repository = this.dataSource.getRepository(Attachment);
+    const attachment = await repository.findOne({
       where: { id: attachmentId, clothesId, userId: user.id } as never,
     });
 
@@ -1127,19 +1131,15 @@ export class ClothesService implements OnModuleInit {
       throw new NotFoundException();
     }
 
-    try {
-      const previewFilePath = variant === 'preview' ? attachment.previewPath : null;
-      const usePreview = Boolean(previewFilePath);
-      const storedFilePath = previewFilePath ?? attachment.path;
-      const content = await fs.readFile(this.resolveAttachmentAbsolutePath(storedFilePath));
-      return {
-        content,
-        mimeType: usePreview ? 'image/webp' : attachment.mimeType || 'application/octet-stream',
-        fileName: attachment.originalName || attachment.fileName,
-      };
-    } catch {
-      throw new NotFoundException();
-    }
+    return resolveAttachmentFile({
+      attachment,
+      variant,
+      resolveAbsolutePath: (rel) => this.resolveAttachmentAbsolutePath(rel),
+      onPreviewPersisted: async (previewRelPath) => {
+        await repository.update(attachment.id, { previewPath: previewRelPath });
+        attachment.previewPath = previewRelPath;
+      },
+    });
   }
 
   private async mapPayload(user: AuthUser, body: Record<string, unknown>, existing?: Clothes) {
@@ -1578,28 +1578,6 @@ export class ClothesService implements OnModuleInit {
     return Number.isFinite(parsed) ? parsed + 1 : 0;
   }
 
-  private async createPreview(buffer: Buffer) {
-    const widths = [1600, 1200, 1000, 800, 640, 480, 320, 240, 160];
-    const qualities = [75, 60, 50, 40, 30, 20];
-    let smallestBuffer: Buffer | undefined;
-
-    for (const width of widths) {
-      for (const quality of qualities) {
-        const preview = await sharp(buffer)
-          .rotate()
-          .resize({ width, height: width, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality })
-          .toBuffer();
-        smallestBuffer = preview;
-        if (preview.length <= MAX_PREVIEW_SIZE) {
-          return preview;
-        }
-      }
-    }
-
-    return smallestBuffer as Buffer;
-  }
-
   private async generateMissingPreviews() {
     const repository = this.dataSource.getRepository(Attachment);
     const attachments = await repository.find();
@@ -1610,30 +1588,17 @@ export class ClothesService implements OnModuleInit {
         continue;
       }
 
-      const originalPath = this.resolveAttachmentAbsolutePath(attachment.path);
-      const previewPath = attachment.previewPath ?? path.posix.join(
-        path.posix.dirname(normalizeStoredAttachmentPath(attachment.path)),
-        `${attachment.id}.preview.webp`,
-      );
-      const absolutePreviewPath = this.resolveAttachmentAbsolutePath(previewPath);
+      const preview = await ensureAttachmentPreview({
+        attachment,
+        resolveAbsolutePath: (rel) => this.resolveAttachmentAbsolutePath(rel),
+        onPreviewPersisted: async (previewPath) => {
+          await repository.update(attachment.id, { previewPath });
+        },
+      });
 
-      try {
-        await fs.access(absolutePreviewPath);
-      } catch {
-        try {
-          const originalBuffer = await fs.readFile(originalPath);
-          const previewBuffer = await this.createPreview(originalBuffer);
-          await fs.writeFile(absolutePreviewPath, previewBuffer);
-        } catch (error) {
-          this.logger.warn(`Impossibile generare la preview per l'allegato ${attachment.id}: ${String(error)}`);
-          continue;
-        }
+      if (preview) {
+        generated += 1;
       }
-
-      if (attachment.previewPath !== previewPath) {
-        await repository.update(attachment.id, { previewPath });
-      }
-      generated += 1;
     }
 
     if (generated > 0) {
@@ -1737,7 +1702,10 @@ export class ClothesService implements OnModuleInit {
     const secondaryPhotoBuffers: Buffer[] = [];
     for (const secAtt of secondaryAttachments) {
       try {
-        const secPath = this.resolveAttachmentAbsolutePath(secAtt.previewPath || secAtt.path);
+        let secPath = secAtt.previewPath ? this.resolveAttachmentAbsolutePath(secAtt.previewPath) : null;
+        if (!secPath || !existsSync(secPath)) {
+          secPath = this.resolveAttachmentAbsolutePath(secAtt.path);
+        }
         const buf = await sharp(secPath)
           .rotate()
           .resize(120, 120, { fit: 'cover' })
