@@ -1,33 +1,18 @@
-<section class="wizard-shell">
-  <div class="wizard-window">
-    <header class="window-titlebar">
-      <div class="title-wrap">
-        <div class="title-icon-badge" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
-            <path d="M2 18h20" />
-          </svg>
-        </div>
-        <div class="title-text-group">
-          <h1>{{ title() }}</h1>
-        </div>
-      </div>
+<app-window-frame
+  [title]="title()"
+  (close)="cancelOrClose()"
+  closeTooltip="Chiudi e torna al guardaroba"
+  closeAriaLabel="Chiudi e torna al guardaroba"
+  shellClass="wizard-shell"
+  windowClass="wizard-window"
+  [shellPadding]="'28px 20px 120px'"
+>
+  <svg window-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2a3 3 0 0 0-2.8 4.05L2.3 14.5A2 2 0 0 0 3.6 18h16.8a2 2 0 0 0 1.3-3.5L14.8 6.05A3 3 0 0 0 12 2z" />
+    <path d="M2 18h20" />
+  </svg>
 
-      <button
-        type="button"
-        class="window-close-btn"
-        (click)="cancelOrClose()"
-        title="Chiudi e torna al guardaroba"
-        aria-label="Chiudi e torna al guardaroba"
-      >
-        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="3" x2="11" y2="11" />
-          <line x1="11" y1="3" x2="3" y2="11" />
-        </svg>
-      </button>
-    </header>
-
-    <section class="stepper-card">
+  <section window-toolbar class="stepper-card">
       @for (step of steps; track step.index) {
         <button
           type="button"
@@ -647,6 +632,25 @@
                 }
               </div>
 
+              @if (failedPhotos().length > 0) {
+                <div class="photo-errors-callout" role="alert">
+                  <div class="callout-header">
+                    <span class="callout-icon" aria-hidden="true">⚠️</span>
+                    <strong>Caricamento non riuscito per {{ failedPhotos().length }} {{ failedPhotos().length === 1 ? 'foto' : 'foto' }}</strong>
+                  </div>
+                  <ul class="callout-list">
+                    @for (photo of failedPhotos(); track photo.id) {
+                      <li>
+                        <strong>{{ photo.name }}</strong>: {{ photo.errorMessage || 'Errore durante il caricamento' }}
+                      </li>
+                    }
+                  </ul>
+                  <p class="callout-hint">
+                    Puoi rimuovere le foto non valide con la ✕ o ritentare l'upload premendo <strong>{{ saveLabel() }}</strong> in basso.
+                  </p>
+                </div>
+              }
+
               @if (uploadProgress(); as prog) {
                 <div class="upload-progress-card">
                   <div class="progress-info">
@@ -687,6 +691,7 @@
                     <article
                       class="photo-card"
                       [class.hero-photo]="idx === 0"
+                      [class.photo-failed]="photo.uploadFailed"
                       cdkDrag
                     >
                       <div class="photo-drop-placeholder" *cdkDragPlaceholder>
@@ -709,6 +714,13 @@
                             <span>#{{ idx + 1 }}</span>
                           }
                         </div>
+
+                        @if (photo.uploadFailed) {
+                          <div class="photo-error-badge" [title]="photo.errorMessage || 'Upload non riuscito'">
+                            <span class="error-badge-icon" aria-hidden="true">⚠️</span>
+                            <span class="error-badge-text">{{ photo.errorMessage || 'Upload non riuscito' }}</span>
+                          </div>
+                        }
 
                         <button
                           type="button"
@@ -753,10 +765,9 @@
         }
       }
     </section>
-  </div>
 
   <!-- Floating Dock Action Island: ancorata in basso al centro, stile Aero glass -->
-  <aside class="wizard-dock floating-dock" role="region" aria-label="Azioni del wizard">
+  <aside window-dock class="wizard-dock floating-dock" role="region" aria-label="Azioni del wizard">
     <button type="button" appButton variant="ghost" size="md" class="dock-btn-close" (click)="cancelOrClose()">
       Chiudi
     </button>
@@ -767,22 +778,32 @@
       variant="secondary"
       size="md"
       class="dock-btn-prev"
+      aria-label="Indietro"
+      title="Indietro"
       [disabled]="currentStep() === 1"
       (click)="previousStep()"
     >
       <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12.5 15L7.5 10L12.5 5"/>
       </svg>
-      <span>Indietro</span>
+      <span class="dock-btn-label">Indietro</span>
     </button>
-    @if (currentStep() < 5) {
-      <button type="button" appButton variant="primary" size="md" class="dock-btn-next" (click)="nextStep()">
-        <span>Avanti</span>
-        <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M7.5 15L12.5 10L7.5 5"/>
-        </svg>
-      </button>
-    }
+    <button
+      type="button"
+      appButton
+      variant="primary"
+      size="md"
+      class="dock-btn-next"
+      aria-label="Avanti"
+      title="Avanti"
+      [disabled]="currentStep() === 5"
+      (click)="nextStep()"
+    >
+      <span class="dock-btn-label">Avanti</span>
+      <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7.5 15L12.5 10L7.5 5"/>
+      </svg>
+    </button>
     <button
       type="button"
       appButton
@@ -801,4 +822,4 @@
       <span>{{ saveLabel() }}</span>
     </button>
   </aside>
-</section>
+</app-window-frame>

@@ -44,9 +44,9 @@ Le tipiche applicazioni per la gestione del guardaroba presentano spesso traccia
 - 🧼 **Istruzioni di cura e dettagli di acquisto**: Gestione di temperature di lavaggio (incluso lavaggio a freddo), tipo di lavaggio, candeggio, modalità di asciugatura, temperature di stiratura, uso del vapore e dettagli di acquisto con prezzo e negozio.
 - 📄 **Esportazione scheda tecnica in PDF vettoriale**: Esportazione istantanea con un clic del singolo capo in formato PDF pronto per la stampa direttamente dalla barra inferiore di dettaglio, con anteprima fotografica principale, badge di stato, codice etichetta a 3 caratteri, griglia dei simboli di cura e dati di acquisto.
 - 💾 **Disaster Recovery completo & Portabilità ZIP multi-istanza**: Esportazione e ripristino integrale di tutti i dati utente (capi, outfit, cataloghi di riferimento, code bucato e allegati fotografici ad alta risoluzione) in un archivio ZIP portatile. Supporta sia la modalità "Sostituisci tutto" (ripristino pulito dell'istanza) sia la modalità "Unisci" (deduplica intelligente dei cataloghi, risoluzione automatica delle collisioni dei codici a 3 caratteri e risoluzione dei conflitti di denominazione) posizionato esclusivamente nella pagina di Gestione domini.
-- 📸 **Elaborazione immagini ad alte prestazioni**: Upload fino a 10MB gestiti da `sharp` con correzione automatica dell'orientamento EXIF, anteprime responsive e compressione progressiva WebP.
+- 📸 **Elaborazione immagini ad alte prestazioni**: Upload fino a 10MB gestiti da `sharp` con correzione automatica dell'orientamento EXIF, anteprime responsive e compressione progressiva WebP. Include recupero resiliente nell'editor (in caso di upload parzialmente fallito il capo creato viene preservato, l'editor passa in modalità modifica con `Location.replaceState`, mostra le cause puntuali di errore per ciascun file e permette il retry immediato con "Aggiorna").
 - 🔄 **Sincronizzazione offline bidirezionale**: Riconciliazione automatica tra IndexedDB locale (`dressly_offline_v1`) e il server con risoluzione conflitti a livello di campo Last-Write-Wins (LWW) e tracciamento delle eliminazioni tramite tombstone.
-- 📲 **PWA installabile**: Interfaccia ottimizzata per dispositivi mobili con rispetto dei safe-area insets, Service Worker personalizzato per la memorizzazione nella cache e notifiche di aggiornamento in-app.
+- 📲 **PWA installabile**: Interfaccia ottimizzata per dispositivi mobili con rispetto dei safe-area insets, barre d'azione fluttuanti con navigazione compatta a sole icone su schermi ridotti, Service Worker personalizzato per la memorizzazione nella cache e notifiche di aggiornamento in-app.
 - 🗂️ **Gestione dati di riferimento personali**: Cataloghi configurabili per singolo utente per colori, brand, stagioni, temperature, occasioni d'uso, vestibilità, materiali, tipi, stanze, posizioni e tag personalizzati.
 
 ---
@@ -133,7 +133,7 @@ Per consultare approfondimenti tecnici dettagliati su ogni componente, visita la
 │   │   ├── core/             # Servizi: api, auth, sync, storage offline, bucato, pwa
 │   │   ├── features/         # Funzionalità: guardaroba, outfit, categorie, auth, errori
 │   │   ├── layout/           # AppShellComponent con barra superiore, contatori e stato sync
-│   │   └── shared/           # Componenti riutilizzabili (modali, dropdown, bottoni)
+│   │   └── shared/           # Componenti riutilizzabili (window frame, modali, dropdown, bottoni)
 │   ├── public/               # Asset statici, manifest.webmanifest e sw.js
 │   └── package.json
 ├── deploy/                   # Configurazioni runtime (supervisord.conf, nginx.unified.conf)

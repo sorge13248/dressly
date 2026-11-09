@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { HttpEventType } from '@angular/common/http';
+import { CommonModule, Location } from '@angular/common';
+import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import {
   Component,
   ElementRef,
@@ -31,6 +31,7 @@ import { WashingIconComponent, DryingIconComponent, IroningIconComponent } from 
 import { ContextSelectorComponent } from '../../../../shared/components/context-selector/context-selector.component';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { generateRandomTagCode, normalizeTagCode } from '../../../../shared/utils/tag-code.utils';
+import { WindowFrameComponent } from '../../../../shared/components/window-frame';
 
 export type StepIndex = 1 | 2 | 3 | 4 | 5;
 
@@ -40,7 +41,46 @@ export type WizardPhotoItem = {
   file?: File;
   previewUrl: string;
   name: string;
+  uploadFailed?: boolean;
+  errorMessage?: string;
 };
+
+export function extractUploadErrorMessage(err: unknown, file?: File): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 413) {
+      const sizeMb = file ? (file.size / (1024 * 1024)).toFixed(1) + 'MB' : '';
+      return `File troppo grande${sizeMb ? ` (${sizeMb})` : ''}: il limite massimo consentito è 10MB`;
+    }
+    if (err.status === 0) {
+      return 'Errore di connessione o rete non disponibile';
+    }
+    if (err.status === 401 || err.status === 403) {
+      return 'Sessione scaduta o non autorizzata';
+    }
+    if (err.status === 404) {
+      return 'Capo non trovato sul server';
+    }
+    if (err.error) {
+      if (typeof err.error === 'string') {
+        return err.error;
+      }
+      if (typeof err.error.message === 'string') {
+        return err.error.message;
+      }
+      if (Array.isArray(err.error.message)) {
+        return err.error.message.join(', ');
+      }
+    }
+    if (err.status >= 500) {
+      return `Errore interno del server (${err.status})`;
+    }
+    return `Errore HTTP ${err.status}`;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return 'Errore imprevisto durante il caricamento';
+}
 
 type WizardWashingForm = {
   wash_type: 'do_not_wash' | 'hand_wash_only' | 'washer_ok';
@@ -246,6 +286,7 @@ const statusOptions: SelectDropdownOption[] = [
     DryingIconComponent,
     IroningIconComponent,
     ContextSelectorComponent,
+    WindowFrameComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.scss',
@@ -253,6 +294,7 @@ const statusOptions: SelectDropdownOption[] = [
 export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly api = inject(ApiService);
   private readonly storage = inject(OfflineStorageService, { optional: true });
   private readonly syncService = inject(SyncService, { optional: true });
@@ -316,6 +358,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly title = computed(() => (this.isEditMode() ? 'Modifica capo' : 'Nuovo capo'));
   readonly saveLabel = computed(() => (this.isEditMode() ? 'Aggiorna' : 'Crea'));
   readonly photoCount = computed(() => this.allPhotos().length);
+  readonly failedPhotos = computed(() => this.allPhotos().filter((p) => p.uploadFailed));
   readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() =>
     this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),
   );
@@ -502,6 +545,9 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
     this.saving.set(true);
     this.error.set(null);
+    this.allPhotos.update((photos) =>
+      photos.map((p) => (p.uploadFailed || p.errorMessage ? { ...p, uploadFailed: false, errorMessage: undefined } : p)),
+    );
 
     try {
       const payload = this.buildPayload();
@@ -535,6 +581,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         // 2. Upload pending attachments with progress
         const pendingPhotos = this.allPhotos().filter((photo) => photo.source === 'pending' && photo.file);
         const uploadedMap = new Map<string, string>();
+        const failedPhotosList: Array<{ name: string; reason: string }> = [];
 
         if (pendingPhotos.length > 0) {
           this.uploadProgress.set({
@@ -553,9 +600,14 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
               currentFileName: photo.name,
             });
 
-            const uploadedId = await this.uploadSinglePhoto(clothesId, photo);
-            if (uploadedId) {
-              uploadedMap.set(photo.id, uploadedId);
+            const result = await this.uploadSinglePhoto(clothesId, photo);
+            if (result.success) {
+              uploadedMap.set(photo.id, result.id);
+            } else {
+              failedPhotosList.push({ name: photo.name, reason: result.error });
+              this.allPhotos.update((photos) =>
+                photos.map((p) => (p.id === photo.id ? { ...p, uploadFailed: true, errorMessage: result.error } : p)),
+              );
             }
           }
         }
@@ -578,7 +630,27 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
           }
         }
 
-        // 4. Update local storage with complete fresh item from API (including attachments)
+        // 4. Update allPhotos with successfully uploaded items transformed to existing
+        this.allPhotos.update((photos) =>
+          photos.map((p) => {
+            const uploadedId = uploadedMap.get(p.id);
+            if (uploadedId) {
+              if (p.source === 'pending' && p.previewUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(p.previewUrl);
+              }
+              return {
+                id: uploadedId,
+                source: 'existing' as const,
+                previewUrl: this.getExistingAttachmentUrl(uploadedId),
+                name: p.name,
+              };
+            }
+            return p;
+          }),
+        );
+        this.attachmentsToDelete.set([]);
+
+        // 5. Update local storage with complete fresh item from API (including attachments)
         if (this.storage) {
           try {
             const fresh = await firstValueFrom(this.api.getClothes(clothesId));
@@ -592,6 +664,42 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
         if (this.syncService) {
           this.syncService.notifyDataChanged();
+        }
+
+        // If one or more photos failed to upload, switch/remain in edit mode and allow retry
+        if (failedPhotosList.length > 0) {
+          this.editingId.set(clothesId);
+          this.currentStep.set(5);
+          this.uploadProgress.set(null);
+          this.saving.set(false);
+
+          const tree = this.router.createUrlTree(['/wardrobe', clothesId, 'edit'], {
+            queryParamsHandling: 'preserve',
+          });
+          this.location.replaceState(tree.toString());
+
+          void this.checkCodeAvailability(this.wizardModel().base.code, clothesId);
+
+          this.initialSnapshot.set(
+            JSON.stringify({
+              model: this.wizardModel(),
+              photos: this.allPhotos()
+                .filter((p) => p.source === 'existing')
+                .map((p) => ({ id: p.id, source: p.source, name: p.name })),
+              deleted: [],
+            }),
+          );
+
+          const reasonsText = failedPhotosList
+            .map((f) => `"${f.name}": ${f.reason}`)
+            .join('; ');
+
+          const errorSummary = isEdit
+            ? `Il capo è stato aggiornato, ma il caricamento di ${failedPhotosList.length === 1 ? 'una foto' : `${failedPhotosList.length} foto`} è fallito (${reasonsText}). Puoi correggere o ritentare l'upload premendo 'Aggiorna'.`
+            : `Il capo è stato creato con successo, ma il caricamento di ${failedPhotosList.length === 1 ? 'una foto' : `${failedPhotosList.length} foto`} è fallito (${reasonsText}). L'editor è ora in modalità modifica: puoi ritentare l'upload premendo 'Aggiorna'.`;
+
+          this.error.set(errorSummary);
+          return;
         }
       } else {
         // Offline: save to local IndexedDB and queue sync mutation
@@ -639,10 +747,13 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  private uploadSinglePhoto(clothesId: string, photo: WizardPhotoItem): Promise<string | null> {
+  private uploadSinglePhoto(
+    clothesId: string,
+    photo: WizardPhotoItem,
+  ): Promise<{ success: true; id: string } | { success: false; error: string }> {
     return new Promise((resolve) => {
       if (!photo.file) {
-        resolve(null);
+        resolve({ success: false, error: 'File non disponibile' });
         return;
       }
 
@@ -659,12 +770,17 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
             }
           } else if (event.type === HttpEventType.Response) {
             const body = event.body;
-            resolve(body?.id ?? null);
+            if (body?.id) {
+              resolve({ success: true, id: body.id });
+            } else {
+              resolve({ success: false, error: 'Risposta server priva di identificativo allegato' });
+            }
           }
         },
-        error: () => {
-          this.toast.error(`Upload fallito per ${photo.name}`);
-          resolve(null);
+        error: (err: unknown) => {
+          const reason = extractUploadErrorMessage(err, photo.file);
+          this.toast.error(`Upload fallito per ${photo.name}: ${reason}`);
+          resolve({ success: false, error: reason });
         },
       });
     });

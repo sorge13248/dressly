@@ -1,117 +1,169 @@
-<section class="window-shell">
-  <section class="window-frame">
-    <header class="window-titlebar">
-      <div class="title-wrap">
-        <h1>Gestione domini</h1>
-      </div>
-      <div class="titlebar-actions">
+<app-window-frame
+  title="Gestione domini"
+  (close)="cancelOrClose()"
+  closeTooltip="Chiudi e torna al guardaroba"
+  closeAriaLabel="Chiudi e torna al guardaroba"
+>
+  <!-- Window Icon Badge (projected) -->
+  <svg window-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+  </svg>
+
+  <!-- Titlebar Actions (projected) -->
+  <div window-actions class="titlebar-actions">
+    <button
+      type="button"
+      appButton
+      variant="secondary"
+      size="sm"
+      class="backup-titlebar-btn"
+      (click)="openBackupRestoreModal()"
+      [disabled]="busy()"
+      title="Backup completo e ripristino dati utente"
+    >
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      <span>Backup & Ripristino</span>
+    </button>
+  </div>
+
+  <!-- Subheader Toolbar: Domain Selector Chips (projected into window-toolbar) -->
+  <section window-toolbar class="domains-toolbar">
+    <div class="toolbar-header">
+      <p class="lede">Modifica i domini e usa i filtri rapidi per applicarli subito al guardaroba.</p>
+    </div>
+
+    <div class="chip-bar" role="tablist" aria-label="Selettore domini">
+      @for (tab of tabs; track tab.key) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="selectedKind() === tab.key"
+          class="chip"
+          [class.active]="selectedKind() === tab.key"
+          [class.tone-blue]="chipTone(tab.key) === 'blue'"
+          [class.tone-green]="chipTone(tab.key) === 'green'"
+          [class.tone-amber]="chipTone(tab.key) === 'amber'"
+          [class.tone-rose]="chipTone(tab.key) === 'rose'"
+          [class.tone-teal]="chipTone(tab.key) === 'teal'"
+          [class.tone-violet]="chipTone(tab.key) === 'violet'"
+          (click)="select(tab.key)"
+        >
+          <span class="chip-emoji" aria-hidden="true">{{ tab.emoji }}</span>
+          <span class="chip-label">{{ tab.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Action Bar Row -->
+  <section class="editor-actions-card">
+    <div class="editor-actions">
+      <button
+        type="button"
+        appButton
+        variant="primary"
+        class="primary add-btn"
+        (click)="openCreateModal()"
+        [disabled]="busy()"
+      >
+        <svg class="btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="10" y1="4" x2="10" y2="16" />
+          <line x1="4" y1="10" x2="16" y2="10" />
+        </svg>
+        <span>Nuovo valore</span>
+      </button>
+
+      @if (showSortOrder()) {
         <button
           type="button"
           appButton
           variant="secondary"
-          size="sm"
-          class="backup-titlebar-btn"
-          (click)="openBackupRestoreModal()"
-          [disabled]="busy()"
-          title="Backup completo e ripristino dati utente"
+          class="secondary sort-btn"
+          (click)="autoSort()"
+          [disabled]="busy() || rows().length <= 1"
+          title="Ordina alfabeticamente i valori del dominio"
         >
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 5h14M3 10h10M3 15h6"/>
           </svg>
-          <span>Backup & Ripristino</span>
+          <span>Ordina automaticamente</span>
         </button>
-      </div>
-    </header>
-
-    <section class="hero-row window-card">
-      <p class="lede">Modifica i domini e usa i filtri rapidi per applicarli subito al guardaroba.</p>
-
-      <div class="chip-bar">
-        @for (tab of tabs; track tab.key) {
-          <button
-            type="button"
-            class="chip"
-            [class.active]="selectedKind() === tab.key"
-            [class.tone-blue]="chipTone(tab.key) === 'blue'"
-            [class.tone-green]="chipTone(tab.key) === 'green'"
-            [class.tone-amber]="chipTone(tab.key) === 'amber'"
-            [class.tone-rose]="chipTone(tab.key) === 'rose'"
-            [class.tone-teal]="chipTone(tab.key) === 'teal'"
-            [class.tone-violet]="chipTone(tab.key) === 'violet'"
-            (click)="select(tab.key)"
-          >
-            <span class="chip-emoji" aria-hidden="true">{{ tab.emoji }}</span>
-            {{ tab.label }}
-          </button>
-        }
-      </div>
-    </section>
-
-    <section class="window-card editor-card">
-      <div class="editor-actions">
-        <button type="button" appButton variant="primary" class="primary" (click)="openCreateModal()" [disabled]="busy()">Nuovo valore</button>
-        <button type="button" appButton variant="secondary" class="backup-action-btn" (click)="openBackupRestoreModal()" [disabled]="busy()" title="Backup completo e ripristino dati">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          <span>Backup & Ripristino</span>
-        </button>
-        <span class="message">Crea e modifica un valore di dominio</span>
-      </div>
-    </section>
-
-    <section class="window-card table-card">
-      @if (showSortOrder()) {
-        <p class="drag-guide">Trascina le righe per riordinare i valori del dominio.</p>
       }
-      <div class="table-head" [class.no-sort]="!showSortOrder()">
-        <span>Nome</span>
-        @if (showSortOrder()) {
-        <span>Ordine</span>
-        }
-        <span>Azioni</span>
-      </div>
-
-      <div class="table-body" cdkDropList [cdkDropListData]="rows()" (cdkDropListDropped)="dropRow($event)">
-        @for (row of rows(); track row.id) {
-          <div
-            class="table-row"
-            cdkDrag
-            [cdkDragDisabled]="busy() || !showSortOrder()"
-            [class.drag-source]="draggedRowId() === row.id"
-            [class.no-sort]="!showSortOrder()"
-            (cdkDragStarted)="onDragStarted(row.id)"
-            (cdkDragEnded)="onDragEnded()"
-          >
-            <strong class="row-name">
-              @if (showSortOrder()) {
-                <button type="button" class="drag-handle" cdkDragHandle aria-label="Trascina per riordinare">⋮⋮</button>
-              }
-              @if (rowColorHex(row); as color) {
-                <span class="color-dot" [style.--dot-color]="color" aria-hidden="true"></span>
-              } @else if (rowEmoji(row)) {
-                <span class="row-emoji" aria-hidden="true">{{ rowEmoji(row) }}</span>
-              }
-              {{ row.name }}
-              @if (getRoomName(row); as roomName) {
-                <span class="location-room-badge">{{ roomName }}</span>
-              }
-            </strong>
-            @if (showSortOrder()) {
-            <span>{{ row.sortOrder }}</span>
-            }
-            <div class="actions">
-              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
-              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit(row)">Modifica</button>
-              <button type="button" appButton variant="danger" size="sm" class="danger" (click)="remove(row)">Elimina</button>
-            </div>
-          </div>
-        }
-      </div>
-    </section>
+    </div>
   </section>
-</section>
+
+  <!-- Table Body Section -->
+  <section class="table-card">
+    @if (showSortOrder()) {
+      <div class="drag-guide">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="guide-icon" aria-hidden="true">
+          <path d="M7 13l3 3 3-3M7 7l3-3 3 3M10 4v12"/>
+        </svg>
+        <span>Trascina le righe per riordinare i valori del dominio.</span>
+      </div>
+    }
+
+    <div class="table-head" [class.no-sort]="!showSortOrder()">
+      <span>Nome</span>
+      @if (showSortOrder()) {
+        <span>Ordine</span>
+      }
+      <span>Azioni</span>
+    </div>
+
+    <div class="table-body" cdkDropList [cdkDropListData]="rows()" (cdkDropListDropped)="dropRow($event)">
+      @for (row of rows(); track row.id) {
+        <div
+          class="table-row"
+          cdkDrag
+          [cdkDragDisabled]="busy() || !showSortOrder()"
+          [class.drag-source]="draggedRowId() === row.id"
+          [class.no-sort]="!showSortOrder()"
+          (cdkDragStarted)="onDragStarted(row.id)"
+          (cdkDragEnded)="onDragEnded()"
+        >
+          <strong class="row-name">
+            @if (showSortOrder()) {
+              <button type="button" class="drag-handle" cdkDragHandle aria-label="Trascina per riordinare" title="Trascina per riordinare">⋮⋮</button>
+            }
+            @if (rowColorHex(row); as color) {
+              <span class="color-dot" [style.--dot-color]="color" aria-hidden="true"></span>
+            } @else if (rowEmoji(row)) {
+              <span class="row-emoji" aria-hidden="true">{{ rowEmoji(row) }}</span>
+            }
+            <span class="row-name-text">{{ row.name }}</span>
+            @if (getRoomName(row); as roomName) {
+              <span class="location-room-badge">{{ roomName }}</span>
+            }
+          </strong>
+
+          @if (showSortOrder()) {
+            <span class="sort-order-pill">{{ row.sortOrder }}</span>
+          }
+
+          <div class="actions">
+            <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
+            <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit(row)">Modifica</button>
+            <button type="button" appButton variant="danger" size="sm" class="danger" (click)="remove(row)">Elimina</button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-rows-card">
+          <span class="empty-emoji" aria-hidden="true">{{ selectedTab().emoji }}</span>
+          <h3>Nessun valore in {{ selectedTab().label }}</h3>
+          <p>Non hai ancora aggiunto valori a questa categoria. Clicca su "Nuovo valore" per iniziare.</p>
+          <button type="button" appButton variant="primary" size="sm" (click)="openCreateModal()" [disabled]="busy()">
+            + Aggiungi valore
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+</app-window-frame>
