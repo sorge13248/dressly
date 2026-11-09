@@ -1,5 +1,5 @@
 // Dressly PWA Service Worker
-const VERSION = '1.7.0';
+const VERSION = '1.8.0';
 const CACHE_NAME = `dressly-cache-v${VERSION}`;
 
 // Static resources to precache on install
