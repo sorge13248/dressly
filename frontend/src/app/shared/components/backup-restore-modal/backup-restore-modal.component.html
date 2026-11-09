@@ -160,7 +160,7 @@
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               <strong>Trascina qui il file .ZIP di backup oppure clicca per selezionarlo</strong>
-              <span>Supporta archivi generati da qualsiasi istanza Dressly</span>
+              <span>Supporta archivi generati da qualsiasi istanza Dressly (fino a 2 GB)</span>
             </div>
           }
         </label>
@@ -221,6 +221,14 @@
             />
             <span>Confermo di voler procedere con la sostituzione completa dei dati</span>
           </label>
+        </div>
+      }
+
+      <!-- Loading Feedback -->
+      @if (restoring()) {
+        <div class="restoring-callout">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Caricamento ed elaborazione dell'archivio in corso (può richiedere diversi minuti per file di grandi dimensioni)...</span>
         </div>
       }
 

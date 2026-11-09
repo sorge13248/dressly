@@ -214,8 +214,8 @@ Physical storage is structured hierarchically:
    - `🏷️ Dismetti`: Confirms and flags selected items as `dismissed`.
 2. **Dedicated Seasonal Change Wizard (`/wardrobe/seasonal-change`)**:
    A guided 5-step interactive workflow protected by `canDeactivateSeasonalChange` to guard against accidental loss of unsaved changes:
-   - **Step 1 (Stagioni)**: Multi-selection of outgoing seasons to pack away and incoming seasons to unpack.
-   - **Step 2 (In Deposito)**: Displays active garments matching any selected outgoing season rendered using compact mini cards (`ClothesCardComponent` variant="mini" with photo on the left, details and direct "open in new tab" button on the right, and quick actions disabled), target location selector, and optional checkbox to send items to the washing queue.
+   - **Step 1 (Stagioni)**: Multi-selection of outgoing seasons to pack away and incoming seasons to unpack. Multi-season garments suitable for incoming seasons are automatically preserved in the active wardrobe.
+   - **Step 2 (In Deposito)**: Displays active garments matching any selected outgoing season (excluding multi-season garments that also match incoming seasons) rendered using compact mini cards (`ClothesCardComponent` variant="mini" with photo on the left, details and direct "open in new tab" button on the right, and quick actions disabled), target location selector, and optional checkbox to send items to the washing queue.
    - **Step 3 (Nell'Armadio)**: Displays stored garments matching any selected incoming season with container origin badges and optional checkbox to send extracted garments to the ironing queue.
    - **Step 4 (Decluttering)**: Rapid review with mini cards to mark unwanted garments as dismissed (donated, sold, or recycled).
    - **Step 5 (Conferma)**: Visual summary cards and atomic batch execution.
@@ -258,8 +258,8 @@ The backup export (`GET /api/backup/export`) packages all data belonging to the 
 - `data/clothes.json`: Full inventory records with 1:1 nested instructions (`washingInstruction`, `dryingInstruction`, `ironingInstruction`, `buyDetail`), N:M relationships, and attachment metadata.
 - `data/outfits.json`: Outfit definitions with 2D canvas layouts, clothing associations, and context tags.
 - `data/laundry.json`: Active washing and ironing queues.
-- `files/clothes/{clothesId}/*`: Physical photo files and WebP thumbnail previews.
-- `files/outfits/{outfitId}/*`: Physical outfit attachments and WebP previews.
+- `files/clothes/{clothesId}/*`: Master photo files (WebP previews `*.preview.webp` are excluded from the archive to keep export lightweight; the backend regenerates them on demand upon first request).
+- `files/outfits/{outfitId}/*`: Master outfit attachments (previews regenerated dynamically on demand).
 
 ### 8.2. Dual Restoration Engine (`POST /api/backup/restore`)
 Users can restore a backup ZIP onto a fresh or existing Dressly instance with a choice between two operational strategies:

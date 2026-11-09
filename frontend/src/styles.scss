@@ -47,6 +47,7 @@ body {
   margin: 0;
   min-height: 100%;
   overflow-x: clip;
+  scrollbar-gutter: stable;
   background: #f6f9fc;
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
@@ -79,5 +80,18 @@ textarea {
   background: rgba(10, 30, 70, 0.45);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.cdk-overlay-container {
+  overscroll-behavior: contain;
+}
+
+/* Guard against CDK block scroll strategy breaking sticky elements when scrolled */
+html.cdk-global-scrollblock {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
 }
 

@@ -125,6 +125,67 @@ describe('SeasonalChangePageComponent', () => {
     expect(comp.selectedOutgoingIds().has('cloth-2')).toBe(true);
   });
 
+  it('should NOT propose putting away clothes that belong to incoming seasons even if they match outgoing seasons', () => {
+    const fixture = TestBed.createComponent(SeasonalChangePageComponent);
+    const comp = fixture.componentInstance;
+
+    const clothesWithMultiSeason: ClothesItem[] = [
+      {
+        id: 'cloth-summer-only',
+        name: 'Costume da bagno',
+        status: 'in_wardrobe',
+        userId: 'user-1',
+        size: 'M',
+        notes: null,
+        seasons: [fakeSeasons[1]], // Estate
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'cloth-multi-summer-autumn',
+        name: 'T-shirt mezze maniche',
+        status: 'in_wardrobe',
+        userId: 'user-1',
+        size: 'M',
+        notes: null,
+        seasons: [fakeSeasons[1], fakeSeasons[2]], // Estate e Autunno
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'cloth-autumn-in-storage',
+        name: 'Maglione Autunnale',
+        status: 'in_storage',
+        userId: 'user-1',
+        size: 'L',
+        notes: null,
+        seasons: [fakeSeasons[2]], // Autunno
+        createdAt: '',
+        updatedAt: '',
+      },
+    ];
+
+    comp.allClothes.set(clothesWithMultiSeason);
+
+    // 1. Select outgoing: Estate
+    comp.toggleOutgoingSeason(fakeSeasons[1]); // Estate
+    // With no incoming season selected yet, both summer clothes are candidates
+    expect(comp.outgoingCandidates().map((c) => c.id)).toEqual(['cloth-summer-only', 'cloth-multi-summer-autumn']);
+    expect(comp.selectedOutgoingIds().has('cloth-multi-summer-autumn')).toBe(true);
+
+    // 2. Select incoming: Autunno
+    comp.toggleIncomingSeason(fakeSeasons[2]); // Autunno
+    // Multi-season garment is suitable for Autunno (incoming), so it must NOT be proposed to be put away!
+    expect(comp.outgoingCandidates().map((c) => c.id)).toEqual(['cloth-summer-only']);
+    expect(comp.selectedOutgoingIds().has('cloth-summer-only')).toBe(true);
+    expect(comp.selectedOutgoingIds().has('cloth-multi-summer-autumn')).toBe(false);
+
+    // 3. If Autunno incoming is deselected, it becomes an outgoing candidate again
+    comp.toggleIncomingSeason(fakeSeasons[2]); // Deselect Autunno
+    expect(comp.outgoingCandidates().map((c) => c.id)).toContain('cloth-multi-summer-autumn');
+    expect(comp.selectedOutgoingIds().has('cloth-multi-summer-autumn')).toBe(true);
+  });
+
   it('should require at least one season to proceed from step 1', () => {
     const fixture = TestBed.createComponent(SeasonalChangePageComponent);
     const comp = fixture.componentInstance;

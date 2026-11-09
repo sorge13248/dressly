@@ -9,6 +9,7 @@ import { ToastService } from '../../../../core/toast.service';
 import { WardrobePageComponent } from './main.component';
 import { ClothesItem, OutfitDetailResponse } from '../../../../core/models';
 import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
+import { LocationSelectModalComponent } from '../../components/location-select-modal/location-select-modal.component';
 
 describe('WardrobePageComponent', () => {
   beforeEach(async () => {
@@ -433,6 +434,27 @@ describe('WardrobePageComponent', () => {
       },
     });
     expect(toastSpy).toHaveBeenCalledWith('"Giacca Vintage" aggiunto all\'abbinamento "Look Estate"');
+  });
+
+  it('should open location select modal with count when moving items to storage', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const dialog = TestBed.inject(Dialog);
+    const api = TestBed.inject(ApiService);
+    vi.spyOn(api, 'bulkUpdateStatus').mockResolvedValue([] as any);
+
+    component.selectionService.selectMany(['item-1', 'item-2']);
+
+    const dialogRefMock = {
+      closed: of({ locationId: 'loc-1' }),
+    };
+    const openSpy = vi.spyOn(dialog, 'open').mockReturnValue(dialogRefMock as any);
+
+    await component.onMoveToStorage();
+
+    expect(openSpy).toHaveBeenCalledWith(LocationSelectModalComponent, {
+      data: { count: 2 },
+    });
   });
 
   describe('touch-only mobile/tablet filter sidebar drag', () => {

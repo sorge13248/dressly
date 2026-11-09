@@ -385,6 +385,29 @@
   }
 }
 
+.restoring-callout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  font-size: 0.85rem;
+  line-height: 1.4;
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border: 2px solid #bae6fd;
+    border-top-color: #0284c7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
 .success-callout {
   padding: 12px 14px;
   border-radius: 8px;

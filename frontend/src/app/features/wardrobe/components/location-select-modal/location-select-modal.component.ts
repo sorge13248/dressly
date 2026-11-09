@@ -6,7 +6,7 @@ import { SelectDropdownComponent, SelectDropdownOption } from '../../../../share
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 
 export interface LocationSelectModalData {
-  count: number;
+  count?: number;
 }
 
 export interface LocationSelectModalResult {
@@ -22,7 +22,7 @@ export interface LocationSelectModalResult {
       <header class="modal-header">
         <h2 id="modal-title">📦 Riponi in deposito</h2>
         <p class="modal-desc">
-          Stai per spostare {{ data.count }} {{ data.count === 1 ? 'capo' : 'capi' }} in deposito.
+          Stai per spostare {{ count() }} {{ count() === 1 ? 'capo' : 'capi' }} in deposito.
           Seleziona dove verranno riposti:
         </p>
       </header>
@@ -95,7 +95,8 @@ export interface LocationSelectModalResult {
   `],
 })
 export class LocationSelectModalComponent {
-  readonly data = inject<LocationSelectModalData>(DIALOG_DATA);
+  readonly data = inject<LocationSelectModalData | null>(DIALOG_DATA, { optional: true });
+  readonly count = computed(() => this.data?.count ?? 1);
   private readonly dialogRef = inject(DialogRef<LocationSelectModalResult | null>);
   private readonly referenceStore = inject(ReferenceStoreService);
 

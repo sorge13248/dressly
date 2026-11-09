@@ -280,6 +280,26 @@ async function runStorageCleanupTests() {
   assert.strictEqual(await fileExists(dummyFile), true, 'File must not be deleted on DB failure');
   console.log('✓ Test 5 passed!');
 
+  // ----------------------------------------------------
+  // Test 6: Orphaned temporary restore ZIP cleanup
+  // ----------------------------------------------------
+  console.log('Test 6: Cleanup orphaned temporary restore ZIP files in temp directory');
+  const staleRestoreFile = path.join(os.tmpdir(), 'dressly-restore-stale-test.zip');
+  await fs.writeFile(staleRestoreFile, 'stale dummy zip');
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  await fs.utimes(staleRestoreFile, oneHourAgo, oneHourAgo);
+
+  const activeRestoreFile = path.join(os.tmpdir(), 'dressly-restore-active-test.zip');
+  await fs.writeFile(activeRestoreFile, 'active dummy zip');
+
+  const tempCleanupStats = await storageCleanupService.cleanupOrphanTempBackups(15 * 60 * 1000);
+  assert.ok(tempCleanupStats.removedFiles >= 1, 'At least 1 stale restore file should be removed');
+  assert.strictEqual(await fileExists(staleRestoreFile), false, 'Stale file must be unlinked');
+  assert.strictEqual(await fileExists(activeRestoreFile), true, 'Active file under maxAgeMs must NOT be deleted');
+
+  await fs.unlink(activeRestoreFile).catch(() => {});
+  console.log('✓ Test 6 passed!');
+
   // Cleanup temp dir and dataSource
   await dataSource.destroy();
   await fs.rm(tempUploadsDir, { recursive: true, force: true }).catch(() => {});
