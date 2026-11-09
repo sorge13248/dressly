@@ -140,14 +140,16 @@
 
     <div class="results-area">
       <header class="wardrobe-subnav">
-        <nav class="status-tabs" aria-label="Stato capi nel guardaroba">
+        <nav class="status-tabs" aria-label="Filtra per stato capi nel guardaroba">
           <button
             type="button"
             class="status-tab"
             [class.active]="activeStatus() === 'in_wardrobe'"
             (click)="setStatusFilter('in_wardrobe')"
+            title="Nell'armadio"
+            aria-label="Capi nell'armadio"
           >
-            <span class="tab-icon">🚪</span>
+            <span class="tab-icon" aria-hidden="true">🚪</span>
             <span class="tab-label">Nell'armadio</span>
           </button>
           <button
@@ -155,8 +157,10 @@
             class="status-tab"
             [class.active]="activeStatus() === 'in_storage'"
             (click)="setStatusFilter('in_storage')"
+            title="In deposito"
+            aria-label="Capi in deposito"
           >
-            <span class="tab-icon">📦</span>
+            <span class="tab-icon" aria-hidden="true">📦</span>
             <span class="tab-label">In deposito</span>
           </button>
           <button
@@ -164,8 +168,10 @@
             class="status-tab"
             [class.active]="activeStatus() === 'dismissed'"
             (click)="setStatusFilter('dismissed')"
+            title="Dismessi"
+            aria-label="Capi dismessi"
           >
-            <span class="tab-icon">🏷️</span>
+            <span class="tab-icon" aria-hidden="true">🏷️</span>
             <span class="tab-label">Dismessi</span>
           </button>
           <button
@@ -173,8 +179,10 @@
             class="status-tab"
             [class.active]="activeStatus() === 'all'"
             (click)="setStatusFilter('all')"
+            title="Tutti"
+            aria-label="Tutti i capi"
           >
-            <span class="tab-icon">🌍</span>
+            <span class="tab-icon" aria-hidden="true">🌍</span>
             <span class="tab-label">Tutti</span>
           </button>
         </nav>
@@ -184,8 +192,9 @@
             routerLink="/wardrobe/seasonal-change"
             class="seasonal-change-btn"
             title="Avvia la procedura guidata per il cambio di stagione del guardaroba"
+            aria-label="Avvia cambio di stagione"
           >
-            <span class="btn-icon">🔄</span>
+            <span class="btn-icon" aria-hidden="true">🔄</span>
             <span class="btn-text">Cambio di stagione</span>
           </a>
         </div>
@@ -289,7 +298,6 @@
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="pager-icon" aria-hidden="true">
               <polyline points="12 15 7 10 12 5" />
             </svg>
-            <span class="pager-btn-text">Prec</span>
           </button>
 
           <div class="pager-status" title="{{ total() }} capi totali">
@@ -308,7 +316,6 @@
             aria-label="Pagina successiva"
             title="Pagina successiva"
           >
-            <span class="pager-btn-text">Succ</span>
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="pager-icon" aria-hidden="true">
               <polyline points="8 5 13 10 8 15" />
             </svg>

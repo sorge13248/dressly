@@ -147,7 +147,7 @@ Styling is implemented in `frontend/src/styles.scss` using CSS Custom Properties
 ### Responsive Breakpoints
 - **Desktop**: `--topbar-height: 73px`
 - **Tablet (`<= 960px`)**: `--topbar-height: 63px`
-- **Mobile (`<= 640px`)**: `--topbar-height: 53px`, single-column stacked grids, touch-friendly tap targets (`min 44px`), and compact bottom floating action bars (e.g. wardrobe editor dock with icon-only step navigation buttons and hidden labels).
+- **Mobile (`<= 640px`)**: `--topbar-height: 53px`, single-column stacked grids, touch-friendly tap targets (`min 44px`), and compact bottom floating action bars (e.g. wardrobe editor dock with icon-only step navigation buttons and hidden labels). The main wardrobe subnav (`.wardrobe-subnav`) features a smart accordion segmented control where inactive status tabs collapse to emoji icons (`🚪`, `📦`, `🏷️`, `🌍`) and only the active status tab displays its text label alongside an icon-only seasonal rotation button (`🔄`), guaranteeing zero horizontal overflow while preserving 1-tap status switching.
 
 ---
 

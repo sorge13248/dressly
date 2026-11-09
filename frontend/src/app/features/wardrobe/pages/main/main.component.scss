@@ -545,10 +545,16 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 160ms ease;
+  white-space: nowrap;
 
   .tab-icon {
     font-size: 1rem;
     line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .tab-label {
+    white-space: nowrap;
   }
 
   &:hover {
@@ -582,10 +588,16 @@
   border: 1px solid rgba(40, 110, 200, 0.35);
   box-shadow: 0 2px 6px rgba(15, 45, 95, 0.08);
   transition: all 150ms ease;
+  white-space: nowrap;
 
   .btn-icon {
     font-size: 0.95rem;
     line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .btn-text {
+    white-space: nowrap;
   }
 
   &:hover {
@@ -1276,6 +1288,66 @@
 }
 
 @media (max-width: 640px) {
+  .wardrobe-subnav {
+    padding: 6px 8px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .status-tabs {
+    gap: 2px;
+    padding: 2px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .status-tab {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    gap: 4px;
+    min-width: 34px;
+    min-height: 32px;
+    justify-content: center;
+
+    &:not(.active) {
+      .tab-label {
+        display: none;
+      }
+    }
+
+    &.active {
+      padding: 6px 10px;
+
+      .tab-label {
+        display: inline;
+        font-size: 0.78rem;
+        max-width: 110px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .seasonal-change-btn {
+    padding: 6px 9px;
+    min-height: 32px;
+    min-width: 34px;
+    justify-content: center;
+    flex-shrink: 0;
+
+    .btn-text {
+      display: none;
+    }
+
+    .btn-icon {
+      font-size: 1rem;
+      margin: 0;
+    }
+  }
+
   .search-banner {
     bottom: 10px;
     width: calc(100% - 16px);

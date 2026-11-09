@@ -812,5 +812,59 @@ describe('WardrobePageComponent', () => {
       expect(component.filters().sort).toBe('season_current');
       expect(component.filters().size).toBe('');
     });
+
+    it('should render status tabs with accessible labels and switch active status filter on click', () => {
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const tabsNav = fixture.nativeElement.querySelector('.status-tabs');
+      expect(tabsNav).not.toBeNull();
+      expect(tabsNav.getAttribute('aria-label')).toBe('Filtra per stato capi nel guardaroba');
+
+      const tabs = Array.from(tabsNav.querySelectorAll('.status-tab')) as HTMLButtonElement[];
+      expect(tabs.length).toBe(4);
+
+      // Default status is in_wardrobe
+      expect(component.activeStatus()).toBe('in_wardrobe');
+      expect(tabs[0].classList.contains('active')).toBe(true);
+      expect(tabs[0].getAttribute('title')).toBe("Nell'armadio");
+      expect(tabs[0].getAttribute('aria-label')).toBe("Capi nell'armadio");
+
+      // Click In deposito
+      tabs[1].click();
+      fixture.detectChanges();
+      expect(component.activeStatus()).toBe('in_storage');
+      expect(component.filters().status).toBe('in_storage');
+      expect(tabs[1].classList.contains('active')).toBe(true);
+      expect(tabs[0].classList.contains('active')).toBe(false);
+
+      // Click Dismessi
+      tabs[2].click();
+      fixture.detectChanges();
+      expect(component.activeStatus()).toBe('dismissed');
+      expect(component.filters().status).toBe('dismissed');
+      expect(tabs[2].classList.contains('active')).toBe(true);
+
+      // Click Tutti
+      tabs[3].click();
+      fixture.detectChanges();
+      expect(component.activeStatus()).toBe('all');
+      expect(component.filters().status).toBe('all');
+      expect(tabs[3].classList.contains('active')).toBe(true);
+    });
+
+    it('should render seasonal change button with icon, label and accessible attributes', () => {
+      const fixture = TestBed.createComponent(WardrobePageComponent);
+      fixture.detectChanges();
+
+      const seasonalBtn = fixture.nativeElement.querySelector('.seasonal-change-btn');
+      expect(seasonalBtn).not.toBeNull();
+      expect(seasonalBtn.getAttribute('routerLink') || seasonalBtn.getAttribute('href')).toContain('/wardrobe/seasonal-change');
+      expect(seasonalBtn.getAttribute('aria-label')).toBe('Avvia cambio di stagione');
+      expect(seasonalBtn.getAttribute('title')).toContain('cambio di stagione');
+      expect(seasonalBtn.querySelector('.btn-icon')).not.toBeNull();
+      expect(seasonalBtn.querySelector('.btn-text')?.textContent).toContain('Cambio di stagione');
+    });
   });
 });

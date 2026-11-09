@@ -38,9 +38,9 @@ export class SeasonalChangePageComponent implements OnInit {
 
   readonly steps: SeasonalWizardStep[] = [
     { index: 1, label: 'Stagioni', hint: 'Uscente ed entrante' },
-    { index: 2, label: 'In Deposito', hint: 'Capi da riporre' },
-    { index: 3, label: 'Nell\'Armadio', hint: 'Capi da estrarre' },
-    { index: 4, label: 'Decluttering', hint: 'Dona o elimina' },
+    { index: 2, label: 'Da riporre', hint: 'nel deposito' },
+    { index: 3, label: 'Da portare', hint: 'in armadio' },
+    { index: 4, label: 'Pulizie di primavera', hint: 'Da donare o eliminare' },
     { index: 5, label: 'Conferma', hint: 'Riepilogo e applica' },
   ];
 
