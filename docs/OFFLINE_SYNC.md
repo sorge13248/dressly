@@ -123,6 +123,9 @@ export interface FieldUpdate {
 }
 ```
 
+### Deterministic Attachment Ordering in Sync Payloads
+When the server reconciles clothing and outfit entities (`SyncService.getChangesSince`), photo attachments are deterministically ordered by `sortOrder ASC`, breaking ties with `createdAt ASC`. On the client, `OfflineStorageService.saveClothes` and `getPrimaryAttachment` ensure that local IndexedDB records preserve this ordering so that gallery cards, canvas outfits, and laundry lists consistently display the configured primary photo (`sortOrder: 0`) without relying on arbitrary database join traversal.
+
 ---
 
 ## 5. Conflict Resolution Mechanics

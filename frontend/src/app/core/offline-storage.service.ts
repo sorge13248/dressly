@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { isValidTagCode, normalizeTagCode } from '../shared/utils/tag-code.utils';
+import { getPrimaryAttachment, sortAttachments } from '../shared/utils/attachment.utils';
 import {
   BaseReferenceItem,
   ClothesFilters,
@@ -192,6 +193,9 @@ export class OfflineStorageService {
 
   async saveClothes(items: ClothesItem[]): Promise<void> {
     for (const item of items) {
+      if (item.attachments && item.attachments.length > 1) {
+        item.attachments = sortAttachments(item.attachments);
+      }
       this.memoryStore.clothes.set(item.id, item);
     }
     const db = await this.getDB();
@@ -485,18 +489,21 @@ export class OfflineStorageService {
     const washingSet = new Set(washingIds);
     return all
       .filter((item) => washingSet.has(item.id))
-      .map((item) => ({
-        ...item,
-        washingQuantity: washingCountMap.get(item.id) ?? 1,
-        primaryAttachment: item.attachments?.[0]
-          ? {
-              id: item.attachments[0].id,
-              fileName: item.attachments[0].fileName,
-              previewPath: item.attachments[0].previewPath ?? null,
-              mimeType: item.attachments[0].mimeType ?? '',
-            }
-          : null,
-      })) as unknown as WashingClothesItem[];
+      .map((item) => {
+        const primary = getPrimaryAttachment(item);
+        return {
+          ...item,
+          washingQuantity: washingCountMap.get(item.id) ?? 1,
+          primaryAttachment: primary
+            ? {
+                id: primary.id,
+                fileName: primary.fileName,
+                previewPath: primary.previewPath ?? null,
+                mimeType: primary.mimeType ?? '',
+              }
+            : null,
+        };
+      }) as unknown as WashingClothesItem[];
   }
 
   async getClothesForIroning(): Promise<IroningClothesItem[]> {
@@ -510,18 +517,21 @@ export class OfflineStorageService {
     const ironingSet = new Set(ironingIds);
     return all
       .filter((item) => ironingSet.has(item.id))
-      .map((item) => ({
-        ...item,
-        ironingQuantity: ironingCountMap.get(item.id) ?? 1,
-        primaryAttachment: item.attachments?.[0]
-          ? {
-              id: item.attachments[0].id,
-              fileName: item.attachments[0].fileName,
-              previewPath: item.attachments[0].previewPath ?? null,
-              mimeType: item.attachments[0].mimeType ?? '',
-            }
-          : null,
-      })) as unknown as IroningClothesItem[];
+      .map((item) => {
+        const primary = getPrimaryAttachment(item);
+        return {
+          ...item,
+          ironingQuantity: ironingCountMap.get(item.id) ?? 1,
+          primaryAttachment: primary
+            ? {
+                id: primary.id,
+                fileName: primary.fileName,
+                previewPath: primary.previewPath ?? null,
+                mimeType: primary.mimeType ?? '',
+              }
+            : null,
+        };
+      }) as unknown as IroningClothesItem[];
   }
 
   // Outfits methods

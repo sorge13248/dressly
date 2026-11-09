@@ -181,6 +181,9 @@ graph TD
 3. **Target Constraint**: Halts as soon as the resulting WebP file is within the maximum preview byte budget (`MAX_PREVIEW_SIZE`), preserving optimal visual clarity with minimal bytes.
 4. **Serving**: Clients can request `?variant=preview` to stream the lightweight WebP preview for cards and carousels, or omit the variant to stream the high-resolution original.
 
+### 4.3. Deterministic Primary Photo Resolution & Sort Order
+When a garment has multiple attachments, each attachment carries a `sortOrder` index. Both backend services (`ClothesService.list`, `getOne`, and `SyncService.getChangesSince`) and frontend components (`ClothesCardComponent`, `MainComponent`, `OutfitCanvasComponent`, and `OfflineStorageService`) deterministically order attachments by `sortOrder ASC` (and `createdAt ASC`). Primary preview selectors (`getPrimaryAttachment`) consistently pick the primary image (`sortOrder: 0`) across wardrobe grids, canvas outfits, laundry baskets, and detail sheets.
+
 ---
 
 ## 5. Multi-Criteria Wardrobe Sorting Engine
@@ -230,9 +233,12 @@ Physical storage is structured hierarchically:
 - **Locations (`Location`, `locations`)**: Specific boxes, bags, or shelves within a room (e.g., *Scatola Lana 1*, *Scatola Sottovuoto*, *Armadio Ospiti*). Each location references its parent `Room`.
 - When assigned to a garment, the system tracks `locationId` and displays breadcrumb badges (`📦 Room › Location`).
 
-### 6.3. Operational Workflows
+### 6.3. Operational Workflows & Responsive Subnav
 
-1. **Fast Multi-Select Actions**: From the main wardrobe gallery, selecting multiple items surfaces bulk actions in the command bar:
+1. **Main Wardrobe Status Navigation (`.wardrobe-subnav`)**: The main clothes gallery (`/wardrobe`) embeds an immediate 1-tap status selector (`in_wardrobe`, `in_storage`, `dismissed`, `all`) and a direct launch button for the seasonal change wizard:
+   - **Desktop**: Displays full labels and icons across all 4 status tabs and the seasonal rotation action button.
+   - **Mobile (`<= 640px`)**: Employs a smart accordion layout where inactive tabs collapse to their emoji icons (`🚪`, `📦`, `🏷️`, `🌍`), only the currently active tab expands to show its text label, and the seasonal change action collapses to a compact icon button (`🔄`) with accessible `title` and `aria-label`. This guarantees single-row presentation with zero horizontal scrolling and no overflow even on 320px screens.
+2. **Fast Multi-Select Actions**: From the main wardrobe gallery, selecting multiple items surfaces bulk actions in the command bar:
    - `📦 In deposito...`: Prompts for target location and moves selected items to `in_storage`.
    - `🚪 Nell'armadio`: Restores selected items to active wardrobe (`in_wardrobe`) and clears location.
    - `🏷️ Dismetti`: Confirms and flags selected items as `dismissed`.

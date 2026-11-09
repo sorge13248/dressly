@@ -13,6 +13,7 @@ import { ToastService } from '../../../../core/toast.service';
 import { WardrobeSelectionService } from '../../services/wardrobe-selection.service';
 import { AttachmentItem, CLOTHES_SORT_OPTIONS, ClothesFilters, ClothesItem, ClothesSortKey, ClothesStatus, OutfitDetailResponse } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
+import { getPrimaryAttachment as resolvePrimaryAttachment } from '../../../../shared/utils/attachment.utils';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
@@ -413,9 +414,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   }
 
   getPrimaryAttachment(item: ClothesItem): AttachmentItem | null {
-    const attachments = item.attachments ?? [];
-    const imageAttachment = attachments.find((attachment) => attachment.mimeType?.startsWith('image/'));
-    return imageAttachment ?? attachments[0] ?? null;
+    return resolvePrimaryAttachment(item);
   }
 
   getAttachmentUrl(item: ClothesItem, attachment: AttachmentItem) {

@@ -8,6 +8,7 @@ import {
   ensureAttachmentPreview,
   resolveAttachmentFile,
   resolvePreviewRelativePath,
+  sortAttachments,
 } from './attachment-preview.util';
 
 async function runTests() {
@@ -167,6 +168,21 @@ async function runTests() {
       throw new Error('Expected NotFoundException when file is missing');
     }
     console.log('✓ Test 6 passed!');
+
+    // Test 7: sortAttachments orders by sortOrder ASC then createdAt ASC
+    console.log('Test 7: sortAttachments orders attachments deterministically');
+    const unsorted = [
+      { id: 'att-3', sortOrder: 2, createdAt: new Date('2026-01-01T12:00:00Z') },
+      { id: 'att-2', sortOrder: 0, createdAt: new Date('2026-01-01T15:00:00Z') },
+      { id: 'att-1', sortOrder: 0, createdAt: new Date('2026-01-01T10:00:00Z') },
+      { id: 'att-4', sortOrder: 1, createdAt: new Date('2026-01-01T08:00:00Z') },
+    ];
+    const sorted = sortAttachments(unsorted);
+    const sortedIds = sorted.map((a) => a.id);
+    if (JSON.stringify(sortedIds) !== JSON.stringify(['att-1', 'att-2', 'att-4', 'att-3'])) {
+      throw new Error(`Unexpected sorted order: ${JSON.stringify(sortedIds)}`);
+    }
+    console.log('✓ Test 7 passed!');
 
     console.log('🎉 ALL ATTACHMENT PREVIEW UTIL TESTS PASSED! 🎉');
   } finally {

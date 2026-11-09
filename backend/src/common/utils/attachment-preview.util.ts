@@ -141,3 +141,20 @@ export async function resolveAttachmentFile(
     throw new NotFoundException();
   }
 }
+
+/**
+ * Sorts an array of attachments deterministically by `sortOrder ASC`,
+ * breaking ties by `createdAt ASC`.
+ */
+export function sortAttachments<T extends { sortOrder?: number; createdAt?: Date | string }>(attachments: T[]): T[] {
+  return [...attachments].sort((a, b) => {
+    const orderDiff = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+    if (orderDiff !== 0) {
+      return orderDiff;
+    }
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return aTime - bTime;
+  });
+}
+
