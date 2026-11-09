@@ -12,6 +12,7 @@ import {
   createImagePreview,
   ensureAttachmentPreview,
   resolveAttachmentFile,
+  sortAttachments,
 } from '../common/utils/attachment-preview.util';
 import { Attachment } from '../entities/attachment.entity';
 import { Brand } from '../entities/brand.entity';
@@ -1054,7 +1055,9 @@ export class ClothesService implements OnModuleInit {
       previewPath,
     });
 
-    return this.dataSource.getRepository(Attachment).save(attachment);
+    const saved = await this.dataSource.getRepository(Attachment).save(attachment);
+    await this.dataSource.getRepository(Clothes).update({ id: clothes.id, userId: user.id }, { updatedAt: new Date() });
+    return saved;
   }
 
   private normalizeAttachmentOriginalName(value: string | null | undefined) {
@@ -1077,6 +1080,7 @@ export class ClothesService implements OnModuleInit {
     await this.storageCleanupService.deleteAttachmentFiles(attachment);
 
     await repository.remove(attachment);
+    await this.dataSource.getRepository(Clothes).update({ id: clothesId, userId: user.id }, { updatedAt: new Date() });
     return { deleted: true };
   }
 
@@ -1114,11 +1118,11 @@ export class ClothesService implements OnModuleInit {
       for (let index = 0; index < ids.length; index += 1) {
         await repository.update({ id: ids[index], clothesId, userId: user.id } as never, { sortOrder: index });
       }
+      await manager.getRepository(Clothes).update({ id: clothesId, userId: user.id }, { updatedAt: new Date() });
     });
 
     const updated = await this.dataSource.getRepository(Attachment).find({ where: { clothesId, userId: user.id } as never });
-    updated.sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime());
-    return updated;
+    return sortAttachments(updated);
   }
 
   async getAttachmentFile(user: AuthUser, clothesId: string, attachmentId: string, variant?: string) {
@@ -1555,9 +1559,7 @@ export class ClothesService implements OnModuleInit {
       return;
     }
 
-    clothes.attachments = [...clothes.attachments].sort(
-      (a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime(),
-    );
+    clothes.attachments = sortAttachments(clothes.attachments);
   }
 
   private async nextAttachmentSortOrder(clothesId: string, userId: string) {

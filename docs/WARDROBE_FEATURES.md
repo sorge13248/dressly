@@ -181,6 +181,9 @@ graph TD
 3. **Target Constraint**: Halts as soon as the resulting WebP file is within the maximum preview byte budget (`MAX_PREVIEW_SIZE`), preserving optimal visual clarity with minimal bytes.
 4. **Serving**: Clients can request `?variant=preview` to stream the lightweight WebP preview for cards and carousels, or omit the variant to stream the high-resolution original.
 
+### 4.3. Deterministic Primary Photo Resolution & Sort Order
+When a garment has multiple attachments, each attachment carries a `sortOrder` index. Both backend services (`ClothesService.list`, `getOne`, and `SyncService.getChangesSince`) and frontend components (`ClothesCardComponent`, `MainComponent`, `OutfitCanvasComponent`, and `OfflineStorageService`) deterministically order attachments by `sortOrder ASC` (and `createdAt ASC`). Primary preview selectors (`getPrimaryAttachment`) consistently pick the primary image (`sortOrder: 0`) across wardrobe grids, canvas outfits, laundry baskets, and detail sheets.
+
 ---
 
 ## 5. Multi-Criteria Wardrobe Sorting Engine

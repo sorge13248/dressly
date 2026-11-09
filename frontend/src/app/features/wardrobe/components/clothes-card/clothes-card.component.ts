@@ -3,6 +3,7 @@ import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AttachmentItem, ClothesItem } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
+import { getPrimaryAttachment as resolvePrimaryAttachment } from '../../../../shared/utils/attachment.utils';
 import { WashingIconComponent, IroningIconComponent, OutfitIconComponent } from '../../../../shared/components/icons';
 
 @Component({
@@ -32,9 +33,7 @@ export class ClothesCardComponent {
   readonly ironingClick = output<{ item: ClothesItem; event: Event }>();
 
   getPrimaryAttachment(item: ClothesItem): AttachmentItem | null {
-    const attachments = item.attachments ?? [];
-    const imageAttachment = attachments.find((attachment) => attachment.mimeType?.startsWith('image/'));
-    return imageAttachment ?? attachments[0] ?? null;
+    return resolvePrimaryAttachment(item);
   }
 
   getAttachmentUrl(item: ClothesItem, attachment: AttachmentItem) {

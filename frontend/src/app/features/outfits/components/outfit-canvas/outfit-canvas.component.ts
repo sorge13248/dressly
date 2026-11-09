@@ -14,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { ToastService } from '../../../../core/toast.service';
 import { AttachmentItem, CanvasItemLayout, ClothesItem } from '../../../../core/models';
+import { getPrimaryAttachment as resolvePrimaryAttachment } from '../../../../shared/utils/attachment.utils';
 
 @Component({
   selector: 'app-outfit-canvas',
@@ -87,8 +88,7 @@ export class OutfitCanvasComponent {
   }
 
   getPrimaryAttachment(cloth: ClothesItem): AttachmentItem | null {
-    const attachments = cloth.attachments ?? [];
-    return attachments.find((a) => a.mimeType?.startsWith('image/')) ?? attachments[0] ?? null;
+    return resolvePrimaryAttachment(cloth);
   }
 
   getAttachmentUrl(clothId: string, attachment: AttachmentItem): string {

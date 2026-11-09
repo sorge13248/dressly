@@ -30,8 +30,8 @@ import { UseCase } from '../entities/use-case.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
-import { Room } from '../entities/room.entity';
 import { Location } from '../entities/location.entity';
+import { sortAttachments } from '../common/utils/attachment-preview.util';
 import { ReferenceDataService, ReferenceDataType } from './reference-data.service';
 import { StorageCleanupService } from './storage-cleanup.service';
 
@@ -622,6 +622,11 @@ export class SyncService {
     }
 
     const serverClothesEntities = await clothesQuery.getMany();
+    for (const item of serverClothesEntities) {
+      if (item.attachments) {
+        item.attachments = sortAttachments(item.attachments);
+      }
+    }
     const serverClothes = serverClothesEntities.map((item) => ({
       ...item,
       fullTitle: item.fullTitle,
@@ -702,32 +707,38 @@ export class SyncService {
     }
 
     const serverOutfitEntities = await outfitQuery.getMany();
-    const serverOutfits = serverOutfitEntities.map((o) => ({
-      id: o.id,
-      name: o.name,
-      description: o.description ?? null,
-      canvasLayout: o.canvasLayout ?? null,
-      seasons: o.seasons ?? [],
-      temperatures: o.temperatures ?? [],
-      useCases: o.useCases ?? [],
-      attachments: o.attachments ?? [],
-      createdAt: o.createdAt,
-      updatedAt: o.updatedAt,
-      clothesCount: o.clothes?.length ?? 0,
-      clothes: (o.clothes ?? []).map((c) => ({
-        id: c.id,
-        name: c.name,
-        fullTitle: c.fullTitle,
-        brand: c.brand,
-        type: c.type,
-        colors: c.colors,
-        attachments: c.attachments,
-        primaryAttachment:
-          (c.attachments ?? []).find((a) => a.mimeType?.startsWith('image/')) ??
-          c.attachments?.[0] ??
-          null,
-      })),
-    }));
+    const serverOutfits = serverOutfitEntities.map((o) => {
+      const sortedOutfitAttachments = o.attachments ? sortAttachments(o.attachments) : [];
+      return {
+        id: o.id,
+        name: o.name,
+        description: o.description ?? null,
+        canvasLayout: o.canvasLayout ?? null,
+        seasons: o.seasons ?? [],
+        temperatures: o.temperatures ?? [],
+        useCases: o.useCases ?? [],
+        attachments: sortedOutfitAttachments,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+        clothesCount: o.clothes?.length ?? 0,
+        clothes: (o.clothes ?? []).map((c) => {
+          const sortedClothAttachments = c.attachments ? sortAttachments(c.attachments) : [];
+          return {
+            id: c.id,
+            name: c.name,
+            fullTitle: c.fullTitle,
+            brand: c.brand,
+            type: c.type,
+            colors: c.colors,
+            attachments: sortedClothAttachments,
+            primaryAttachment:
+              sortedClothAttachments.find((a) => a.mimeType?.startsWith('image/')) ??
+              sortedClothAttachments[0] ??
+              null,
+          };
+        }),
+      };
+    });
 
     // 7. Deleted outfits
     let deletedOutfitIds: string[] = [];

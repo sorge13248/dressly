@@ -4,9 +4,8 @@ import { DataSource, In } from 'typeorm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import sharp from 'sharp';
 import { AuthUser } from '../common/auth/auth.types';
-import { createImagePreview, resolveAttachmentFile } from '../common/utils/attachment-preview.util';
+import { createImagePreview, resolveAttachmentFile, sortAttachments } from '../common/utils/attachment-preview.util';
 import { Clothes } from '../entities/clothes.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { Attachment } from '../entities/attachment.entity';
@@ -100,16 +99,12 @@ export class OutfitsService {
 
     for (const outfit of outfits) {
       if (outfit.attachments) {
-        outfit.attachments.sort(
-          (a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime(),
-        );
+        outfit.attachments = sortAttachments(outfit.attachments);
       }
       if (outfit.clothes) {
         for (const item of outfit.clothes) {
           if (item.attachments) {
-            item.attachments.sort(
-              (a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime(),
-            );
+            item.attachments = sortAttachments(item.attachments);
           }
         }
       }
@@ -186,9 +181,7 @@ export class OutfitsService {
     }
 
     if (outfit.attachments) {
-      outfit.attachments.sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime(),
-      );
+      outfit.attachments = sortAttachments(outfit.attachments);
     }
 
     const itemIds = (outfit.clothes ?? []).map((c) => c.id);
@@ -218,9 +211,7 @@ export class OutfitsService {
 
     for (const item of outfit.clothes ?? []) {
       if (item.attachments) {
-        item.attachments.sort(
-          (a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime(),
-        );
+        item.attachments = sortAttachments(item.attachments);
       }
     }
 
