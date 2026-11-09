@@ -1,33 +1,14 @@
-<section class="wizard-shell">
-  <div class="wizard-window">
-    <!-- Window Titlebar -->
-    <header class="window-titlebar">
-      <div class="title-wrap">
-        <div class="title-icon-badge" aria-hidden="true">
-          <span style="font-size: 1.2rem; line-height: 1;">🔄</span>
-        </div>
-        <div class="title-text-group">
-          <h1>Cambio del Guardaroba</h1>
-          <span class="step-pill-badge">Procedura guidata</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        class="window-close-btn"
-        (click)="cancelOrClose()"
-        title="Chiudi e torna al guardaroba"
-        aria-label="Chiudi e torna al guardaroba"
-      >
-        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="3" x2="11" y2="11" />
-          <line x1="11" y1="3" x2="3" y2="11" />
-        </svg>
-      </button>
-    </header>
-
-    <!-- Stepper Navigation -->
-    <nav class="stepper-card" aria-label="Passaggi cambio di stagione">
+<app-window-frame
+  title="Cambio del Guardaroba"
+  subtitle="Procedura guidata"
+  icon="🔄"
+  (close)="cancelOrClose()"
+  closeTooltip="Chiudi e torna al guardaroba"
+  closeAriaLabel="Chiudi e torna al guardaroba"
+  maxWidth="940px"
+>
+  <!-- Stepper Navigation -->
+  <nav window-toolbar class="stepper-card" aria-label="Passaggi cambio di stagione">
       @for (step of steps; track step.index) {
         <button
           type="button"
@@ -410,5 +391,4 @@
         }
       </div>
     </footer>
-  </div>
-</section>
+</app-window-frame>

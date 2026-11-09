@@ -12,6 +12,7 @@ import { ClothesItem, SeasonItem } from '../../../../core/models';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { ClothesCardComponent } from '../../components/clothes-card/clothes-card.component';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { WindowFrameComponent } from '../../../../shared/components/window-frame';
 
 export interface SeasonalWizardStep {
   index: number;
@@ -22,7 +23,7 @@ export interface SeasonalWizardStep {
 @Component({
   selector: 'app-seasonal-change-page',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, ClothesCardComponent],
+  imports: [CommonModule, ButtonComponent, ClothesCardComponent, WindowFrameComponent],
   templateUrl: './seasonal-change.component.html',
   styleUrl: './seasonal-change.component.scss',
 })

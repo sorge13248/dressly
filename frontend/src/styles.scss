@@ -95,3 +95,7 @@ html.cdk-global-scrollblock {
   left: auto !important;
 }
 
+:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

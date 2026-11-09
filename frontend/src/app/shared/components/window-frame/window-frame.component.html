@@ -1,0 +1,64 @@
+<section
+  class="window-shell"
+  [class]="shellClass()"
+  [style.padding]="shellPadding()"
+>
+  <div
+    class="window-frame"
+    [class]="windowClass()"
+    [style.max-width]="maxWidth()"
+  >
+    <header class="window-titlebar">
+      <div class="title-wrap">
+        @if (showIcon()) {
+          <div class="title-icon-badge" aria-hidden="true">
+            <ng-content select="[window-icon]" />
+            @if (icon()) {
+              <span class="icon-fallback">{{ icon() }}</span>
+            }
+          </div>
+        }
+
+        <div class="title-text-group">
+          @if (title()) {
+            <h1>{{ title() }}</h1>
+          } @else {
+            <ng-content select="[window-title]" />
+          }
+
+          @if (subtitle()) {
+            <span class="step-pill-badge">{{ subtitle() }}</span>
+          }
+          <ng-content select="[window-subtitle]" />
+        </div>
+      </div>
+
+      <div class="titlebar-controls">
+        <ng-content select="[window-actions]" />
+
+        @if (showClose()) {
+          <button
+            type="button"
+            class="window-close-btn"
+            (click)="onClose()"
+            [attr.title]="closeTooltip()"
+            [attr.aria-label]="closeAriaLabel()"
+          >
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="3" y1="3" x2="11" y2="11" />
+              <line x1="11" y1="3" x2="3" y2="11" />
+            </svg>
+          </button>
+        }
+      </div>
+    </header>
+
+    <ng-content select="[window-toolbar]" />
+
+    <ng-content />
+
+    <ng-content select="[window-footer]" />
+  </div>
+
+  <ng-content select="[window-dock]" />
+</section>

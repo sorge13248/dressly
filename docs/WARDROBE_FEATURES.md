@@ -45,6 +45,30 @@ When creating or editing a garment in the wardrobe wizard (`/wardrobe/editor`), 
 - **Edit Mode Awareness (`excludeId`)**: When editing an existing piece (`/wardrobe/editor/:id`), the garment's own tag code is excluded from collision checks, remaining available and green.
 - **Workflow Gate**: The wizard disallows stepping forward from step 1 and blocks saving whenever the tag code is taken or incomplete.
 
+### 1.5. Wizard Navigation & Floating Dock Actions
+The clothing editor wizard (`/wardrobe/editor` and `/wardrobe/editor/:id`) features a persistent glassmorphic bottom floating dock (`wizard-dock.floating-dock`) providing immediate step navigation and saving controls:
+- **Desktop Layout**: Displays close action ("Chiudi"), vertical separator, previous step button ("Indietro" with left chevron), next step button ("Avanti" with right chevron, rendered when `currentStep < 5`), and primary save button ("Crea" / "Aggiorna" with save icon).
+- **Mobile Responsive Layout (`<= 640px`)**: The dock adapts into an ergonomic centered toolbar with adjusted spacing (`gap: 8px`):
+  - Secondary elements like "Chiudi" and the separator are hidden to optimize horizontal space.
+  - Navigation buttons **"Indietro"** (`.dock-btn-prev`) and **"Avanti"** (`.dock-btn-next`) render in a compact circular form factor (38×38 px) displaying **only their icons without text labels**.
+  - Accessible names (`aria-label="Indietro"` and `aria-label="Avanti"`) and hover `title` tooltips remain fully active for assistive technologies.
+  - The primary save button (`.dock-btn-save`) remains prominent with its icon and responsive label.
+
+### 1.6. Photo Upload Error Handling & Resilience Flow
+When creating or editing a garment with photo attachments in the wardrobe wizard (`/wardrobe/new` and `/wardrobe/:id/edit`), photo uploads are executed with granular failure diagnostics and automatic recovery:
+- **Two-Stage Persistence**: The garment base record is committed to SQLite first. If creation succeeds but one or more attachments fail during subsequent upload:
+  - The wizard **does not discard the created garment** and does not navigate away to the detail page.
+  - The wizard automatically switches into **Edit Mode** (`editingId = clothesId`).
+  - The browser URL is seamlessly updated to `/wardrobe/:clothesId/edit` using Angular `Location.replaceState()`, preserving in-memory `File` references and state without triggering component destruction or route reloads.
+  - The wizard transitions to **Step 5 ("Foto")** with the primary action button displaying `"Aggiorna"`.
+- **Deduplication & Partitioning**:
+  - Attachments that uploaded successfully are converted to existing items (`source: 'existing'`) with their returned server IDs.
+  - Failed attachments remain in pending state (`source: 'pending'`), preventing duplicate uploads on retry.
+- **Pinpoint Diagnostic Feedback**:
+  - Failed photos display a prominent red border and a dedicated error pill (`.photo-error-badge`) with the exact cause of failure (e.g. `HTTP 413`: *"File troppo grande: limite massimo 10MB"*, `HTTP 0`: *"Errore di connessione o rete non disponibile"*, `HTTP 401`: *"Sessione scaduta"*, or server-returned validation messages).
+  - An inline error callout banner (`.photo-errors-callout`) on Step 5 enumerates each failed photo by name alongside its precise cause.
+- **Immediate Retry or Removal**: The user can delete the failing photo with the `✕` button or immediately retry uploading all remaining pending items by clicking `"Aggiorna"`.
+
 ---
 
 ## 2. Laundry Management & Operational Queues

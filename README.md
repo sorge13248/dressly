@@ -44,9 +44,9 @@ Traditional wardrobe apps often suffer from invasive cloud tracking, cluttered i
 - 🧼 **Garment Care & Purchase Tracking**: Full support for wash temperatures (including cold wash), washing types, bleaching rules, drying methods, ironing temperatures, steam permissions, and purchase metadata.
 - 📄 **Vector PDF Technical Card Export**: One-click export of individual garments into high-resolution, print-ready PDF specification sheets directly from the wardrobe detail view dock, complete with primary photo preview, status badges, tag codes, care symbol grids, and purchase info.
 - 💾 **Full Disaster Recovery & Multi-Instance ZIP Portability**: Complete export and restore of all user data (clothes, outfits, reference catalogs, laundry queues, and high-res media files) into a portable ZIP archive. Supports both "Replace All" (clean instance wipe and rebuild) and "Merge" (intelligent deduplication, 3-char tag code collision resolution, and name de-confliction) directly inside the Domain Management view.
-- 📸 **High-Performance Media Pipeline**: Upload images up to 10MB. Powered by `sharp` with automatic EXIF orientation, responsive thumbnails, and progressive WebP compression.
+- 📸 **High-Performance Media Pipeline**: Upload images up to 10MB. Powered by `sharp` with automatic EXIF orientation, responsive thumbnails, and progressive WebP compression. Includes resilient editor recovery (partial upload failure preserves created garment, transitions editor to edit mode via `Location.replaceState`, displays pinpoint error causes, and allows immediate retry with "Aggiorna").
 - 🔄 **Bi-Directional Offline Synchronization**: Automatic reconciliation between local IndexedDB (`dressly_offline_v1`) and the server with field-level Last-Write-Wins (LWW) and tombstone tracking.
-- 📲 **Installable PWA**: Responsive mobile-first UI with safe-area insets, custom Service Worker caching, and in-app update notifications.
+- 📲 **Installable PWA**: Responsive mobile-first UI with safe-area insets, floating action docks with compact icon-only navigation on small viewports, custom Service Worker caching, and in-app update notifications.
 - 🗂️ **Personal Reference Data Management**: User-scoped catalogs for colors, brands, seasons, temperatures, occasions, fits, materials, types, rooms, locations, and custom tags.
 
 ---
@@ -133,7 +133,7 @@ For comprehensive deep dives into each subsystem, explore the documentation suit
 │   │   ├── core/             # Services: api, auth, sync, offline-storage, laundry, pwa
 │   │   ├── features/         # Features: wardrobe, outfits, reference-data, auth, errors
 │   │   ├── layout/           # AppShellComponent with navigation header & counters
-│   │   └── shared/           # Reusable UI components (modals, dropdowns, buttons)
+│   │   └── shared/           # Reusable UI components (window frame, modals, dropdowns, buttons)
 │   ├── public/               # Static assets, manifest.webmanifest, and sw.js
 │   └── package.json
 ├── deploy/                   # Container configurations (supervisord.conf, nginx.unified.conf)

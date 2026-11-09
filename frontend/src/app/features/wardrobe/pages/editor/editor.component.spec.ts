@@ -1,12 +1,14 @@
+import { Location } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Dialog } from '@angular/cdk/dialog';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { ApiService } from '../../../../core/api.service';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
-import { WardrobeWizardPageComponent } from './editor.component';
+import { WardrobeWizardPageComponent, extractUploadErrorMessage } from './editor.component';
 
 describe('WardrobeWizardPageComponent', () => {
   beforeEach(async () => {
@@ -293,6 +295,38 @@ describe('WardrobeWizardPageComponent', () => {
     expect(saveBtn.textContent).toContain('Aggiorna');
   });
 
+  it('should render dock navigation buttons with icons and labels', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const prevBtn = fixture.nativeElement.querySelector('.dock-btn-prev') as HTMLButtonElement;
+    const nextBtn = fixture.nativeElement.querySelector('.dock-btn-next') as HTMLButtonElement;
+
+    expect(prevBtn).toBeTruthy();
+    expect(prevBtn.getAttribute('aria-label')).toBe('Indietro');
+    expect(prevBtn.querySelector('.dock-btn-icon')).toBeTruthy();
+    expect(prevBtn.querySelector('.dock-btn-label')?.textContent?.trim()).toBe('Indietro');
+    expect(prevBtn.disabled).toBe(true);
+
+    expect(nextBtn).toBeTruthy();
+    expect(nextBtn.getAttribute('aria-label')).toBe('Avanti');
+    expect(nextBtn.querySelector('.dock-btn-icon')).toBeTruthy();
+    expect(nextBtn.querySelector('.dock-btn-label')?.textContent?.trim()).toBe('Avanti');
+
+    // Click next button
+    nextBtn.click();
+    fixture.detectChanges();
+    expect(comp.currentStep()).toBe(2);
+    expect(prevBtn.disabled).toBe(false);
+
+    // Go to step 5: next button is disabled
+    comp.selectStep(5);
+    fixture.detectChanges();
+    const nextBtnStep5 = fixture.nativeElement.querySelector('.dock-btn-next') as HTMLButtonElement;
+    expect(nextBtnStep5.disabled).toBe(true);
+  });
+
   it('should support cumulative checkbox and quantity input', () => {
     const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
     const comp = fixture.componentInstance;
@@ -425,6 +459,198 @@ describe('WardrobeWizardPageComponent', () => {
       await fixture.whenStable();
       expect(spy).toHaveBeenCalledWith('8ZZ', 'existing-cloth-1');
       expect(comp.codeStatus()).toBe('available');
+    });
+  });
+
+  describe('extractUploadErrorMessage helper', () => {
+    it('should format 413 Payload Too Large with file size if available', () => {
+      const file = new File(['a'.repeat(12 * 1024 * 1024)], 'large.jpg', { type: 'image/jpeg' });
+      const err413 = new HttpErrorResponse({ status: 413, statusText: 'Payload Too Large' });
+      const msg = extractUploadErrorMessage(err413, file);
+      expect(msg).toContain('File troppo grande');
+      expect(msg).toContain('10MB');
+    });
+
+    it('should format status 0 as connection error', () => {
+      const err0 = new HttpErrorResponse({ status: 0 });
+      expect(extractUploadErrorMessage(err0)).toContain('Errore di connessione o rete non disponibile');
+    });
+
+    it('should format 401 as session expired', () => {
+      const err401 = new HttpErrorResponse({ status: 401 });
+      expect(extractUploadErrorMessage(err401)).toContain('Sessione scaduta');
+    });
+
+    it('should extract message from backend response when available', () => {
+      const err400 = new HttpErrorResponse({
+        status: 400,
+        error: { message: 'Il file deve essere un formato immagine valido' },
+      });
+      expect(extractUploadErrorMessage(err400)).toBe('Il file deve essere un formato immagine valido');
+    });
+  });
+
+  describe('Photo upload failure resilience and retry flow', () => {
+    it('should transition editor into edit mode, remain in step 5, update URL and preserve failed photo on upload error', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+      const api = TestBed.inject(ApiService);
+      const router = TestBed.inject(Router);
+      const location = TestBed.inject(Location);
+
+      const navigateSpy = vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+      const replaceStateSpy = vi.spyOn(location, 'replaceState');
+      vi.spyOn(api, 'createClothes').mockReturnValue(of({ id: 'created-cloth-999' } as any));
+      vi.spyOn(api, 'getClothes').mockReturnValue(of({ id: 'created-cloth-999', attachments: [] } as any));
+
+      const photoFile = new File(['content'], 'foto_pesante.jpg', { type: 'image/jpeg' });
+      const err413 = new HttpErrorResponse({ status: 413, statusText: 'Payload Too Large' });
+      vi.spyOn(api, 'uploadAttachmentWithProgress').mockReturnValue(throwError(() => err413));
+
+      // Fill required fields
+      comp.wizardForm.base.name().value.set('Maglione lana');
+      comp.wizardForm.base.type_id().value.set('type-1');
+      comp.wizardForm.base.brand_id().value.set('brand-1');
+      comp.wizardForm.style.color_ids().value.set(['col-1']);
+      comp.wizardForm.context.season_ids().value.set(['seas-1']);
+      comp.wizardForm.context.temperature_ids().value.set(['temp-1']);
+
+      comp.allPhotos.set([
+        { id: 'pending-p1', source: 'pending', file: photoFile, name: 'foto_pesante.jpg', previewUrl: 'blob:mock-url' },
+      ]);
+
+      await comp.save();
+
+      // Check that clothes was created
+      expect(api.createClothes).toHaveBeenCalled();
+
+      // Check that editor did NOT navigate away to detail
+      expect(navigateSpy).not.toHaveBeenCalledWith(['/wardrobe', 'created-cloth-999']);
+
+      // Check that editor switched to edit mode
+      expect(comp.editingId()).toBe('created-cloth-999');
+      expect(comp.isEditMode()).toBe(true);
+      expect(comp.saveLabel()).toBe('Aggiorna');
+
+      // Check URL was replaced to edit mode
+      expect(replaceStateSpy).toHaveBeenCalledWith('/wardrobe/created-cloth-999/edit');
+
+      // Check wizard is on step 5
+      expect(comp.currentStep()).toBe(5);
+
+      // Check photo is marked as failed with exact message
+      expect(comp.allPhotos().length).toBe(1);
+      const failed = comp.allPhotos()[0];
+      expect(failed.source).toBe('pending');
+      expect(failed.uploadFailed).toBe(true);
+      expect(failed.errorMessage).toContain('File troppo grande');
+      expect(failed.errorMessage).toContain('10MB');
+
+      // Check failedPhotos computed signal
+      expect(comp.failedPhotos().length).toBe(1);
+      expect(comp.failedPhotos()[0].id).toBe('pending-p1');
+
+      // Check error notice summary
+      expect(comp.error()).toContain('foto_pesante.jpg');
+      expect(comp.error()).toContain('File troppo grande');
+      expect(comp.error()).toContain('Aggiorna');
+    });
+
+    it('should retry upload on subsequent save (Aggiorna) and proceed to detail on success', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+      const api = TestBed.inject(ApiService);
+      const router = TestBed.inject(Router);
+
+      const navigateSpy = vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
+      vi.spyOn(api, 'createClothes').mockReturnValue(of({ id: 'created-cloth-999' } as any));
+      vi.spyOn(api, 'updateClothes').mockReturnValue(of({ id: 'created-cloth-999' } as any));
+      vi.spyOn(api, 'getClothes').mockReturnValue(of({ id: 'created-cloth-999', attachments: [] } as any));
+      vi.spyOn(api, 'reorderAttachments').mockReturnValue(of([] as any));
+
+      const photoFile = new File(['content'], 'foto.jpg', { type: 'image/jpeg' });
+
+      // First attempt fails with network error
+      const err0 = new HttpErrorResponse({ status: 0 });
+      const uploadSpy = vi.spyOn(api, 'uploadAttachmentWithProgress').mockReturnValue(throwError(() => err0));
+
+      comp.wizardForm.base.name().value.set('Giacca');
+      comp.wizardForm.base.type_id().value.set('type-1');
+      comp.wizardForm.base.brand_id().value.set('brand-1');
+      comp.wizardForm.style.color_ids().value.set(['col-1']);
+      comp.wizardForm.context.season_ids().value.set(['seas-1']);
+      comp.wizardForm.context.temperature_ids().value.set(['temp-1']);
+
+      comp.allPhotos.set([
+        { id: 'pending-1', source: 'pending', file: photoFile, name: 'foto.jpg', previewUrl: 'blob:url-1' },
+      ]);
+
+      await comp.save();
+
+      expect(comp.isEditMode()).toBe(true);
+      expect(comp.allPhotos()[0].uploadFailed).toBe(true);
+      expect(navigateSpy).not.toHaveBeenCalled();
+
+      // Now retry with successful upload
+      uploadSpy.mockReturnValue(of({
+        type: 4, // HttpEventType.Response
+        body: { id: 'att-success-1' },
+      } as any));
+
+      await comp.save();
+
+      expect(api.updateClothes).toHaveBeenCalledWith('created-cloth-999', expect.anything());
+      expect(uploadSpy).toHaveBeenCalledTimes(2);
+      expect(comp.allPhotos()[0].source).toBe('existing');
+      expect(comp.allPhotos()[0].id).toBe('att-success-1');
+      expect(navigateSpy).toHaveBeenCalledWith(['/wardrobe', 'created-cloth-999']);
+    });
+
+    it('should separate successful and failed photos when multiple photos are uploaded', async () => {
+      const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+      const comp = fixture.componentInstance;
+      const api = TestBed.inject(ApiService);
+
+      vi.spyOn(api, 'createClothes').mockReturnValue(of({ id: 'cloth-multi' } as any));
+      vi.spyOn(api, 'getClothes').mockReturnValue(of({ id: 'cloth-multi', attachments: [] } as any));
+      vi.spyOn(api, 'reorderAttachments').mockReturnValue(of([] as any));
+
+      const file1 = new File(['1'], 'ok.jpg', { type: 'image/jpeg' });
+      const file2 = new File(['2'], 'fail.jpg', { type: 'image/jpeg' });
+
+      vi.spyOn(api, 'uploadAttachmentWithProgress').mockImplementation((_id, file) => {
+        if (file.name === 'ok.jpg') {
+          return of({ type: 4, body: { id: 'att-ok' } } as any);
+        }
+        return throwError(() => new HttpErrorResponse({ status: 500 }));
+      });
+
+      comp.wizardForm.base.name().value.set('Completo');
+      comp.wizardForm.base.type_id().value.set('type-1');
+      comp.wizardForm.base.brand_id().value.set('brand-1');
+      comp.wizardForm.style.color_ids().value.set(['col-1']);
+      comp.wizardForm.context.season_ids().value.set(['seas-1']);
+      comp.wizardForm.context.temperature_ids().value.set(['temp-1']);
+
+      comp.allPhotos.set([
+        { id: 'p-ok', source: 'pending', file: file1, name: 'ok.jpg', previewUrl: 'blob:1' },
+        { id: 'p-fail', source: 'pending', file: file2, name: 'fail.jpg', previewUrl: 'blob:2' },
+      ]);
+
+      await comp.save();
+
+      expect(comp.editingId()).toBe('cloth-multi');
+      expect(comp.allPhotos().length).toBe(2);
+
+      const okPhoto = comp.allPhotos().find((p) => p.name === 'ok.jpg');
+      const failPhoto = comp.allPhotos().find((p) => p.name === 'fail.jpg');
+
+      expect(okPhoto?.source).toBe('existing');
+      expect(okPhoto?.id).toBe('att-ok');
+
+      expect(failPhoto?.source).toBe('pending');
+      expect(failPhoto?.uploadFailed).toBe(true);
+      expect(failPhoto?.errorMessage).toContain('Errore interno del server');
     });
   });
 });

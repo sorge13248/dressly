@@ -14,6 +14,7 @@ import {
   ReferenceEditorModalComponent,
 } from '../../components/reference-editor-modal/reference-editor-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button';
+import { WindowFrameComponent } from '../../../../shared/components/window-frame';
 
 type TabMeta = {
   key: ReferenceKind;
@@ -40,7 +41,7 @@ const tabs = [
 
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkDropList, CdkDrag, CdkDragHandle, ButtonComponent],
+  imports: [CommonModule, CdkDropList, CdkDrag, CdkDragHandle, ButtonComponent, WindowFrameComponent],
   templateUrl: './domain-management.component.html',
   styleUrl: './domain-management.component.scss',
 })
@@ -108,6 +109,10 @@ export class DomainManagementPageComponent {
 
   readonly showSortOrder = computed(() => this.sortableKinds.includes(this.selectedKind()));
 
+  cancelOrClose(): void {
+    void this.router.navigate(['/wardrobe']);
+  }
+
   select(kind: ReferenceKind) {
     this.selectedKind.set(kind);
   }
@@ -150,6 +155,42 @@ export class DomainManagementPageComponent {
     } catch (error) {
       this.referenceStore.restore(kind, previousSnapshot);
       this.toast.error(error instanceof Error ? error.message : 'Impossibile aggiornare l ordine');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async autoSort(): Promise<void> {
+    if (!this.showSortOrder() || this.busy()) {
+      return;
+    }
+    const current = [...this.rows()];
+    if (current.length <= 1) {
+      return;
+    }
+
+    const sorted = [...current].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }),
+    );
+    const kind = this.selectedKind();
+    const previousSnapshot = this.referenceStore.applyOptimisticOrder(
+      kind,
+      sorted.map((r) => r.id),
+    );
+
+    this.busy.set(true);
+    try {
+      for (let index = 0; index < sorted.length; index += 1) {
+        const row = sorted[index];
+        if (row.sortOrder === index) {
+          continue;
+        }
+        await this.referenceStore.update(kind, row.id, { sortOrder: index });
+      }
+      this.toast.success('Valori ordinati alfabeticamente');
+    } catch (error) {
+      this.referenceStore.restore(kind, previousSnapshot);
+      this.toast.error(error instanceof Error ? error.message : 'Impossibile ordinare automaticamente');
     } finally {
       this.busy.set(false);
     }

@@ -46,7 +46,7 @@ frontend/src/app/
 │   ├── reference-data/       # Catalog & category management
 │   └── errors/               # 404 Not Found & error boundaries
 └── shared/                   # Reusable presentational components & utilities
-    ├── components/           # Buttons, spinners, modals, select dropdowns
+    ├── components/           # Buttons, spinners, modals, select dropdowns, window-frame
     └── utils/                # Tag code validators, color utilities
 ```
 
@@ -95,7 +95,7 @@ graph TD
 
 ### Route Guards
 - **`authGuard`**: Intercepts navigation to protected shell routes. If `authService.isAuthenticated()` is false, redirects to `/login`.
-- **`canDeactivateWardrobeWizard`**: Detects unsaved modifications inside the clothing creation or editing wizard and displays a confirmation dialog before allowing navigation away.
+- **`canDeactivateWardrobeWizard`**: Detects unsaved modifications inside the clothing creation or editing wizard and displays a confirmation dialog before allowing navigation away. Integrates with the photo error recovery workflow: if photo upload fails during creation, the wizard transitions into edit mode (`Location.replaceState`), preserving in-memory files and guarding remaining pending photos against accidental loss.
 - **`canDeactivateSeasonalChange`**: Detects unsaved selections or pending stage modifications in the Seasonal Wardrobe Rotation wizard and prompts the user with `ConfirmModalComponent` before allowing navigation away.
 
 ---
@@ -147,7 +147,7 @@ Styling is implemented in `frontend/src/styles.scss` using CSS Custom Properties
 ### Responsive Breakpoints
 - **Desktop**: `--topbar-height: 73px`
 - **Tablet (`<= 960px`)**: `--topbar-height: 63px`
-- **Mobile (`<= 640px`)**: `--topbar-height: 53px`, single-column stacked grids, touch-friendly tap targets (`min 44px`).
+- **Mobile (`<= 640px`)**: `--topbar-height: 53px`, single-column stacked grids, touch-friendly tap targets (`min 44px`), and compact bottom floating action bars (e.g. wardrobe editor dock with icon-only step navigation buttons and hidden labels).
 
 ---
 
@@ -195,4 +195,21 @@ Located at `frontend/src/app/shared/components/backup-restore-modal/`, this stan
 Integrated into `WardrobeDetailPageComponent` (`detail-dock` action bar):
 - Triggers `ApiService.downloadClothPdf(clothId)` to fetch a vector PDF generated server-side.
 - Automatically handles binary blob streaming, creates a transient object URL (`window.URL.createObjectURL(blob)`), triggers native browser download naming the file `[code]_[name].pdf`, and releases memory via `revokeObjectURL`.
+
+### 7.3. Unified Aero Window Frame Component (`WindowFrameComponent`)
+Located at `frontend/src/app/shared/components/window-frame/` (selectors: `app-window-frame`, `app-window-shell`), this component encapsulates the Aero glassmorphism window layout, blue gradient header, and multi-slot content projection for top-level modal pages and wizards:
+
+- **Aero Window Shell & Glass Frame**: Full-width viewport centering container with radial gradient background (`#eaf3fd` to `#f4f8fc`), high-contrast frosted glass border (`rgba(255, 255, 255, 0.95)`), outline, and deep layered drop shadows (`0 20px 48px -12px rgba(12, 45, 95, 0.22)`).
+- **Aero Gradient Titlebar**: Standardized glossy header with drop-shadowed white typography, rounded glossy icon badge (`.title-icon-badge`), step/status badges, action slot, and close button with hover state and rotation transition emitting `(close)`.
+- **Flexible Multi-Slot Projection**:
+  - `[window-icon]`: Custom SVG or icon component inside the titlebar badge (with fallback to `icon` input).
+  - `[window-title]`: Custom heading content if the string `title` input is omitted.
+  - `[window-subtitle]`: Secondary badges, hints, or step pills alongside the title.
+  - `[window-actions]`: Dedicated action buttons in the titlebar (e.g., Disaster Recovery / Backup & Restore button).
+  - `[window-toolbar]`: Subheader bar directly beneath the titlebar (e.g., wizard stepper or domain category chips).
+  - Default `<ng-content />`: The primary body area of the window.
+  - `[window-footer]`: Bottom-pinned window footer.
+  - `[window-dock]`: Floating action dock anchored outside the window frame within the viewport shell.
+- **Shared Usage**: Shared consistently across Domain Management (`DomainManagementPageComponent`), Wardrobe Wizard (`WardrobeWizardPageComponent`), and Seasonal Rotation (`SeasonalChangePageComponent`).
+
 
