@@ -359,12 +359,14 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly saveLabel = computed(() => (this.isEditMode() ? 'Aggiorna' : 'Crea'));
   readonly photoCount = computed(() => this.allPhotos().length);
   readonly failedPhotos = computed(() => this.allPhotos().filter((p) => p.uploadFailed));
-  readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() =>
-    this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),
-  );
-  readonly brandDropdownOptions = computed<SelectDropdownOption[]>(() =>
-    this.referenceStore.brands().map((brand) => ({ id: brand.id, label: brand.name })),
-  );
+  readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() => [
+    { id: '', label: 'Nessun fit' },
+    ...this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),
+  ]);
+  readonly brandDropdownOptions = computed<SelectDropdownOption[]>(() => [
+    { id: '', label: 'Nessun brand' },
+    ...this.referenceStore.brands().map((brand) => ({ id: brand.id, label: brand.name })),
+  ]);
   readonly typeDropdownOptions = computed<SelectDropdownOption[]>(() =>
     [{ id: '', label: 'Nessun tipo' }, ...this.referenceStore.types().map((type) => ({ id: type.id, label: type.name }))],
   );

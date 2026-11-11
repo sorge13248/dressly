@@ -147,7 +147,7 @@ Styling is implemented in `frontend/src/styles.scss` using CSS Custom Properties
 ### Responsive Breakpoints
 - **Desktop**: `--topbar-height: 73px`
 - **Tablet (`<= 960px`)**: `--topbar-height: 63px`
-- **Mobile (`<= 640px`)**: `--topbar-height: 53px`, single-column stacked grids, touch-friendly tap targets (`min 44px`), and compact bottom floating action bars (e.g. wardrobe editor dock with icon-only step navigation buttons and hidden labels). The main wardrobe subnav (`.wardrobe-subnav`) features a smart accordion segmented control where inactive status tabs collapse to emoji icons (`🚪`, `📦`, `🏷️`, `🌍`) and only the active status tab displays its text label alongside an icon-only seasonal rotation button (`🔄`), guaranteeing zero horizontal overflow while preserving 1-tap status switching.
+- **Mobile (`<= 640px`)**: `--topbar-height: 53px`, single-column stacked grids, touch-friendly tap targets (`min 44px`), and compact bottom floating action bars (e.g. wardrobe editor dock with icon-only step navigation buttons and hidden labels, and home page wardrobe search dock with responsive input padding and an instant search clear button). The main wardrobe subnav (`.wardrobe-subnav`) features a smart accordion segmented control where inactive status tabs collapse to emoji icons (`🚪`, `📦`, `🏷️`, `🌍`) and only the active status tab displays its text label alongside an icon-only seasonal rotation button (`🔄`), guaranteeing zero horizontal overflow while preserving 1-tap status switching.
 
 ---
 
@@ -211,5 +211,17 @@ Located at `frontend/src/app/shared/components/window-frame/` (selectors: `app-w
   - `[window-footer]`: Bottom-pinned window footer.
   - `[window-dock]`: Floating action dock anchored outside the window frame within the viewport shell.
 - **Shared Usage**: Shared consistently across Domain Management (`DomainManagementPageComponent`), Wardrobe Wizard (`WardrobeWizardPageComponent`), and Seasonal Rotation (`SeasonalChangePageComponent`).
+
+### 7.4. Custom Selection Dropdowns (`SelectDropdownComponent`)
+Located at `frontend/src/app/shared/components/select-dropdown/` (`app-select-dropdown`):
+- **Clearable Selection Architecture**: All custom dropdowns for optional entity attributes (brand, fit, garment type, location, care parameters) support instant selection clearing via `clearable` (defaults to `true`).
+- **Combobox Trigger Clear Action**: When an option is selected (`hasSelectedValue() === true`), a dedicated circular clear button (`✕`, `aria-label="Annulla selezione"`) appears on the right side of the trigger preceding the dropdown arrow. Clicking this button immediately clears the selection (`selectedIdChange.emit('')`) and stops event propagation, preventing unwanted opening of the overlay panel.
+- **In-Panel Deselection**:
+  - Clicking the currently selected option in the active options list toggles it off, clearing the value and closing the panel.
+  - When no explicit empty option exists in the catalog list (`!hasEmptyOption()`), a top-level `"Annulla selezione"` action row is rendered when the panel is opened without an active filter query.
+  - Catalogs with pre-populated empty entries (e.g. `"Nessun brand"`, `"Nessun fit"`, `"Nessun tipo"`, `"Nessuna posizione"`) allow selecting the empty value directly from the list or search results.
+- **Keyboard Combobox Accessibility**: When the combobox trigger is focused and carries a selected value, pressing `Backspace` or `Delete` immediately clears the selection.
+- **Enforced Non-Clearable Dropdowns**: Mandatory single-selection dropdowns (such as garment operational status `statusOptions`, primary wash type `washTypeOptions`, or iron type `ironingTypeOptions`) specify `[clearable]="false"`, hiding the trigger clear button and preserving valid model states.
+
 
 

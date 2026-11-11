@@ -23,6 +23,8 @@ export class SelectDropdownComponent {
   readonly selectedId = input('');
   readonly invalid = input(false);
   readonly searchable = input(false);
+  readonly clearable = input(true);
+  readonly clearLabel = input('Annulla selezione');
 
   @Output() selectedIdChange = new EventEmitter<string>();
 
@@ -32,6 +34,15 @@ export class SelectDropdownComponent {
   readonly open = signal(false);
   readonly searchTerm = signal('');
   readonly activeIndex = signal(-1);
+
+  readonly hasSelectedValue = computed(() => {
+    const id = this.selectedId();
+    return Boolean(id && id.trim() !== '');
+  });
+
+  readonly hasEmptyOption = computed(() => {
+    return this.options().some((option) => !option.id);
+  });
 
   readonly selectedLabel = computed(() => {
     const selectedId = this.selectedId();
@@ -105,12 +116,31 @@ export class SelectDropdownComponent {
     this.searchTerm.set('');
   }
 
+  clearSelection(event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
+    this.selectedIdChange.emit('');
+    if (this.open()) {
+      this.closePanel();
+    }
+  }
+
   selectOption(id: string) {
+    if (this.clearable() && this.selectedId() === id) {
+      this.clearSelection();
+      return;
+    }
     this.selectedIdChange.emit(id);
     this.closePanel();
   }
 
   onTriggerKeydown(event: KeyboardEvent) {
+    if (this.clearable() && this.hasSelectedValue() && (event.key === 'Backspace' || event.key === 'Delete')) {
+      event.preventDefault();
+      this.clearSelection();
+      return;
+    }
+
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter' && event.key !== ' ') {
       return;
     }
@@ -191,7 +221,7 @@ export class SelectDropdownComponent {
     setTimeout(() => {
       const button = this.optionButtons?.get(this.activeIndex())?.nativeElement;
       button?.focus();
-      button?.scrollIntoView({ block: 'nearest' });
+      button?.scrollIntoView?.({ block: 'nearest' });
     });
   }
 }

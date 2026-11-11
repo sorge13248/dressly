@@ -128,6 +128,30 @@ describe('WardrobePageComponent', () => {
     expect(newDressBtn?.textContent).toContain('Nuovo vestito');
   });
 
+  it('should toggle search-clear-btn based on search input value and clear on click', () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'load').mockImplementation(async () => {});
+    fixture.detectChanges();
+
+    const clearBtnInitial = fixture.nativeElement.querySelector('.search-clear-btn');
+    expect(clearBtnInitial).toBeNull();
+
+    component.searchForm.text().value.set('camicia');
+    fixture.detectChanges();
+
+    const clearBtn = fixture.nativeElement.querySelector('.search-clear-btn') as HTMLButtonElement;
+    expect(clearBtn).not.toBeNull();
+    expect(clearBtn.getAttribute('aria-label')).toBe('Cancella ricerca');
+
+    clearBtn.click();
+    fixture.detectChanges();
+
+    expect(component.searchForm.text().value()).toBe('');
+    expect(component.debouncedSearch()).toBe('');
+    expect(fixture.nativeElement.querySelector('.search-clear-btn')).toBeNull();
+  });
+
   it('should render filters sidebar with filters-sidebar class inside layout-grid', () => {
     const fixture = TestBed.createComponent(WardrobePageComponent);
     fixture.detectChanges();

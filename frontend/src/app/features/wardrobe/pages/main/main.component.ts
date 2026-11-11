@@ -159,6 +159,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   readonly searchForm = form(this.searchModel);
   readonly debouncedSearch = signal('');
 
+  @ViewChild('freeSearchInput') freeSearchInput?: ElementRef<HTMLInputElement>;
   @ViewChild('filtersSidebar') filtersSidebar?: ElementRef<HTMLElement>;
   @ViewChild('filtersBackdrop') filtersBackdrop?: ElementRef<HTMLElement>;
 
@@ -495,6 +496,19 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
       status,
       page: 1,
     }));
+  }
+
+  clearSearch() {
+    if (this.debounceHandle) {
+      clearTimeout(this.debounceHandle);
+      this.debounceHandle = null;
+    }
+    this.searchForm.text().value.set('');
+    this.debouncedSearch.set('');
+    if (this.filters().page !== 1) {
+      this.filters.update((current) => ({ ...current, page: 1 }));
+    }
+    this.freeSearchInput?.nativeElement.focus();
   }
 
   clearFilters() {

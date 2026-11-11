@@ -415,7 +415,8 @@ h2 {
   margin-top: 14px;
 }
 
-label {
+label,
+.field-brand {
   display: grid;
   gap: 4px;
   font-size: 0.9rem;
@@ -423,6 +424,7 @@ label {
 }
 
 label span,
+.field-brand > span,
 .section-head span {
   color: var(--muted);
   font-size: 0.84rem;

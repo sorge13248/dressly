@@ -653,4 +653,20 @@ describe('WardrobeWizardPageComponent', () => {
       expect(failPhoto?.errorMessage).toContain('Errore interno del server');
     });
   });
+
+  it('should not open create brand modal when clicking brand dropdown trigger', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const openModalSpy = vi.spyOn(comp, 'openCreateBrandModal');
+    const brandDropdown = fixture.nativeElement.querySelector('.field-brand app-select-dropdown');
+    const trigger = brandDropdown?.querySelector('.trigger') as HTMLButtonElement;
+    expect(trigger).not.toBeNull();
+
+    trigger.click();
+    fixture.detectChanges();
+
+    expect(openModalSpy).not.toHaveBeenCalled();
+  });
 });

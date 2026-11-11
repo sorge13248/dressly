@@ -55,7 +55,7 @@
                     (selectedIdChange)="setSelectValue(wizardForm.base.type_id, $event)"
                   />
                 </label>
-                <label class="field-brand">
+                <div class="field-brand">
                   <span>Brand</span>
                   <div class="inline-select-add">
                     <app-select-dropdown
@@ -83,7 +83,7 @@
                       fieldError(wizardForm.base.brand_id(), 'Il brand è obbligatorio')
                     }}</small>
                   }
-                </label>
+                </div>
                 <label class="field-size">
                   <span>Taglia</span>
                   <input
@@ -147,6 +147,7 @@
                     placeholder="Seleziona stato"
                     [options]="statusOptions"
                     [selectedId]="wizardForm.base.status().value()"
+                    [clearable]="false"
                     (selectedIdChange)="setSelectValue(wizardForm.base.status, $event)"
                   />
                 </label>
@@ -359,6 +360,7 @@
                     <app-select-dropdown
                       [options]="washTypeOptions"
                       [selectedId]="wizardForm.care.washing.wash_type().value()"
+                      [clearable]="false"
                       (selectedIdChange)="setWashType($event)"
                     />
                   </label>
@@ -557,6 +559,7 @@
                     <app-select-dropdown
                       [options]="ironingTypeOptions"
                       [selectedId]="wizardForm.care.ironing.iron_type().value()"
+                      [clearable]="false"
                       (selectedIdChange)="onIronTypeChange($event)"
                     />
                   </label>

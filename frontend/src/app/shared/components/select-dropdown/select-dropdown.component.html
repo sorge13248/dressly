@@ -4,6 +4,7 @@
     class="trigger"
     [class.open]="open()"
     [class.invalid]="invalid()"
+    [class.has-clear]="clearable() && hasSelectedValue()"
     [attr.aria-expanded]="open()"
     (click)="togglePanel()"
     (keydown)="onTriggerKeydown($event)"
@@ -12,9 +13,26 @@
     @if (label()) {
       <span class="trigger-label">{{ label() }}</span>
     }
-    <span class="trigger-value">{{ selectedLabel() }}</span>
+    <span class="trigger-value" [class.is-placeholder]="!hasSelectedValue()">{{ selectedLabel() }}</span>
     <span class="trigger-arrow">▾</span>
   </button>
+
+  @if (clearable() && hasSelectedValue()) {
+    <button
+      type="button"
+      class="trigger-clear"
+      (click)="clearSelection($event)"
+      (keydown.enter)="clearSelection($event)"
+      (keydown.space)="clearSelection($event)"
+      [attr.aria-label]="clearLabel()"
+      [attr.title]="clearLabel()"
+    >
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" class="clear-icon" aria-hidden="true">
+        <line x1="5" y1="5" x2="15" y2="15" stroke-linecap="round" />
+        <line x1="15" y1="5" x2="5" y2="15" stroke-linecap="round" />
+      </svg>
+    </button>
+  }
 
   <ng-template
     cdkConnectedOverlay
@@ -54,6 +72,17 @@
       }
 
       <div class="panel-list">
+        @if (clearable() && hasSelectedValue() && !hasEmptyOption() && !searchTerm()) {
+          <button
+            type="button"
+            class="option-row clear-option"
+            (click)="clearSelection($event)"
+          >
+            <span class="clear-icon-badge" aria-hidden="true">✕</span>
+            <span class="text">{{ clearLabel() }}</span>
+          </button>
+        }
+
         @for (option of filteredOptions(); track option.id; let i = $index) {
           <button
             #optionButton
