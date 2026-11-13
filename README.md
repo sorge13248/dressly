@@ -34,9 +34,9 @@ Traditional wardrobe apps often suffer from invasive cloud tracking, cluttered i
 ## ⚡ Key Features (v1.4.0)
 
 - 🔒 **OIDC Confidential Authentication**: Seamless single sign-on with Keycloak, Authentik, Google, or any compliant OIDC Identity Provider via PKCE and secure cookies.
-- 👔 **Comprehensive Clothing Catalog**: Detailed tracking of category, brand, fit, fabric materials, primary and secondary colors, suitable seasons, temperatures, use cases, size, and notes.
+- 👔 **Comprehensive Clothing Catalog**: Detailed tracking of category, brand, fit, fabric materials, primary and secondary colors, suitable seasons, temperatures, use cases, size, and notes. Custom dropdowns in the garment editor allow 1-click cancellation/clearing of previously made selections (e.g. brand, fit, type, location) directly via the trigger clear button (`✕`), panel clear actions, or keyboard shortcuts.
 - 📦 **Seasonal Wardrobe Rotation & Storage Locations**: Model real-world wardrobe changes (*cambio stagione*) with 3 operational statuses (`in_wardrobe`, `in_storage`, `dismissed`) and physical container mapping (Rooms and Locations/Boxes). Features a responsive status subnav with 1-tap switching (using an adaptive smart accordion on mobile to prevent horizontal overflow) and a dedicated 5-step seasonal change wizard (`/wardrobe/seasonal-change`) with multi-season selection, intelligent retention of multi-season garments matching incoming seasons, compact mini-card visualization, unsaved change guard (`canDeactivate`), laundry/ironing queue integrations, and outfit storage notifications.
-- ↕️ **Multi-Criteria Wardrobe Sorting Engine**: Sort clothes by addition date (newest/oldest), alphabetical name (A-Z/Z-A), wardrobe sequence hierarchy (tops to footwear), alphabetical type, smart seasonal relevance (current astronomical season prioritized), annual season cycle, tag codes, or laundry availability (clean items first). Integrated into the bottom floating dock with URL query param synchronization and local persistence.
+- ↕️ **Multi-Criteria Wardrobe Sorting & Real-Time Search**: Real-time free-text search matching garment names, brands, tag codes, and notes with an instant 1-click clear button (`✕`). Sort clothes by addition date (newest/oldest), alphabetical name (A-Z/Z-A), wardrobe sequence hierarchy (tops to footwear), alphabetical type, smart seasonal relevance (current astronomical season prioritized), annual season cycle, tag codes, or laundry availability (clean items first). Integrated into the bottom floating dock with URL query param synchronization and local persistence.
 - 🏷️ **Unique 3-Character Tag Code System**: Collision-free alphanumeric codes drawn from an unambiguous 30-character set (`23456789ABCDEFGHJKMNPQRSTVWXYZ`) excluding easily confused characters (`0`/`O`, `1`/`I`/`L`, and `U`), with real-time offline uniqueness verification against IndexedDB during typing in the editor (green/red styling and V/X status icons).
 - 🧺 **Laundry Queues (Washing & Ironing)**: Track clothes currently in the wash or waiting to be ironed. Move items atomically from washing to ironing with one click.
 - 📦 **Cumulative Items & Multi-Quantity Support**: Track stacks of identical clothing (e.g. 5 identical pairs of socks) with partial laundry allocation.
@@ -47,7 +47,9 @@ Traditional wardrobe apps often suffer from invasive cloud tracking, cluttered i
 - 📸 **High-Performance Media Pipeline**: Upload images up to 10MB. Powered by `sharp` with automatic EXIF orientation, responsive thumbnails, and progressive WebP compression. Guarantees deterministic primary photo selection (`sortOrder ASC`) across sync payloads, local IndexedDB storage, and wardrobe cards. Includes resilient editor recovery (partial upload failure preserves created garment, transitions editor to edit mode via `Location.replaceState`, displays pinpoint error causes, and allows immediate retry with "Aggiorna").
 - 🔄 **Bi-Directional Offline Synchronization**: Automatic reconciliation between local IndexedDB (`dressly_offline_v1`) and the server with field-level Last-Write-Wins (LWW) and tombstone tracking.
 - 📲 **Installable PWA**: Responsive mobile-first UI with safe-area insets, floating action docks with compact icon-only navigation on small viewports, custom Service Worker caching, and in-app update notifications.
-- 🗂️ **Personal Reference Data Management**: User-scoped catalogs for colors, brands, seasons, temperatures, occasions, fits, materials, types, rooms, locations, and custom tags.
+- 🗂️ **Personal Reference Data Management**: User-scoped catalogs for colors, brands, seasons, temperatures, occasions, fits, materials, types, rooms, locations, washing machine programs, detergents, and custom tags with alphabetical auto-sorting and drag-and-drop ordering.
+- 🧼 **Comprehensive Care Instructions & Tri-State Color Bleed**: Detailed washing instructions with washing machine program presets (temperature and spin speed), detergents (for machine and hand wash), optional washing notes, tri-state color bleed risk tracking (untested, safe, bleed risk), tumble drying, and multi-tier iron heat.
+- 🏷️ **Contextual Browser Page Titles**: Dedicated, descriptive browser `<title>` tags for every functional area and dynamic titles reflecting active garment and outfit names.
 
 ---
 
@@ -106,7 +108,7 @@ For comprehensive deep dives into each subsystem, explore the documentation suit
 | **PWA & Offline** | **Web Service Worker** | Custom `sw.js` with Network-First navigation and Stale-While-Revalidate assets |
 | **Frontend Testing** | **Vitest 4** | JSDOM test environment (`ng test --watch=false`) |
 | **Backend Framework** | **NestJS 12** | Express platform, modular controllers, decorators, and interceptors |
-| **ORM & Database** | **TypeORM & SQLite** | `typeorm` v1.1 + `better-sqlite3` v12 with WAL support |
+| **ORM & Database** | **TypeORM & SQLite** | `typeorm` v1.1 + `better-sqlite3` v13 with WAL support |
 | **Image Processing** | **Sharp** | High-performance C-libvips image transformations and WebP generation |
 | **Document Export** | **PDFKit** | Server-side vector PDF generation with automatic image resizing and clean typography |
 | **Archive & Backup** | **Adm-Zip** | Streaming ZIP archive packaging and transaction-safe multi-instance restore engine |
@@ -284,7 +286,7 @@ docker compose up -d --build
 
 ### Offline changes do not synchronize
 1. Ensure your browser is not in an ultra-strict private mode that completely disables IndexedDB.
-2. Look at the synchronization indicator badge in the top navigation bar. If in `conflict`, open the sync panel to review conflicting fields.
+2. Look at the synchronization indicator badge in the top navigation bar. If in `conflict` or `error`, open the sync dropdown to inspect the specific error cause (e.g. server error `502 Bad Gateway`) or conflicting fields.
 
 ---
 

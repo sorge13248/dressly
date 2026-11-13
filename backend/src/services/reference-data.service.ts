@@ -14,6 +14,8 @@ import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
 import { Room } from '../entities/room.entity';
 import { Location } from '../entities/location.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 
 export type ReferenceDataType =
   | 'colors'
@@ -26,9 +28,24 @@ export type ReferenceDataType =
   | 'types'
   | 'tags'
   | 'rooms'
-  | 'locations';
+  | 'locations'
+  | 'washing-programs'
+  | 'detergents';
 
-type EntityInstance = Color | Brand | Season | Temperature | UseCase | Fit | Material | Type | Tag | Room | Location;
+type EntityInstance =
+  | Color
+  | Brand
+  | Season
+  | Temperature
+  | UseCase
+  | Fit
+  | Material
+  | Type
+  | Tag
+  | Room
+  | Location
+  | WashingProgram
+  | Detergent;
 
 const entityMap: Record<ReferenceDataType, EntityTarget<EntityInstance>> = {
   colors: Color,
@@ -42,6 +59,8 @@ const entityMap: Record<ReferenceDataType, EntityTarget<EntityInstance>> = {
   tags: Tag,
   rooms: Room,
   locations: Location,
+  'washing-programs': WashingProgram,
+  detergents: Detergent,
 };
 
 @Injectable()
@@ -68,20 +87,35 @@ export class ReferenceDataService {
   }
 
   async listAll(user: AuthUser) {
-    const [colors, brands, seasons, temperatures, useCases, fits, materials, types, tags, rooms, locations] =
-      await Promise.all([
-        this.list('colors', user),
-        this.list('brands', user),
-        this.list('seasons', user),
-        this.list('temperatures', user),
-        this.list('use-cases', user),
-        this.list('fits', user),
-        this.list('materials', user),
-        this.list('types', user),
-        this.list('tags', user),
-        this.list('rooms', user),
-        this.list('locations', user),
-      ]);
+    const [
+      colors,
+      brands,
+      seasons,
+      temperatures,
+      useCases,
+      fits,
+      materials,
+      types,
+      tags,
+      rooms,
+      locations,
+      washingPrograms,
+      detergents,
+    ] = await Promise.all([
+      this.list('colors', user),
+      this.list('brands', user),
+      this.list('seasons', user),
+      this.list('temperatures', user),
+      this.list('use-cases', user),
+      this.list('fits', user),
+      this.list('materials', user),
+      this.list('types', user),
+      this.list('tags', user),
+      this.list('rooms', user),
+      this.list('locations', user),
+      this.list('washing-programs', user),
+      this.list('detergents', user),
+    ]);
 
     return {
       colors,
@@ -95,6 +129,8 @@ export class ReferenceDataService {
       tags,
       rooms,
       locations,
+      'washing-programs': washingPrograms,
+      detergents,
     };
   }
 
@@ -188,6 +224,38 @@ export class ReferenceDataService {
     if (type === 'colors' && body.hexCode !== undefined) payload.hexCode = body.hexCode === null ? null : String(body.hexCode).trim();
     if (type === 'brands' && body.logoUrl !== undefined) payload.logoUrl = body.logoUrl === null ? null : String(body.logoUrl).trim();
     if ((type === 'seasons' || type === 'temperatures' || type === 'use-cases') && body.icon !== undefined) payload.icon = body.icon === null ? null : String(body.icon).trim();
+
+    if (type === 'washing-programs') {
+      if (body.temperature !== undefined) {
+        if (body.temperature === null || body.temperature === '') {
+          payload.temperature = null;
+        } else {
+          const tempNum = Number(body.temperature);
+          if (Number.isNaN(tempNum) || tempNum < 0 || tempNum > 95) {
+            throw new BadRequestException('temperature must be a number between 0 and 95');
+          }
+          payload.temperature = Math.round(tempNum);
+        }
+      }
+      const rawSpin = body.spinSpeed !== undefined ? body.spinSpeed : body.spin_speed;
+      if (rawSpin !== undefined) {
+        if (rawSpin === null || rawSpin === '') {
+          payload.spinSpeed = null;
+        } else {
+          const spinNum = Number(rawSpin);
+          if (Number.isNaN(spinNum) || spinNum < 0) {
+            throw new BadRequestException('spinSpeed must be a number >= 0');
+          }
+          payload.spinSpeed = Math.round(spinNum);
+        }
+      }
+    }
+
+    if (type === 'detergents') {
+      if (body.description !== undefined) {
+        payload.description = body.description === null ? null : String(body.description).trim();
+      }
+    }
 
     if (type === 'locations') {
       const rawRoomId = body.roomId !== undefined ? body.roomId : body.room_id;

@@ -41,7 +41,7 @@ graph LR
 | `laundry` | `key` (`washing` or `ironing`) | — | Local queues of items currently in laundry |
 | `outfits` | `id` | — | Local replica of outfits and 2D canvas layouts |
 | `sync_queue` | `id` | — | Queue of pending mutations waiting for network transmission |
-| `meta` | `key` | — | Metadata: `lastSyncAt`, `lastSyncStatus`, and conflict history |
+| `meta` | `key` | — | Metadata: `lastSyncAt`, `lastSyncStatus`, `lastSyncError`, and conflict history |
 
 ### In-Memory Fallback
 If IndexedDB is inaccessible (e.g. strict private browsing modes, disabled browser permissions, or test runners like Vitest), `OfflineStorageService` seamlessly falls back to an internal in-memory JavaScript `Map` store to ensure non-blocking UI behavior.
@@ -175,11 +175,20 @@ The frontend `SyncService` maintains real-time synchronization state via Angular
 
 | Signal / Computed | Type | Description |
 | :--- | :--- | :--- |
-| `status` | `Signal<SyncStatus>` | `'online-ok'` \| `'syncing'` \| `'conflict'` \| `'offline'` |
+| `status` | `Signal<SyncStatus>` | `'online-ok'` \| `'syncing'` \| `'conflict'` \| `'offline'` \| `'error'` |
+| `lastError` | `Signal<string \| null>` | Formatted diagnostic reason for the last synchronization failure (e.g. `Errore del server (502 Bad Gateway)`) |
 | `isOnline` | `Signal<boolean>` | Hardware network connectivity status |
+| `isSyncing` | `Signal<boolean>` | Computed boolean indicating active synchronization execution |
+| `isError` | `Signal<boolean>` | Computed boolean indicating an active synchronization/HTTP error |
+| `isConflict` | `Signal<boolean>` | Computed boolean indicating unresolved concurrent data conflicts |
+| `isOffline` | `Signal<boolean>` | Computed boolean indicating offline connectivity |
+| `isOk` | `Signal<boolean>` | Computed boolean indicating clean online synchronized state |
 | `pendingCount` | `Signal<number>` | Number of mutations currently waiting in `sync_queue` |
 | `lastSyncTime` | `Signal<Date \| null>` | Timestamp of the last successful synchronization |
 | `conflicts` | `Signal<SyncConflict[]>`| Unresolved or informational conflict records |
+
+### Error and Conflict Differentiation
+When synchronization encounters HTTP or infrastructure failures (such as `502 Bad Gateway`, `503 Service Unavailable`, `500 Internal Server Error`, or `401/403` authentication expiration), `SyncService` captures the specific HTTP status and diagnostic message into `lastError` and sets `status` to `'error'`. The top navigation sync pill immediately displays the red error state icon, eliminating transient false-positive completion indicators, while tooltips and dropdown banners clearly indicate the actual error cause (e.g. `Errore del server (502 Bad Gateway)`) rather than conflating server errors with data-level concurrency conflicts (`'conflict'`).
 
 ### Connection Health Probing
 When the browser enters an offline state, `SyncService` starts an active health-probing timer against `GET /health` with exponential fallback. When the endpoint answers with `200 OK`, `markOnline()` triggers an immediate queue drain and synchronization cycle.

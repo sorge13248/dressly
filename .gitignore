@@ -8,9 +8,14 @@ coverage
 .env
 backend/*.sqlite
 backend/*.sqlite-journal
+backend/*.sqlite-wal
+backend/*.sqlite-shm
 backend/dist
 backend/uploads
 frontend/dist
 frontend/.angular
 frontend/.vite
 dressly.sqlite
+dressly.sqlite-wal
+dressly.sqlite-shm
+dressly.sqlite-journal

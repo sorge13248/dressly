@@ -48,6 +48,44 @@
       </label>
     }
 
+    @if (data.isWashingProgram) {
+      <label>
+        <span>Temperatura (°C)</span>
+        <input
+          [formField]="modalForm.temperature"
+          type="number"
+          placeholder="es. 40 (0 per lavaggio a freddo)"
+          [class.field-error]="showError(modalForm.temperature())"
+        />
+        @if (showError(modalForm.temperature())) {
+          <small class="field-error-text">{{ firstError(modalForm.temperature()) }}</small>
+        }
+      </label>
+
+      <label>
+        <span>Centrifuga (giri/min)</span>
+        <input
+          [formField]="modalForm.spinSpeed"
+          type="number"
+          placeholder="es. 1000 (0 per nessuna centrifuga)"
+          [class.field-error]="showError(modalForm.spinSpeed())"
+        />
+        @if (showError(modalForm.spinSpeed())) {
+          <small class="field-error-text">{{ firstError(modalForm.spinSpeed()) }}</small>
+        }
+      </label>
+    }
+
+    @if (data.isDetergent) {
+      <label>
+        <span>Descrizione</span>
+        <input
+          [formField]="modalForm.description"
+          placeholder="es. Per capi colorati e delicati"
+        />
+      </label>
+    }
+
     @if (!data.hideExtra) {
       <label>
         <span>{{ data.extraLabel }}</span>

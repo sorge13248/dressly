@@ -5,18 +5,20 @@ import {
   inject,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { TitleStrategy, provideRouter } from '@angular/router';
 import { DEFAULT_DIALOG_CONFIG, DIALOG_SCROLL_STRATEGY, DialogConfig } from '@angular/cdk/dialog';
 import { Overlay } from '@angular/cdk/overlay';
 
 import { authInterceptor } from './core/auth.interceptor';
 import { routes } from './app.routes';
 import { ModalScrollLockService } from './core/modal-scroll-lock.service';
+import { AppTitleStrategy } from './core/title.strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    { provide: TitleStrategy, useClass: AppTitleStrategy },
     provideHttpClient(withInterceptors([authInterceptor])),
     {
       provide: ENVIRONMENT_INITIALIZER,

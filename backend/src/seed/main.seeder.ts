@@ -9,6 +9,8 @@ import { Temperature } from '../entities/temperature.entity';
 import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
 import { User } from '../entities/user.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { defaultReferenceSeeds } from './default-reference-data';
 
 export class MainSeeder implements Seeder {
@@ -45,6 +47,8 @@ export class MainSeeder implements Seeder {
     await this.seedIfEmpty(dataSource.getRepository(Fit), userId, defaultReferenceSeeds.fits);
     await this.seedIfEmpty(dataSource.getRepository(Material), userId, defaultReferenceSeeds.materials);
     await this.seedIfEmpty(dataSource.getRepository(Type), userId, defaultReferenceSeeds.types);
+    await this.seedIfEmpty(dataSource.getRepository(WashingProgram), userId, defaultReferenceSeeds.washingPrograms);
+    await this.seedIfEmpty(dataSource.getRepository(Detergent), userId, defaultReferenceSeeds.detergents);
   }
 
   private async seedIfEmpty<T extends { userId: string }>(

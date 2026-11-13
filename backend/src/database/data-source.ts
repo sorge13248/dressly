@@ -23,6 +23,8 @@ import { IroningItem } from '../entities/ironing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { Room } from '../entities/room.entity';
 import { Location } from '../entities/location.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 
 export const AppDataSource = new DataSource({
   type: 'better-sqlite3',
@@ -50,9 +52,16 @@ export const AppDataSource = new DataSource({
     Room,
     Location,
     SyncTombstone,
+    WashingProgram,
+    Detergent,
   ],
   synchronize: process.env.DB_SYNCHRONIZE !== 'false',
   logging: process.env.DB_LOGGING === 'true',
+  prepareDatabase: (db: any) => {
+    db.pragma('journal_mode = WAL');
+    db.pragma('synchronous = NORMAL');
+    db.pragma('foreign_keys = ON');
+  },
 });
 
 export default AppDataSource;

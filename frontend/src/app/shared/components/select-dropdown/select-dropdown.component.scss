@@ -13,17 +13,29 @@
   border: 1px solid rgba(100, 140, 210, 0.45);
   background: rgba(255, 255, 255, 0.9);
   color: var(--text);
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 8px;
+  display: flex;
   align-items: center;
-  padding: 3px 10px;
+  gap: 6px;
+  padding: 3px 22px 3px 10px;
   cursor: pointer;
   text-align: left;
   font-size: 0.92rem;
+  box-sizing: border-box;
+  user-select: none;
+  position: relative;
+
+  &.has-clear {
+    padding-right: 44px;
+  }
 }
 
 .trigger.open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(30, 109, 207, 0.2);
+  outline: none;
+}
+
+.trigger:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(30, 109, 207, 0.2);
   outline: none;
@@ -36,7 +48,7 @@
 }
 
 .trigger-label {
-  grid-column: 1;
+  flex-shrink: 0;
   color: var(--muted);
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -44,18 +56,62 @@
 }
 
 .trigger-value {
-  grid-column: 2;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 400;
+
+  &.is-placeholder {
+    color: var(--muted);
+  }
 }
 
 .trigger-arrow {
-  grid-column: 3;
-  justify-self: end;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--muted);
   font-size: 0.8rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.trigger-clear {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 120ms ease;
+
+  .clear-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  &:hover {
+    color: var(--danger, #c03040);
+    background: rgba(192, 48, 64, 0.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent, #1e6dcf);
+    outline-offset: 1px;
+  }
 }
 
 .panel {
@@ -156,6 +212,26 @@
   height: 12px;
   border-radius: 2px;
   border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.clear-option {
+  color: #a02030;
+  font-weight: 500;
+  border-bottom: 1px dashed rgba(160, 32, 48, 0.2);
+  margin-bottom: 2px;
+
+  &:hover {
+    background: rgba(192, 48, 64, 0.1);
+    color: #c03040;
+  }
+
+  .clear-icon-badge {
+    font-size: 0.82rem;
+    font-weight: 700;
+    width: 14px;
+    text-align: center;
+    color: inherit;
+  }
 }
 
 .text {

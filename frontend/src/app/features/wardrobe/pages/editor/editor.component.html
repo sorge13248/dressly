@@ -55,7 +55,7 @@
                     (selectedIdChange)="setSelectValue(wizardForm.base.type_id, $event)"
                   />
                 </label>
-                <label class="field-brand">
+                <div class="field-brand">
                   <span>Brand</span>
                   <div class="inline-select-add">
                     <app-select-dropdown
@@ -83,7 +83,7 @@
                       fieldError(wizardForm.base.brand_id(), 'Il brand è obbligatorio')
                     }}</small>
                   }
-                </label>
+                </div>
                 <label class="field-size">
                   <span>Taglia</span>
                   <input
@@ -147,6 +147,7 @@
                     placeholder="Seleziona stato"
                     [options]="statusOptions"
                     [selectedId]="wizardForm.base.status().value()"
+                    [clearable]="false"
                     (selectedIdChange)="setSelectValue(wizardForm.base.status, $event)"
                   />
                 </label>
@@ -359,21 +360,25 @@
                     <app-select-dropdown
                       [options]="washTypeOptions"
                       [selectedId]="wizardForm.care.washing.wash_type().value()"
+                      [clearable]="false"
                       (selectedIdChange)="setWashType($event)"
                     />
                   </label>
+                  @if (wizardForm.care.washing.wash_type().value() === 'washer_ok') {
+                    <label>
+                      <span>Programma lavatrice</span>
+                      <app-select-dropdown
+                        [options]="washingProgramDropdownOptions()"
+                        [selectedId]="wizardForm.care.washing.washing_program_id().value() ?? ''"
+                        placeholder="Seleziona"
+                        (selectedIdChange)="onWashingProgramChange($event)"
+                      />
+                    </label>
+                  }
                 </div>
 
                 @if (isWashingDetailsEnabled()) {
                   <div class="field-grid compact">
-                    <label>
-                      <span>Sbianca</span>
-                      <app-select-dropdown
-                        [options]="bleachTypeOptions"
-                        [selectedId]="wizardForm.care.washing.bleach_type().value()"
-                        (selectedIdChange)="setSelectValue(wizardForm.care.washing.bleach_type, $event)"
-                      />
-                    </label>
                     @if (isWashingTemperatureRequired()) {
                       <label>
                         <span>Temperatura lavaggio *</span>
@@ -397,6 +402,23 @@
                       </label>
                     }
                     <label>
+                      <span>Detersivo</span>
+                      <app-select-dropdown
+                        [options]="detergentDropdownOptions()"
+                        [selectedId]="wizardForm.care.washing.detergent_id().value() ?? ''"
+                        placeholder="Seleziona"
+                        (selectedIdChange)="onDetergentChange($event)"
+                      />
+                    </label>
+                    <label>
+                      <span>Sbianca</span>
+                      <app-select-dropdown
+                        [options]="bleachTypeOptions"
+                        [selectedId]="wizardForm.care.washing.bleach_type().value()"
+                        (selectedIdChange)="setSelectValue(wizardForm.care.washing.bleach_type, $event)"
+                      />
+                    </label>
+                    <label>
                       <span>Temperatura test perdita colore</span>
                       <input
                         type="number"
@@ -413,6 +435,14 @@
                           )
                         }}</small>
                       }
+                    </label>
+                    <label class="full-width notes-field">
+                      <span>Note lavaggio</span>
+                      <textarea
+                        rows="2"
+                        placeholder="Note o istruzioni speciali per il lavaggio..."
+                        [formField]="wizardForm.care.washing.notes"
+                      ></textarea>
                     </label>
                   </div>
 
@@ -467,11 +497,20 @@
                     </button>
                     <button
                       type="button"
-                      class="chip"
-                      [class.active]="wizardForm.care.washing.color_loss().value()"
-                      (click)="toggleBoolean(wizardForm.care.washing.color_loss)"
+                      class="chip chip-color-loss"
+                      [class.color-loss-null]="wizardForm.care.washing.color_loss().value() === null"
+                      [class.color-loss-safe]="wizardForm.care.washing.color_loss().value() === 0"
+                      [class.color-loss-warn]="wizardForm.care.washing.color_loss().value() === 1"
+                      (click)="cycleColorLoss()"
+                      title="Clicca per cambiare: Non testato -> Non perde colore -> Perde colore"
                     >
-                      Perde colore
+                      @if (wizardForm.care.washing.color_loss().value() === null) {
+                        <span>⚪ Perde colore: Non testato</span>
+                      } @else if (wizardForm.care.washing.color_loss().value() === 0) {
+                        <span>🛡️ Perde colore: No</span>
+                      } @else {
+                        <span>⚠️ Perde colore: Sì</span>
+                      }
                     </button>
                   </div>
                 }
@@ -557,6 +596,7 @@
                     <app-select-dropdown
                       [options]="ironingTypeOptions"
                       [selectedId]="wizardForm.care.ironing.iron_type().value()"
+                      [clearable]="false"
                       (selectedIdChange)="onIronTypeChange($event)"
                     />
                   </label>

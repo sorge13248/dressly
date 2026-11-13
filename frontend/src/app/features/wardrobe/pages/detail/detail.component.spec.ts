@@ -42,7 +42,7 @@ describe('WardrobeDetailPageComponent', () => {
         similarColors: true,
         washSeparately: false,
         useColorCatcher: false,
-        colorLossRisk: false,
+        colorLossRisk: null,
       },
       ironingInstruction: {
         ironType: 'yes',
@@ -99,6 +99,69 @@ describe('WardrobeDetailPageComponent', () => {
     expect(washSection).toBeDefined();
     const tempSpec = washSection?.specs.find((s) => s.label === 'Temperatura');
     expect(tempSpec).toEqual({ label: 'Temperatura', value: 'Lavaggio a freddo' });
+  });
+
+  it('should render washingProgram, detergent, and color loss tri-state tags', () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    // Test bleeding color with test temp
+    comp.item.set({
+      id: 'test-wash-prog',
+      userId: 'user-1',
+      name: 'Maglione Lana',
+      size: 'L',
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      washingInstruction: {
+        washType: 'washer_ok',
+        washingProgram: {
+          id: 'prog-1',
+          userId: 'user-1',
+          name: 'Lana',
+          temperature: 20,
+          spinSpeed: 400,
+          sortOrder: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        detergent: {
+          id: 'det-1',
+          userId: 'user-1',
+          name: 'Lana e delicati',
+          description: 'Sapone neutro',
+          sortOrder: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        colorLossRisk: 1,
+        colorLossTestTemperature: 30,
+      },
+    });
+
+    let sections = comp.careSections();
+    let washSection = sections.find((s) => s.title === 'Lavaggio');
+    expect(washSection?.specs).toContainEqual({ label: 'Programma', value: 'Lana (20°, 400 giri)' });
+    expect(washSection?.specs).toContainEqual({ label: 'Detersivo', value: 'Lana e delicati (Sapone neutro)' });
+    expect(washSection?.tags).toContainEqual({ label: 'Perde colore (test: 30°C)', warn: true });
+
+    // Test non-bleeding color (0)
+    comp.item.update((item) =>
+      item
+        ? {
+            ...item,
+            washingInstruction: {
+              ...item.washingInstruction,
+              colorLossRisk: 0,
+              colorLossTestTemperature: null,
+            },
+          }
+        : null,
+    );
+    sections = comp.careSections();
+    washSection = sections.find((s) => s.title === 'Lavaggio');
+    expect(washSection?.tags).toContainEqual({ label: 'Non perde colore' });
   });
 
   it('should use ✅ and ❌ emojis for Asciugatrice spec', () => {

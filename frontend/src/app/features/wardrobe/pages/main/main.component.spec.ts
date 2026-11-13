@@ -12,7 +12,30 @@ import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-s
 import { LocationSelectModalComponent } from '../../components/location-select-modal/location-select-modal.component';
 
 describe('WardrobePageComponent', () => {
+  const storageMock: Record<string, string> = {};
+  const mockLocalStorage = {
+    getItem: (key: string) => storageMock[key] ?? null,
+    setItem: (key: string, value: string) => {
+      storageMock[key] = String(value);
+    },
+    removeItem: (key: string) => {
+      delete storageMock[key];
+    },
+    clear: () => {
+      for (const k of Object.keys(storageMock)) {
+        delete storageMock[k];
+      }
+    },
+  };
+
   beforeEach(async () => {
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+      configurable: true,
+    });
+    mockLocalStorage.clear();
+
     await TestBed.configureTestingModule({
       imports: [WardrobePageComponent, RouterTestingModule],
     }).compileComponents();
@@ -126,6 +149,30 @@ describe('WardrobePageComponent', () => {
     const newDressBtn = fixture.nativeElement.querySelector('.search-banner a.primary');
     expect(newDressBtn).not.toBeNull();
     expect(newDressBtn?.textContent).toContain('Nuovo vestito');
+  });
+
+  it('should toggle search-clear-btn based on search input value and clear on click', () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    vi.spyOn(component, 'load').mockImplementation(async () => {});
+    fixture.detectChanges();
+
+    const clearBtnInitial = fixture.nativeElement.querySelector('.search-clear-btn');
+    expect(clearBtnInitial).toBeNull();
+
+    component.searchForm.text().value.set('camicia');
+    fixture.detectChanges();
+
+    const clearBtn = fixture.nativeElement.querySelector('.search-clear-btn') as HTMLButtonElement;
+    expect(clearBtn).not.toBeNull();
+    expect(clearBtn.getAttribute('aria-label')).toBe('Cancella ricerca');
+
+    clearBtn.click();
+    fixture.detectChanges();
+
+    expect(component.searchForm.text().value()).toBe('');
+    expect(component.debouncedSearch()).toBe('');
+    expect(fixture.nativeElement.querySelector('.search-clear-btn')).toBeNull();
   });
 
   it('should render filters sidebar with filters-sidebar class inside layout-grid', () => {

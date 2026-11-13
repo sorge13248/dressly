@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { Dialog } from '@angular/cdk/dialog';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -53,6 +54,7 @@ export class WardrobeDetailPageComponent implements OnInit {
   private readonly syncService = inject(SyncService, { optional: true });
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
+  private readonly titleService = inject(Title);
   readonly laundryService = inject(LaundryService);
 
   readonly loading = signal(true);
@@ -63,6 +65,14 @@ export class WardrobeDetailPageComponent implements OnInit {
   private initialLoaded = false;
 
   constructor() {
+    effect(() => {
+      const current = this.item();
+      if (current) {
+        const clothTitle = this.title();
+        this.titleService.setTitle(`${clothTitle} - Dressly`);
+      }
+    });
+
     const sync = this.syncService;
     if (sync) {
       effect(() => {
@@ -101,6 +111,14 @@ export class WardrobeDetailPageComponent implements OnInit {
     if (washType) {
       washSpecs.push({ label: 'Tipo', value: washType });
     }
+    if (wash?.washingProgram) {
+      const prog = wash.washingProgram;
+      const parts: string[] = [];
+      if (prog.temperature) parts.push(`${prog.temperature}°`);
+      if (prog.spinSpeed != null) parts.push(`${prog.spinSpeed} giri`);
+      const progSpec = parts.length ? `${prog.name} (${parts.join(', ')})` : prog.name;
+      washSpecs.push({ label: 'Programma', value: progSpec });
+    }
     const rawWashTemp = wash?.temperature ?? wash?.washing_temperature;
     let washTemp: string | null = null;
     if (rawWashTemp !== null && rawWashTemp !== undefined && rawWashTemp !== '') {
@@ -109,9 +127,17 @@ export class WardrobeDetailPageComponent implements OnInit {
     if (washTemp) {
       washSpecs.push({ label: 'Temperatura', value: washTemp });
     }
+    if (wash?.detergent) {
+      const det = wash.detergent;
+      const detSpec = det.description ? `${det.name} (${det.description})` : det.name;
+      washSpecs.push({ label: 'Detersivo', value: detSpec });
+    }
     const bleach = this.labelBleachType(wash?.bleachType ?? wash?.bleach_type);
     if (bleach) {
       washSpecs.push({ label: 'Sbianca', value: bleach });
+    }
+    if (wash?.notes?.trim()) {
+      washSpecs.push({ label: 'Note', value: wash.notes.trim() });
     }
 
     const washTags: CareTag[] = [];
@@ -134,13 +160,17 @@ export class WardrobeDetailPageComponent implements OnInit {
       washTags.push({ label: 'Stretch' });
     }
 
-    const colorLoss = wash?.colorLossRisk ?? wash?.color_loss;
+    const rawColorLoss = wash?.colorLossRisk ?? wash?.color_loss;
     const colorTestTemp = wash?.colorLossTestTemperature ?? wash?.color_loss_test_temperature;
-    if (colorLoss) {
-      const testTempStr = this.appendDegrees(colorTestTemp);
+    const testTempStr = this.appendDegrees(colorTestTemp);
+    if (rawColorLoss === 1 || (rawColorLoss as unknown) === true) {
       washTags.push({
         label: testTempStr ? `Perde colore (test: ${testTempStr})` : 'Perde colore',
         warn: true,
+      });
+    } else if (rawColorLoss === 0 || (rawColorLoss as unknown) === false) {
+      washTags.push({
+        label: testTempStr ? `Non perde colore (test: ${testTempStr})` : 'Non perde colore',
       });
     } else if (colorTestTemp) {
       washSpecs.push({

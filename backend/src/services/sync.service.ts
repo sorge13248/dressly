@@ -47,6 +47,8 @@ const REFERENCE_KINDS: ReferenceDataType[] = [
   'tags',
   'rooms',
   'locations',
+  'washing-programs',
+  'detergents',
 ];
 
 function toPlainObject(value: unknown): Record<string, unknown> | null {
@@ -1009,7 +1011,19 @@ export class SyncService {
             similarColors: Boolean(raw['similarColors']),
             washSeparately: Boolean(raw['washSeparately']),
             useColorCatcher: Boolean(raw['useColorCatcher']),
-            colorLossRisk: Boolean(raw['colorLossRisk']),
+            washingProgramId: raw['washingProgramId'] ? String(raw['washingProgramId']) : null,
+            detergentId: raw['detergentId'] ? String(raw['detergentId']) : null,
+            colorLossRisk:
+              raw['colorLossRisk'] === null || raw['colorLossRisk'] === undefined || raw['colorLossRisk'] === ''
+                ? null
+                : raw['colorLossRisk'] === 1 || raw['colorLossRisk'] === true || raw['colorLossRisk'] === '1'
+                  ? 1
+                  : 0,
+            colorLossTestTemperature:
+              raw['colorLossTestTemperature'] !== null && raw['colorLossTestTemperature'] !== undefined && raw['colorLossTestTemperature'] !== ''
+                ? Number(raw['colorLossTestTemperature'])
+                : null,
+            notes: raw['notes'] ? String(raw['notes']).trim() : null,
           });
           if (clothes.washingInstruction?.id) {
             inst.id = clothes.washingInstruction.id;

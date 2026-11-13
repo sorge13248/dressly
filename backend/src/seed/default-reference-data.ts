@@ -160,4 +160,21 @@ export const defaultReferenceSeeds = {
     'Ciabatte',
     'Infradito',
   ].map((name) => ({ name })),
+  washingPrograms: [
+    { name: 'Cotone 40°', temperature: 40, spinSpeed: 1000, sortOrder: 1 },
+    { name: 'Cotone 60°', temperature: 60, spinSpeed: 1200, sortOrder: 2 },
+    { name: 'Sintetici 30°', temperature: 30, spinSpeed: 800, sortOrder: 3 },
+    { name: 'Delicati / Seta 30°', temperature: 30, spinSpeed: 600, sortOrder: 4 },
+    { name: 'Lana / A mano 20°', temperature: 20, spinSpeed: 400, sortOrder: 5 },
+    { name: 'Rapido 30 min', temperature: 30, spinSpeed: 800, sortOrder: 6 },
+    { name: 'Eco 40-60', temperature: 40, spinSpeed: 1200, sortOrder: 7 },
+    { name: 'Lavaggio a freddo', temperature: 0, spinSpeed: 800, sortOrder: 8 },
+  ],
+  detergents: [
+    { name: 'Universale liquido', description: 'Per bucato quotidiano e capi misti', sortOrder: 1 },
+    { name: 'Capi colorati', description: 'Protegge la brillantezza dei colori e previene il trasferimento', sortOrder: 2 },
+    { name: 'Lana e delicati', description: 'Formula delicata a pH neutro per lana, seta e sintetici fini', sortOrder: 3 },
+    { name: 'Capi scuri e neri', description: 'Previene lo sbiadimento dei colori scuri e jeans', sortOrder: 4 },
+    { name: 'In polvere per bianchi', description: 'Azione sbiancante e igienizzante per cotone bianco', sortOrder: 5 },
+  ],
 } as const;

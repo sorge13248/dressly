@@ -1,6 +1,7 @@
 import { Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Dialog } from '@angular/cdk/dialog';
@@ -652,5 +653,59 @@ describe('WardrobeWizardPageComponent', () => {
       expect(failPhoto?.uploadFailed).toBe(true);
       expect(failPhoto?.errorMessage).toContain('Errore interno del server');
     });
+  });
+
+  it('should not open create brand modal when clicking brand dropdown trigger', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const openModalSpy = vi.spyOn(comp, 'openCreateBrandModal');
+    const brandDropdown = fixture.nativeElement.querySelector('.field-brand app-select-dropdown');
+    const trigger = brandDropdown?.querySelector('.trigger') as HTMLButtonElement;
+    expect(trigger).not.toBeNull();
+
+    trigger.click();
+    fixture.detectChanges();
+
+    expect(openModalSpy).not.toHaveBeenCalled();
+  });
+
+  it('should set title to "Nuovo capo - Dressly" in creation mode and "Modifica [Nome] - Dressly" in edit mode', () => {
+    const fixture = TestBed.createComponent(WardrobeWizardPageComponent);
+    const comp = fixture.componentInstance;
+    const titleService = TestBed.inject(Title);
+    fixture.detectChanges();
+
+    expect(titleService.getTitle()).toBe('Nuovo capo - Dressly');
+
+    // Simulate edit mode with loaded cloth having a manual name
+    comp.editingId.set('cloth-1');
+    comp.wizardForm.base.name().value.set('Maglione Kashmir');
+    comp.loadedCloth.set({
+      id: 'cloth-1',
+      userId: 'u1',
+      name: 'Maglione Kashmir',
+      code: 'MK1',
+      size: 'L',
+      notes: null,
+      fullTitle: 'Maglione Ralph Lauren Navy',
+    } as any);
+    TestBed.flushEffects();
+    expect(titleService.getTitle()).toBe('Modifica Maglione Kashmir - Dressly');
+
+    // If manual name is cleared, falls back to fullTitle
+    comp.wizardForm.base.name().value.set('');
+    comp.loadedCloth.set({
+      id: 'cloth-1',
+      userId: 'u1',
+      name: null,
+      code: 'MK1',
+      size: 'L',
+      notes: null,
+      fullTitle: 'Maglione Ralph Lauren Navy',
+    } as any);
+    TestBed.flushEffects();
+    expect(titleService.getTitle()).toBe('Modifica Maglione Ralph Lauren Navy - Dressly');
   });
 });

@@ -17,8 +17,9 @@ describe('SyncIndicatorComponent', () => {
   const mockConflicts = signal<SyncConflict[]>([]);
   const mockIsOnline = signal<boolean>(true);
   const mockLastSyncTime = signal<Date | null>(new Date('2026-11-01T15:30:00Z'));
-  const mockSync = vi.fn().mockResolvedValue(null);
-  const mockDownloadServerVersion = vi.fn().mockResolvedValue(null);
+  const mockLastError = signal<string | null>(null);
+  const mockSync = vi.fn().mockResolvedValue({ status: 'ok', serverTime: '2026-11-01T15:30:00Z' });
+  const mockDownloadServerVersion = vi.fn().mockResolvedValue({ status: 'ok', serverTime: '2026-11-01T15:30:00Z' });
 
   const mockSyncService = {
     status: mockStatus,
@@ -26,6 +27,7 @@ describe('SyncIndicatorComponent', () => {
     conflicts: mockConflicts,
     isOnline: mockIsOnline,
     lastSyncTime: mockLastSyncTime,
+    lastError: mockLastError,
     sync: mockSync,
     downloadServerVersion: mockDownloadServerVersion,
   };
@@ -46,8 +48,11 @@ describe('SyncIndicatorComponent', () => {
     mockConflicts.set([]);
     mockIsOnline.set(true);
     mockLastSyncTime.set(new Date('2026-11-01T15:30:00Z'));
-    mockSync.mockClear();
-    mockDownloadServerVersion.mockClear();
+    mockLastError.set(null);
+    mockSync.mockReset();
+    mockSync.mockResolvedValue({ status: 'ok', serverTime: '2026-11-01T15:30:00Z' });
+    mockDownloadServerVersion.mockReset();
+    mockDownloadServerVersion.mockResolvedValue({ status: 'ok', serverTime: '2026-11-01T15:30:00Z' });
     mockDialog.open.mockClear();
     mockToast.success.mockClear();
     mockToast.error.mockClear();
@@ -104,6 +109,52 @@ describe('SyncIndicatorComponent', () => {
     const conflictIcon = fixture.nativeElement.querySelector('.icon-conflict');
     expect(conflictIcon).toBeTruthy();
     expect(component.tooltip()).toContain('Conflitto di sincronizzazione!');
+  });
+
+  it('should render red error icon and show specific error message when status is error', () => {
+    mockStatus.set('error');
+    mockLastError.set('Errore del server (502 Bad Gateway)');
+    fixture.detectChanges();
+
+    const errorIcon = fixture.nativeElement.querySelector('.icon-error');
+    expect(errorIcon).toBeTruthy();
+    expect(component.tooltip()).toContain('Errore del server (502 Bad Gateway)');
+    expect(component.statusLabel()).toBe('Errore del server (502 Bad Gateway)');
+
+    component.dropdownOpen.set(true);
+    fixture.detectChanges();
+
+    const banner = fixture.nativeElement.querySelector('.sync-error-banner');
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain('Errore del server (502 Bad Gateway)');
+  });
+
+  it('should immediately show error icon and not display checkmark when onSyncNow encounters an error', async () => {
+    mockSync.mockImplementation(async () => {
+      mockStatus.set('error');
+      mockLastError.set('Errore del server (502 Bad Gateway)');
+      return null;
+    });
+
+    await component.onSyncNow();
+    fixture.detectChanges();
+
+    expect(component.showSuccessCheckmark()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.icon-success-check')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.icon-error')).toBeTruthy();
+    expect(mockToast.error).toHaveBeenCalledWith('Errore del server (502 Bad Gateway)');
+    expect(mockToast.success).not.toHaveBeenCalled();
+  });
+
+  it('should cancel checkmark if status changes to error', () => {
+    component.showSuccessCheckmark.set(true);
+    fixture.detectChanges();
+
+    mockStatus.set('error');
+    fixture.detectChanges();
+
+    expect(component.showSuccessCheckmark()).toBe(false);
+    expect(fixture.nativeElement.querySelector('.icon-error')).toBeTruthy();
   });
 
   it('should toggle dropdown when clicking sync pill', () => {

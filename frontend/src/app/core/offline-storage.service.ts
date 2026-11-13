@@ -28,6 +28,7 @@ const STORE_META = 'meta';
 export interface StorageMetadata {
   lastSyncAt: string | null;
   lastSyncStatus: SyncStatus;
+  lastSyncError?: string | null;
   conflicts: SyncConflict[];
 }
 
@@ -100,6 +101,7 @@ export class OfflineStorageService {
     meta: {
       lastSyncAt: null as string | null,
       lastSyncStatus: 'online-ok' as SyncStatus,
+      lastSyncError: null as string | null,
       conflicts: [] as SyncConflict[],
     },
   };
@@ -297,6 +299,8 @@ export class OfflineStorageService {
       'tags',
       'rooms',
       'locations',
+      'washing-programs',
+      'detergents',
     ];
     const result: Record<string, BaseReferenceItem[]> = {};
     for (const kind of kinds) {
@@ -930,6 +934,7 @@ export class OfflineStorageService {
             resolve({
               lastSyncAt: req.result.lastSyncAt ?? null,
               lastSyncStatus: req.result.lastSyncStatus ?? 'online-ok',
+              lastSyncError: req.result.lastSyncError ?? null,
               conflicts: req.result.conflicts ?? [],
             });
           } else {

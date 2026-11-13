@@ -69,6 +69,24 @@ When creating or editing a garment with photo attachments in the wardrobe wizard
   - An inline error callout banner (`.photo-errors-callout`) on Step 5 enumerates each failed photo by name alongside its precise cause.
 - **Immediate Retry or Removal**: The user can delete the failing photo with the `✕` button or immediately retry uploading all remaining pending items by clicking `"Aggiorna"`.
 
+### 1.7. Custom Dropdowns with Selection Clearance in Wizard Editor
+Throughout the clothing wizard editor (`/wardrobe/new` and `/wardrobe/:id/edit`), optional garment properties (brand, fit, garment type, storage location, care parameters) utilize custom selection dropdowns (`app-select-dropdown`) with full cancellation capability:
+- **Direct Trigger Clear Button**: As soon as a brand, fit, or location is selected, an inline circular clear button (`✕`, `title="Annulla selezione"`) appears on the right edge of the combobox trigger. Clicking it clears the selection with 1 click without opening the dropdown overlay.
+- **In-Panel Selection Cancellation**: Users who open the dropdown can cancel their selection by clicking the currently highlighted option to toggle it off, or by selecting the dedicated `"Nessun brand"`, `"Nessun fit"`, `"Nessun tipo"`, or `"Nessuna posizione"` entry in the list.
+- **Keyboard Deselection**: Pressing `Backspace` or `Delete` while the trigger is focused instantly resets the field to empty.
+- **Form State Compatibility**: Deselecting sets the form model value to `''`, which is automatically normalized to `null` in the API persistence payload (`brand_id || null`, `fit_id || null`, `type_id || null`, `location_id || null`).
+
+### 1.8. Washing Machine Programs, Detergents & Tri-State Color Bleed
+- **Washing Programs Domain**: The `washing-programs` reference domain configures washing machine presets with name, temperature (validated 0-95°C), and spin speed (`centrifuga`, numeric $\ge 0$ rpm). In the wizard editor, selecting a preset automatically hides and clears the manual free temperature input.
+- **Detergents Domain**: The `detergents` reference domain configures detergents and specialized cleaning agents with name and descriptive usage guidelines. The detergent selector is available for both machine wash and hand wash. Both new domains support manual drag-and-drop reordering and an automatic alphabetical sorting button.
+- **Tri-State Color Bleed Control**: The washing instructions "Perde colore" toggle cycles through three distinct states in sequence:
+  - `null` (⚪ Non testato): Unverified; no warning badge rendered.
+  - `0` (🛡️ Non perde colore): Confirmed colorfast; renders safe badge on garment detail.
+  - `1` (⚠️ Perde colore): Known color bleeding risk; renders warning badges across garment detail and washing queue cards.
+- **Washing Notes**: An optional free-text notes field in the washing care editor and garment detail view allows recording specific laundering recommendations, special rinse cycles, or fabric-specific precautions.
+- **Contextual Browser Window Titles**: Every application route and view sets a clear, informative `<title>` reflecting the active functional area (e.g. `Guardaroba - Dressly`, `Capi da lavare - Dressly`, `Gestione domini - Dressly`) and dynamic garment/outfit details (`[Nome Capo] - Dressly`, `Modifica [Nome Capo] - Dressly`).
+
+
 ---
 
 ## 2. Laundry Management & Operational Queues
@@ -207,6 +225,7 @@ Dressly equips the primary wardrobe gallery with a multi-criteria sorting engine
 
 ### 5.2. UI Integration & Persistence
 - **Floating Dock Component**: Accessible directly from the glassmorphic bottom navigation dock alongside free-text search, filter toggle, and pagination.
+- **Global Search Box with Clear Button**: The free-text search input in the home page floating dock matches across garment names, brand names, 3-character tag codes, and notes in real time with debouncing (250ms). Whenever search text is present, an inline clear button (`✕`, `aria-label="Cancella ricerca"`) appears on the right inside the input field. Clicking this button immediately clears the search model, resets debounced search, resets pagination to page 1, and restores focus to the input.
 - **Bi-Directional URL Synchronization**: The active sort criterion is mirrored to the URL query string (`?sort=<key>`) for shareable and bookmarkable links.
 - **Local Storage Preference**: The user's selection is persisted in `localStorage` under `dressly_wardrobe_sort`, automatically restoring their preferred ordering on subsequent visits.
 

@@ -126,7 +126,8 @@
     }
   }
 
-  &.status-conflict {
+  &.status-conflict,
+  &.status-error {
     border-color: rgba(239, 68, 68, 0.65);
     background: rgba(239, 68, 68, 0.16);
     animation: conflict-pulse 2s infinite ease-in-out;
@@ -171,7 +172,8 @@
   stroke: #94a3b8;
 }
 
-.icon-conflict {
+.icon-conflict,
+.icon-error {
   stroke: #ef4444;
 }
 
@@ -228,6 +230,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .status-dot {
@@ -235,6 +238,7 @@
   height: 9px;
   border-radius: 50%;
   display: inline-block;
+  flex-shrink: 0;
 
   &.dot-online-ok {
     background: #22c55e;
@@ -258,6 +262,11 @@
   }
 
   &.dot-conflict {
+    background: #d97706;
+    box-shadow: 0 0 6px rgba(217, 119, 6, 0.6);
+  }
+
+  &.dot-error {
     background: #ef4444;
     box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
   }
@@ -267,6 +276,89 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.error-banner-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: #ef4444;
+  margin-top: 1px;
+}
+
+.error-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.error-banner-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #b91c1c;
+  line-height: 1.2;
+}
+
+.error-banner-desc {
+  font-size: 0.74rem;
+  color: #7f1d1d;
+  line-height: 1.3;
+}
+
+.sync-conflict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.conflict-banner-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: #d97706;
+  margin-top: 1px;
+}
+
+.conflict-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.conflict-banner-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #b45309;
+  line-height: 1.2;
+}
+
+.conflict-banner-desc {
+  font-size: 0.74rem;
+  color: #92400e;
+  line-height: 1.3;
 }
 
 .pending-tag {

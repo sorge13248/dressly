@@ -103,9 +103,11 @@ Retrieves or auto-provisions the authenticated user's profile and guarantees ref
 
 ## 5. Reference Catalogs & Domain Management 🔒
 
-Supported categories: `colors`, `brands`, `seasons`, `temperatures`, `use-cases`, `fits`, `materials`, `types`, `tags`, `rooms`, `locations`.
+Supported categories: `colors`, `brands`, `seasons`, `temperatures`, `use-cases`, `fits`, `materials`, `types`, `tags`, `rooms`, `locations`, `washing-programs`, `detergents`.
 
 For `locations`, payloads include `roomId` linking the container or position to an existing user room.
+For `washing-programs`, payloads support `temperature` (0-95) and `spinSpeed` (numeric >= 0).
+For `detergents`, payloads support `description` (usage notes / fabric details). Both domains support drag-and-drop ordering and alphabetical auto-sorting (`sortOrder`).
 
 ### `GET /api/reference-data` or `GET /api/domains`
 Returns all reference data categories grouped in a single payload.
@@ -204,10 +206,15 @@ Creates a new clothing item, automatically generating care instruction relations
     "useCaseIds": ["uuid-usecase-1"],
     "tagIds": ["uuid-tag-1"],
     "washingInstruction": {
-      "temperature": "cold",
-      "washType": "hand_wash_only",
+      "washingProgramId": "uuid-prog-1",
+      "temperature": "40",
+      "detergentId": "uuid-det-1",
+      "washType": "washer_ok",
       "bleachType": "no_bleach",
-      "stretch": true
+      "stretch": true,
+      "colorLossRisk": 1,
+      "colorLossTestTemperature": 40,
+      "notes": "Lavare solo con capi scuri e programma breve"
     },
     "dryingInstruction": {
       "tumbleDry": false,
@@ -443,7 +450,7 @@ Generates and streams a full self-contained backup archive in ZIP format contain
   - `Content-Disposition`: `attachment; filename="dressly-backup-YYYY-MM-DD.zip"`
 - **Archive Contents**:
   - `manifest.json`: Schema version, app version, export timestamp, and data stats.
-  - `data/reference-data.json`: All catalogs (brands, colors, fits, materials, seasons, tags, temperatures, types, use cases, rooms, locations).
+  - `data/reference-data.json`: All catalogs (brands, colors, fits, materials, seasons, tags, temperatures, types, use cases, rooms, locations, washing programs, detergents).
   - `data/clothes.json`: Full clothes items with care instructions, purchase details, relations, and attachment metadata.
   - `data/outfits.json`: Outfits with associated clothes IDs, canvas layouts, and context tags.
   - `data/laundry.json`: Current washing and ironing queue states.

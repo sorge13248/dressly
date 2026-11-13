@@ -149,6 +149,12 @@
                       <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
                       <div class="chips-row">
                         <span class="chip-wash-type">Solo a mano</span>
+                        @if (item.washingInstruction?.detergent; as det) {
+                          <span class="chip-info chip-det" [title]="'Detersivo: ' + det.name">{{ det.name }}</span>
+                        }
+                        @if (hasColorLossRisk(item)) {
+                          <span class="chip-warn" title="Attenzione: questo capo rischia di perdere colore">⚠️ Perde colore</span>
+                        }
                       </div>
                     </div>
                   </a>
@@ -319,6 +325,15 @@
                     <div class="cloth-body">
                       <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
                       <div class="chips-row">
+                        @if (item.washingInstruction?.washingProgram; as prog) {
+                          <span class="chip-info chip-prog" [title]="'Programma lavatrice: ' + prog.name">{{ prog.name }}</span>
+                        }
+                        @if (item.washingInstruction?.detergent; as det) {
+                          <span class="chip-info chip-det" [title]="'Detersivo: ' + det.name">{{ det.name }}</span>
+                        }
+                        @if (hasColorLossRisk(item)) {
+                          <span class="chip-warn" title="Attenzione: questo capo rischia di perdere colore">⚠️ Perde colore</span>
+                        }
                         @if (item.washingInstruction?.reverseWashing) {
                           <span class="chip-info" title="Lava al rovescio">Al rovescio</span>
                         }

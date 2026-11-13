@@ -4,8 +4,9 @@ import { ApiService } from './api.service';
 import { OfflineStorageService } from './offline-storage.service';
 import { ToastService } from './toast.service';
 import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { SyncResponseDto } from './models';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('SyncService', () => {
   let service: SyncService;
@@ -178,6 +179,36 @@ describe('SyncService', () => {
 
     expect(service.status()).toBe('offline');
     expect(service.isOffline()).toBe(true);
+  });
+
+  it('should set status to error and format error message when API fails with 502 Bad Gateway', async () => {
+    const error502 = new HttpErrorResponse({
+      status: 502,
+      statusText: 'Bad Gateway',
+      url: 'http://localhost:4200/api/sync',
+    });
+    mockApi.sync.mockReturnValue(throwError(() => error502));
+
+    const result = await service.sync();
+
+    expect(result).toBeNull();
+    expect(service.status()).toBe('error');
+    expect(service.isError()).toBe(true);
+    expect(service.lastError()).toBe('Errore del server (502 Bad Gateway)');
+  });
+
+  it('should set status to error and format error message when API fails with 500', async () => {
+    const error500 = new HttpErrorResponse({
+      status: 500,
+      statusText: 'Internal Server Error',
+      error: { message: 'Database failure' },
+    });
+    mockApi.sync.mockReturnValue(throwError(() => error500));
+
+    await service.sync();
+
+    expect(service.status()).toBe('error');
+    expect(service.lastError()).toContain('500');
   });
 
   it('should queue local clothes change with field-level timestamps', async () => {

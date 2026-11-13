@@ -1,5 +1,7 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Clothes } from './clothes.entity';
+import { WashingProgram } from './washing-program.entity';
+import { Detergent } from './detergent.entity';
 
 @Entity({ name: 'washing_instructions' })
 @Index(['userId'])
@@ -13,6 +15,20 @@ export class WashingInstruction {
   @OneToOne(() => Clothes, (clothes) => clothes.washingInstruction, { onDelete: 'CASCADE' })
   @JoinColumn()
   clothes!: Clothes;
+
+  @ManyToOne(() => WashingProgram, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'washingProgramId' })
+  washingProgram!: WashingProgram | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  washingProgramId!: string | null;
+
+  @ManyToOne(() => Detergent, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'detergentId' })
+  detergent!: Detergent | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  detergentId!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   temperature!: string | null;
@@ -44,8 +60,11 @@ export class WashingInstruction {
   @Column({ type: 'boolean', default: false })
   useColorCatcher!: boolean;
 
-  @Column({ type: 'boolean', default: false })
-  colorLossRisk!: boolean;
+  @Column({ type: 'integer', nullable: true, default: null })
+  colorLossRisk!: number | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  notes!: string | null;
 
   @CreateDateColumn()
   createdAt!: Date;

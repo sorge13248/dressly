@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Dialog } from '@angular/cdk/dialog';
@@ -45,6 +46,7 @@ export class OutfitDetailPageComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(Dialog);
+  private readonly titleService = inject(Title);
   private readonly storage = inject(OfflineStorageService, { optional: true });
   private readonly syncService = inject(SyncService, { optional: true });
   readonly laundryService = inject(LaundryService);
@@ -86,6 +88,14 @@ export class OutfitDetailPageComponent implements OnInit {
   private initialLoaded = false;
 
   constructor() {
+    effect(() => {
+      const current = this.outfit();
+      if (current) {
+        const name = current.name?.trim() || 'Dettaglio outfit';
+        this.titleService.setTitle(`${name} - Dressly`);
+      }
+    });
+
     const sync = this.syncService;
     if (sync) {
       effect(() => {

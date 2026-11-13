@@ -26,6 +26,8 @@ import { UseCase } from '../entities/use-case.entity';
 import { User } from '../entities/user.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { BackupService } from './backup.service';
 import { ClothesService } from './clothes.service';
 import { OutfitsService } from './outfits.service';
@@ -64,6 +66,8 @@ async function runBackupTests() {
       Room,
       Location,
       SyncTombstone,
+      WashingProgram,
+      Detergent,
     ],
     synchronize: true,
   });

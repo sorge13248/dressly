@@ -1,4 +1,5 @@
 import { CommonModule, Location } from '@angular/common';
+import { Title } from '@angular/platform-browser';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import {
   Component,
@@ -82,18 +83,54 @@ export function extractUploadErrorMessage(err: unknown, file?: File): string {
   return 'Errore imprevisto durante il caricamento';
 }
 
+export function extractApiErrorMessage(err: unknown, fallback = 'Errore durante il salvataggio del capo'): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 0) {
+      return 'Errore di connessione o rete non disponibile';
+    }
+    if (err.status === 401 || err.status === 403) {
+      return 'Sessione scaduta o non autorizzata';
+    }
+    if (err.status === 404) {
+      return 'Capo non trovato sul server';
+    }
+    if (err.error) {
+      if (typeof err.error === 'string') {
+        return err.error;
+      }
+      if (typeof err.error.message === 'string') {
+        return err.error.message;
+      }
+      if (Array.isArray(err.error.message)) {
+        return err.error.message.join(', ');
+      }
+    }
+    if (err.status >= 500) {
+      return `Errore interno del server (${err.status})`;
+    }
+    return `Errore HTTP ${err.status}`;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return fallback;
+}
+
 type WizardWashingForm = {
   wash_type: 'do_not_wash' | 'hand_wash_only' | 'washer_ok';
   bleach_type: 'no_bleach' | 'non_chlorine_bleach' | 'any_bleach';
   stretch: boolean;
+  washing_program_id: string | null;
   washing_temperature: number | null;
+  detergent_id: string | null;
   reverse_washing: boolean;
   closed_zips: boolean;
   similar_colors: boolean;
   wash_separately: boolean;
   use_color_catcher: boolean;
-  color_loss: boolean;
+  color_loss: number | null;
   color_loss_test_temperature: number | null;
+  notes: string;
 };
 
 type WizardDryingForm = {
@@ -181,14 +218,17 @@ const createInitialWizardModel = (): WizardFormModel => ({
       wash_type: 'washer_ok',
       bleach_type: 'no_bleach',
       stretch: false,
+      washing_program_id: null,
       washing_temperature: null,
+      detergent_id: null,
       reverse_washing: false,
       closed_zips: false,
       similar_colors: false,
       wash_separately: false,
       use_color_catcher: false,
-      color_loss: false,
+      color_loss: null,
       color_loss_test_temperature: null,
+      notes: '',
     },
     dryingEnabled: false,
     drying: {
@@ -300,6 +340,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   private readonly syncService = inject(SyncService, { optional: true });
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(Dialog);
+  private readonly titleService = inject(Title);
   readonly referenceStore = inject(ReferenceStoreService);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
@@ -310,6 +351,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly editingId = signal<string | null>(null);
+  readonly loadedCloth = signal<ClothesItem | null>(null);
 
   readonly allPhotos = signal<WizardPhotoItem[]>([]);
   readonly attachmentsToDelete = signal<string[]>([]);
@@ -356,15 +398,44 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
   readonly isEditMode = computed(() => Boolean(this.editingId()));
   readonly title = computed(() => (this.isEditMode() ? 'Modifica capo' : 'Nuovo capo'));
+  readonly currentClothTitle = computed(() => {
+    const customName = this.wizardForm.base.name().value()?.trim();
+    if (customName) {
+      return customName;
+    }
+    const loaded = this.loadedCloth();
+    if (loaded?.name?.trim()) {
+      return loaded.name.trim();
+    }
+    if (loaded?.fullTitle?.trim()) {
+      return loaded.fullTitle.trim();
+    }
+    const typeId = this.wizardForm.base.type_id().value();
+    const brandId = this.wizardForm.base.brand_id().value();
+    const colorIds = this.wizardForm.style.color_ids().value();
+
+    const typeName = this.referenceStore.types().find((t) => t.id === typeId)?.name?.trim();
+    const brandName = this.referenceStore.brands().find((b) => b.id === brandId)?.name?.trim() || loaded?.brand?.name?.trim();
+    const colorName = this.referenceStore.colors().find((c) => colorIds.includes(c.id))?.name?.trim();
+
+    const parts = [typeName, brandName, colorName].filter(Boolean);
+    if (parts.length > 0) {
+      return parts.join(' ');
+    }
+
+    return null;
+  });
   readonly saveLabel = computed(() => (this.isEditMode() ? 'Aggiorna' : 'Crea'));
   readonly photoCount = computed(() => this.allPhotos().length);
   readonly failedPhotos = computed(() => this.allPhotos().filter((p) => p.uploadFailed));
-  readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() =>
-    this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),
-  );
-  readonly brandDropdownOptions = computed<SelectDropdownOption[]>(() =>
-    this.referenceStore.brands().map((brand) => ({ id: brand.id, label: brand.name })),
-  );
+  readonly fitDropdownOptions = computed<SelectDropdownOption[]>(() => [
+    { id: '', label: 'Nessun fit' },
+    ...this.referenceStore.fits().map((fit) => ({ id: fit.id, label: fit.name })),
+  ]);
+  readonly brandDropdownOptions = computed<SelectDropdownOption[]>(() => [
+    { id: '', label: 'Nessun brand' },
+    ...this.referenceStore.brands().map((brand) => ({ id: brand.id, label: brand.name })),
+  ]);
   readonly typeDropdownOptions = computed<SelectDropdownOption[]>(() =>
     [{ id: '', label: 'Nessun tipo' }, ...this.referenceStore.types().map((type) => ({ id: type.id, label: type.name }))],
   );
@@ -391,11 +462,33 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   readonly ironingTypeOptions = ironingTypeOptions;
   readonly ironingTemperatureOptions = ironingTemperatureOptions;
 
+  readonly washingProgramDropdownOptions = computed<SelectDropdownOption[]>(() => [
+    { id: '', label: 'Nessun programma' },
+    ...this.referenceStore.washingPrograms().map((p) => {
+      const specs: string[] = [];
+      if (p.temperature) specs.push(`${p.temperature}°`);
+      if (p.spinSpeed != null) specs.push(`${p.spinSpeed} giri`);
+      const suffix = specs.length ? ` (${specs.join(', ')})` : '';
+      return { id: p.id, label: `${p.name}${suffix}` };
+    }),
+  ]);
+
+  readonly detergentDropdownOptions = computed<SelectDropdownOption[]>(() => [
+    { id: '', label: 'Nessun detersivo' },
+    ...this.referenceStore.detergents().map((d) => ({
+      id: d.id,
+      label: d.description ? `${d.name} (${d.description})` : d.name,
+    })),
+  ]);
+
   readonly isWashingDetailsEnabled = computed(
     () => this.wizardForm.care.washingEnabled().value() && this.wizardForm.care.washing.wash_type().value() !== 'do_not_wash',
   );
   readonly isWashingTemperatureRequired = computed(
-    () => this.wizardForm.care.washingEnabled().value() && this.wizardForm.care.washing.wash_type().value() === 'washer_ok',
+    () =>
+      this.wizardForm.care.washingEnabled().value() &&
+      this.wizardForm.care.washing.wash_type().value() === 'washer_ok' &&
+      !this.wizardForm.care.washing.washing_program_id().value(),
   );
   readonly isDryingTemperatureEnabled = computed(
     () => this.wizardForm.care.dryingEnabled().value() && this.wizardForm.care.drying.tumble_dry().value(),
@@ -455,6 +548,18 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     this.initialSnapshot.set(this.takeSnapshot());
     effect(() => {
       void this.referenceStore.loadAll();
+    });
+    effect(() => {
+      if (this.isEditMode()) {
+        const clothName = this.currentClothTitle();
+        if (clothName) {
+          this.titleService.setTitle(`Modifica ${clothName} - Dressly`);
+        } else {
+          this.titleService.setTitle('Modifica capo - Dressly');
+        }
+      } else {
+        this.titleService.setTitle('Nuovo capo - Dressly');
+      }
     });
   }
 
@@ -740,7 +845,9 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         void this.router.navigate(['/wardrobe', clothesId]);
       }
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Errore durante il salvataggio del capo');
+      const errorMsg = extractApiErrorMessage(error);
+      this.error.set(errorMsg);
+      this.toast.error(errorMsg);
     } finally {
       this.saving.set(false);
       this.uploadProgress.set(null);
@@ -1143,10 +1250,38 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     this.wizardForm.care.ironing.inside_out().value.set(!this.wizardForm.care.ironing.inside_out().value());
   }
 
+  onWashingProgramChange(id: string) {
+    const value = id ? id.trim() : null;
+    this.wizardForm.care.washing.washing_program_id().value.set(value);
+    if (value) {
+      this.wizardForm.care.washing.washing_temperature().value.set(null);
+    }
+  }
+
+  onDetergentChange(id: string) {
+    const value = id ? id.trim() : null;
+    this.wizardForm.care.washing.detergent_id().value.set(value);
+  }
+
+  cycleColorLoss() {
+    const current = this.wizardForm.care.washing.color_loss().value();
+    let next: number | null;
+    if (current === null) {
+      next = 0;
+    } else if (current === 0) {
+      next = 1;
+    } else {
+      next = null;
+    }
+    this.wizardForm.care.washing.color_loss().value.set(next);
+  }
+
   setWashType(id: string) {
     this.wizardForm.care.washing.wash_type().value.set(id as WizardWashingForm['wash_type']);
     if (id === 'do_not_wash') {
+      this.wizardForm.care.washing.washing_program_id().value.set(null);
       this.wizardForm.care.washing.washing_temperature().value.set(null);
+      this.wizardForm.care.washing.detergent_id().value.set(null);
       this.wizardForm.care.washing.color_loss_test_temperature().value.set(null);
       this.wizardForm.care.washing.stretch().value.set(false);
       this.wizardForm.care.washing.reverse_washing().value.set(false);
@@ -1154,10 +1289,12 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.wizardForm.care.washing.similar_colors().value.set(false);
       this.wizardForm.care.washing.wash_separately().value.set(false);
       this.wizardForm.care.washing.use_color_catcher().value.set(false);
-      this.wizardForm.care.washing.color_loss().value.set(false);
+      this.wizardForm.care.washing.color_loss().value.set(null);
+      this.wizardForm.care.washing.notes().value.set('');
     }
 
     if (id === 'hand_wash_only') {
+      this.wizardForm.care.washing.washing_program_id().value.set(null);
       this.wizardForm.care.washing.washing_temperature().value.set(null);
     }
   }
@@ -1165,7 +1302,9 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
   onWashingEnabledChange(enabled: boolean) {
     this.wizardForm.care.washingEnabled().value.set(enabled);
     if (!enabled) {
+      this.wizardForm.care.washing.washing_program_id().value.set(null);
       this.wizardForm.care.washing.washing_temperature().value.set(null);
+      this.wizardForm.care.washing.detergent_id().value.set(null);
       this.wizardForm.care.washing.color_loss_test_temperature().value.set(null);
       this.wizardForm.care.washing.wash_type().value.set('washer_ok');
       this.wizardForm.care.washing.stretch().value.set(false);
@@ -1174,7 +1313,8 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       this.wizardForm.care.washing.similar_colors().value.set(false);
       this.wizardForm.care.washing.wash_separately().value.set(false);
       this.wizardForm.care.washing.use_color_catcher().value.set(false);
-      this.wizardForm.care.washing.color_loss().value.set(false);
+      this.wizardForm.care.washing.color_loss().value.set(null);
+      this.wizardForm.care.washing.notes().value.set('');
     }
   }
 
@@ -1403,6 +1543,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       if (this.storage) {
         const cached = await this.storage.getClothes(id);
         if (cached) {
+          this.loadedCloth.set(cached);
           this.patchForms(cached);
           this.initialSnapshot.set(this.takeSnapshot());
           this.loading.set(false);
@@ -1415,6 +1556,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
 
       const clothes = await firstValueFrom(this.api.getClothes(id));
       if (clothes) {
+        this.loadedCloth.set(clothes);
         this.patchForms(clothes);
         this.initialSnapshot.set(this.takeSnapshot());
         if (this.storage) {
@@ -1432,6 +1574,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     try {
       const clothes = await firstValueFrom(this.api.getClothes(id));
       if (clothes && this.editingId() === id) {
+        this.loadedCloth.set(clothes);
         this.patchForms(clothes);
         this.initialSnapshot.set(this.takeSnapshot());
         if (this.storage) {
@@ -1449,6 +1592,11 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
       rawWashTemp !== null && rawWashTemp !== undefined && rawWashTemp !== ''
         ? Number(rawWashTemp)
         : null;
+    const rawColorLoss = item.washingInstruction?.colorLossRisk;
+    let colorLossVal: number | null = null;
+    if (rawColorLoss !== null && rawColorLoss !== undefined) {
+      colorLossVal = Number(rawColorLoss) === 1 || (rawColorLoss as unknown) === true ? 1 : 0;
+    }
     const dryingMethod = item.dryingInstruction?.method?.trim() ?? '';
     const fallbackTumbleDry = dryingMethod.startsWith('tumble_dry:');
     const fallbackTumbleDryLevel = fallbackTumbleDry ? dryingMethod.slice('tumble_dry:'.length).trim() : '';
@@ -1482,17 +1630,21 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
         washing: {
           wash_type:
             item.washingInstruction?.washType ??
-            (washingTemperature === null ? 'do_not_wash' : 'washer_ok'),
+            (washingTemperature === null && !item.washingInstruction?.washingProgramId && !item.washingInstruction?.washingProgram ? 'do_not_wash' : 'washer_ok'),
           bleach_type: item.washingInstruction?.bleachType ?? 'no_bleach',
           stretch: Boolean(item.washingInstruction?.stretch),
+          washing_program_id:
+            item.washingInstruction?.washingProgramId ?? item.washingInstruction?.washingProgram?.id ?? null,
           washing_temperature: washingTemperature,
+          detergent_id: item.washingInstruction?.detergentId ?? item.washingInstruction?.detergent?.id ?? null,
           reverse_washing: Boolean(item.washingInstruction?.reverseWashing),
           closed_zips: Boolean(item.washingInstruction?.closedZips),
           similar_colors: Boolean(item.washingInstruction?.similarColors),
           wash_separately: Boolean(item.washingInstruction?.washSeparately),
           use_color_catcher: Boolean(item.washingInstruction?.useColorCatcher),
-          color_loss: Boolean(item.washingInstruction?.colorLossRisk),
+          color_loss: colorLossVal,
           color_loss_test_temperature: item.washingInstruction?.colorLossTestTemperature ?? null,
+          notes: item.washingInstruction?.notes ?? '',
         },
         dryingEnabled: Boolean(item.dryingInstruction),
         drying: {
@@ -1581,10 +1733,17 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
             closedZips: washing.closed_zips,
             similarColors: washing.similar_colors,
             washSeparately: washing.wash_separately,
-            temperature: washing.washing_temperature !== null ? String(washing.washing_temperature) : null,
+            washingProgramId: washing.washing_program_id || null,
+            temperature: washing.washing_program_id
+              ? null
+              : washing.washing_temperature !== null
+                ? String(washing.washing_temperature)
+                : null,
+            detergentId: washing.detergent_id || null,
             useColorCatcher: washing.use_color_catcher,
             colorLossRisk: washing.color_loss,
             colorLossTestTemperature: washing.color_loss_test_temperature,
+            notes: washing.notes?.trim() || null,
           }
         : null,
       dryingInstruction: value.care.dryingEnabled

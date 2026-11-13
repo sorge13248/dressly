@@ -240,7 +240,7 @@ export class WashingPageComponent implements OnInit {
     if (!wash) {
       return null;
     }
-    const temp = wash.temperature;
+    const temp = wash.temperature ?? wash.washingProgram?.temperature;
     if (temp === null || temp === undefined || temp === '') {
       return null;
     }
@@ -281,6 +281,11 @@ export class WashingPageComponent implements OnInit {
     }
     const variant = item.primaryAttachment.previewPath ? '?variant=preview' : '';
     return `/api/clothes/${item.id}/attachments/${item.primaryAttachment.id}/file${variant}`;
+  }
+
+  hasColorLossRisk(item: WashingClothesItem): boolean {
+    const risk = item.washingInstruction?.colorLossRisk;
+    return risk === 1 || (risk as unknown) === true;
   }
 
   trackById(_: number, item: WashingClothesItem) {

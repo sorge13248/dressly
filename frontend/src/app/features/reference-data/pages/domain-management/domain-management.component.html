@@ -142,6 +142,12 @@
             @if (getRoomName(row); as roomName) {
               <span class="location-room-badge">{{ roomName }}</span>
             }
+            @if (getWashingProgramSpecs(row); as specs) {
+              <span class="washing-program-badge">{{ specs }}</span>
+            }
+            @if (getDetergentDescription(row); as desc) {
+              <span class="detergent-desc-badge">{{ desc }}</span>
+            }
           </strong>
 
           @if (showSortOrder()) {
@@ -149,7 +155,9 @@
           }
 
           <div class="actions">
-            <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
+            @if (canViewInWardrobe()) {
+              <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="viewInWardrobe(row)">Vedi nel guardaroba</button>
+            }
             <button type="button" appButton variant="ghost" size="sm" class="ghost" (click)="edit(row)">Modifica</button>
             <button type="button" appButton variant="danger" size="sm" class="danger" (click)="remove(row)">Elimina</button>
           </div>

@@ -28,6 +28,8 @@ import { Type } from '../entities/type.entity';
 import { UseCase } from '../entities/use-case.entity';
 import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 
 export interface BackupStatsDto {
   clothesCount: number;
@@ -140,6 +142,8 @@ export class BackupService {
     const useCases = await this.dataSource.getRepository(UseCase).find({ where: { userId: user.id } });
     const rooms = await this.dataSource.getRepository(Room).find({ where: { userId: user.id } });
     const locations = await this.dataSource.getRepository(Location).find({ where: { userId: user.id } });
+    const washingPrograms = await this.dataSource.getRepository(WashingProgram).find({ where: { userId: user.id } });
+    const detergents = await this.dataSource.getRepository(Detergent).find({ where: { userId: user.id } });
 
     const referenceData = {
       brands,
@@ -153,6 +157,8 @@ export class BackupService {
       useCases,
       rooms,
       locations,
+      washingPrograms,
+      detergents,
     };
 
     // 2. Fetch Clothes with all relations and instructions
@@ -211,6 +217,9 @@ export class BackupService {
             colorLossTestTemperature: c.washingInstruction.colorLossTestTemperature,
             useColorCatcher: c.washingInstruction.useColorCatcher,
             colorLossRisk: c.washingInstruction.colorLossRisk,
+            notes: c.washingInstruction.notes,
+            washingProgramId: c.washingInstruction.washingProgramId,
+            detergentId: c.washingInstruction.detergentId,
           }
         : null,
       dryingInstruction: c.dryingInstruction
@@ -344,7 +353,9 @@ export class BackupService {
         types.length +
         useCases.length +
         rooms.length +
-        locations.length,
+        locations.length +
+        washingPrograms.length +
+        detergents.length,
       attachmentsCount: allAttachments.length,
       totalFileSizeBytes,
     };
@@ -486,6 +497,13 @@ export class BackupService {
         await restoreRefList(Type, refData.types);
         await restoreRefList(UseCase, refData.useCases, (it) => ({ icon: it.icon ?? null }));
         await restoreRefList(Room, refData.rooms);
+        await restoreRefList(WashingProgram, refData.washingPrograms, (it) => ({
+          temperature: it.temperature ?? null,
+          spinSpeed: it.spinSpeed ?? null,
+        }));
+        await restoreRefList(Detergent, refData.detergents, (it) => ({
+          description: it.description ?? null,
+        }));
 
         for (const item of refData.locations ?? []) {
           const collision = await manager.findOne(Location, { where: { id: item.id } });
@@ -538,6 +556,12 @@ export class BackupService {
             cloth.washingInstruction = manager.getRepository(WashingInstruction).create({
               ...c.washingInstruction,
               userId: user.id,
+              washingProgramId: c.washingInstruction.washingProgramId
+                ? (refIdMap.get(c.washingInstruction.washingProgramId) ?? c.washingInstruction.washingProgramId)
+                : null,
+              detergentId: c.washingInstruction.detergentId
+                ? (refIdMap.get(c.washingInstruction.detergentId) ?? c.washingInstruction.detergentId)
+                : null,
             }) as unknown as WashingInstruction;
           }
           if (c.dryingInstruction) {
@@ -704,6 +728,13 @@ export class BackupService {
         await mergeCatalog(Type, refData.types);
         await mergeCatalog(UseCase, refData.useCases, (b) => ({ icon: b.icon ?? null }));
         await mergeCatalog(Room, refData.rooms);
+        await mergeCatalog(WashingProgram, refData.washingPrograms, (b) => ({
+          temperature: b.temperature ?? null,
+          spinSpeed: b.spinSpeed ?? null,
+        }));
+        await mergeCatalog(Detergent, refData.detergents, (b) => ({
+          description: b.description ?? null,
+        }));
 
         // Locations: remap roomId first
         const existingLocations = await manager.find(Location, { where: { userId: user.id } });
@@ -790,6 +821,12 @@ export class BackupService {
             cloth.washingInstruction = manager.getRepository(WashingInstruction).create({
               ...c.washingInstruction,
               userId: user.id,
+              washingProgramId: c.washingInstruction.washingProgramId
+                ? (idMap.get(c.washingInstruction.washingProgramId) ?? c.washingInstruction.washingProgramId)
+                : null,
+              detergentId: c.washingInstruction.detergentId
+                ? (idMap.get(c.washingInstruction.detergentId) ?? c.washingInstruction.detergentId)
+                : null,
             }) as unknown as WashingInstruction;
           }
           if (c.dryingInstruction) {
