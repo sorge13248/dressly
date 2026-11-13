@@ -23,6 +23,8 @@ import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { Room } from '../entities/room.entity';
 import { Location } from '../entities/location.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { ClothesService } from './clothes.service';
 import { ReferenceDataService } from './reference-data.service';
 import { AuthUser } from '../common/auth/auth.types';
@@ -84,6 +86,8 @@ async function runTagCodeTests() {
       Room,
       Location,
       SyncTombstone,
+      WashingProgram,
+      Detergent,
     ],
     synchronize: true,
   });
@@ -282,6 +286,16 @@ async function runTagCodeTests() {
   }
   assert.strictEqual(rejectedNegative, true);
   console.log('✓ Test 9 passed!');
+
+  // Test 10: migrateColorLossRiskTriState executes without syntax errors and records migration
+  console.log('Test 10: migrateColorLossRiskTriState migration runs cleanly');
+  await clothesService.migrateColorLossRiskTriState();
+  const migrations = await dataSource.query('SELECT * FROM _app_migrations WHERE id = ?;', ['20261113_color_loss_risk_tri_state']);
+  assert.strictEqual(migrations.length, 1);
+  assert.ok(migrations[0].appliedAt);
+  // Re-running migration is idempotent
+  await clothesService.migrateColorLossRiskTriState();
+  console.log('✓ Test 10 passed!');
 
   await dataSource.destroy();
   console.log('🎉 ALL TAG CODE TESTS PASSED SUCCESSFULLY! 🎉');

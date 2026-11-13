@@ -12,7 +12,30 @@ import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-s
 import { LocationSelectModalComponent } from '../../components/location-select-modal/location-select-modal.component';
 
 describe('WardrobePageComponent', () => {
+  const storageMock: Record<string, string> = {};
+  const mockLocalStorage = {
+    getItem: (key: string) => storageMock[key] ?? null,
+    setItem: (key: string, value: string) => {
+      storageMock[key] = String(value);
+    },
+    removeItem: (key: string) => {
+      delete storageMock[key];
+    },
+    clear: () => {
+      for (const k of Object.keys(storageMock)) {
+        delete storageMock[k];
+      }
+    },
+  };
+
   beforeEach(async () => {
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+      configurable: true,
+    });
+    mockLocalStorage.clear();
+
     await TestBed.configureTestingModule({
       imports: [WardrobePageComponent, RouterTestingModule],
     }).compileComponents();

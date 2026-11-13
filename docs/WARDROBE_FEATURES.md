@@ -76,6 +76,16 @@ Throughout the clothing wizard editor (`/wardrobe/new` and `/wardrobe/:id/edit`)
 - **Keyboard Deselection**: Pressing `Backspace` or `Delete` while the trigger is focused instantly resets the field to empty.
 - **Form State Compatibility**: Deselecting sets the form model value to `''`, which is automatically normalized to `null` in the API persistence payload (`brand_id || null`, `fit_id || null`, `type_id || null`, `location_id || null`).
 
+### 1.8. Washing Machine Programs, Detergents & Tri-State Color Bleed
+- **Washing Programs Domain**: The `washing-programs` reference domain configures washing machine presets with name, temperature (validated 0-95°C), and spin speed (`centrifuga`, numeric $\ge 0$ rpm). In the wizard editor, selecting a preset automatically hides and clears the manual free temperature input.
+- **Detergents Domain**: The `detergents` reference domain configures detergents and specialized cleaning agents with name and descriptive usage guidelines. The detergent selector is available for both machine wash and hand wash. Both new domains support manual drag-and-drop reordering and an automatic alphabetical sorting button.
+- **Tri-State Color Bleed Control**: The washing instructions "Perde colore" toggle cycles through three distinct states in sequence:
+  - `null` (⚪ Non testato): Unverified; no warning badge rendered.
+  - `0` (🛡️ Non perde colore): Confirmed colorfast; renders safe badge on garment detail.
+  - `1` (⚠️ Perde colore): Known color bleeding risk; renders warning badges across garment detail and washing queue cards.
+- **Washing Notes**: An optional free-text notes field in the washing care editor and garment detail view allows recording specific laundering recommendations, special rinse cycles, or fabric-specific precautions.
+- **Contextual Browser Window Titles**: Every application route and view sets a clear, informative `<title>` reflecting the active functional area (e.g. `Guardaroba - Dressly`, `Capi da lavare - Dressly`, `Gestione domini - Dressly`) and dynamic garment/outfit details (`[Nome Capo] - Dressly`, `Modifica [Nome Capo] - Dressly`).
+
 
 ---
 

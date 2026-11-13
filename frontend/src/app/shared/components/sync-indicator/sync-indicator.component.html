@@ -5,9 +5,10 @@
     [class.is-open]="dropdownOpen()"
     [class.status-syncing]="status() === 'syncing'"
     [class.status-online-ok]="status() === 'online-ok' && !showSuccessCheckmark()"
-    [class.status-success]="showSuccessCheckmark()"
+    [class.status-success]="showSuccessCheckmark() && status() === 'online-ok'"
     [class.status-offline]="status() === 'offline'"
     [class.status-conflict]="status() === 'conflict'"
+    [class.status-error]="status() === 'error'"
     [attr.title]="tooltip()"
     [attr.aria-label]="tooltip()"
     [attr.aria-expanded]="dropdownOpen()"
@@ -20,7 +21,21 @@
         <circle cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.25)" />
         <path d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" />
       </svg>
-    } @else if (showSuccessCheckmark()) {
+    } @else if (status() === 'error') {
+      <!-- Icona di errore rossa: errore di sincronizzazione / API -->
+      <svg class="sync-icon icon-error" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    } @else if (status() === 'conflict') {
+      <!-- Icona di errore rossa: conflitto di sincronizzazione -->
+      <svg class="sync-icon icon-conflict" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    } @else if (showSuccessCheckmark() && status() === 'online-ok') {
       <!-- Spunta verde: sincronizzazione completata con successo -->
       <svg class="sync-icon icon-success-check" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="20 6 9 17 4 12" />
@@ -40,13 +55,6 @@
         <path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193" />
         <path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07" />
       </svg>
-    } @else if (status() === 'conflict') {
-      <!-- Icona di errore rossa: conflitto di sincronizzazione -->
-      <svg class="sync-icon icon-conflict" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
     }
 
     @if (pendingCount() > 0) {
@@ -60,8 +68,8 @@
     <div class="sync-dropdown" role="menu" aria-label="Menu opzioni sincronizzazione">
       <div class="dropdown-header">
         <div class="status-indicator-row">
-          <span class="status-dot" [class]="showSuccessCheckmark() ? 'dot-success' : 'dot-' + status()"></span>
-          <span class="status-text">{{ statusLabel() }}</span>
+          <span class="status-dot" [class]="showSuccessCheckmark() && status() === 'online-ok' ? 'dot-success' : 'dot-' + status()"></span>
+          <span class="status-text" [title]="statusLabel()">{{ statusLabel() }}</span>
         </div>
         @if (pendingCount() > 0) {
           <span class="pending-tag">
@@ -69,6 +77,34 @@
           </span>
         }
       </div>
+
+      @if (status() === 'error' && lastError()) {
+        <div class="sync-error-banner" role="alert">
+          <svg class="error-banner-icon" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div class="error-banner-text">
+            <span class="error-banner-title">Dettaglio errore</span>
+            <span class="error-banner-desc">{{ lastError() }}</span>
+          </div>
+        </div>
+      }
+
+      @if (status() === 'conflict') {
+        <div class="sync-conflict-banner" role="alert">
+          <svg class="conflict-banner-icon" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div class="conflict-banner-text">
+            <span class="conflict-banner-title">Conflitto di sincronizzazione</span>
+            <span class="conflict-banner-desc">Rilevate modifiche concorrenti sul server</span>
+          </div>
+        </div>
+      }
 
       <div class="last-sync-block">
         <div class="last-sync-label">
@@ -93,7 +129,7 @@
           [disabled]="status() === 'syncing' || !isOnline()"
           (click)="onSyncNow()"
         >
-          @if (showSuccessCheckmark()) {
+          @if (showSuccessCheckmark() && status() === 'online-ok') {
             <svg class="action-icon action-icon-success" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>

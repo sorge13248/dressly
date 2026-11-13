@@ -41,6 +41,7 @@ export class SyncIndicatorComponent implements OnDestroy {
   readonly conflicts = computed(() => this.syncService.conflicts());
   readonly isOnline = computed(() => this.syncService.isOnline());
   readonly lastSyncTime = computed(() => this.syncService.lastSyncTime());
+  readonly lastError = computed(() => this.syncService.lastError());
 
   readonly formattedLastSync = computed(() => {
     const time = this.lastSyncTime();
@@ -58,7 +59,7 @@ export class SyncIndicatorComponent implements OnDestroy {
   });
 
   readonly statusLabel = computed(() => {
-    if (this.showSuccessCheckmark()) {
+    if (this.showSuccessCheckmark() && this.status() === 'online-ok') {
       return 'Sincronizzato ora!';
     }
     switch (this.status()) {
@@ -70,11 +71,13 @@ export class SyncIndicatorComponent implements OnDestroy {
         return 'Disconnesso (offline)';
       case 'conflict':
         return 'Conflitto di sincronizzazione';
+      case 'error':
+        return this.lastError() || 'Errore di sincronizzazione';
     }
   });
 
   readonly tooltip = computed(() => {
-    if (this.showSuccessCheckmark()) {
+    if (this.showSuccessCheckmark() && this.status() === 'online-ok') {
       return 'Sincronizzazione completata con successo!';
     }
 
@@ -91,6 +94,10 @@ export class SyncIndicatorComponent implements OnDestroy {
         return `Connessione assente (offline)${pendingStr}`;
       case 'conflict':
         return `Conflitto di sincronizzazione!${pendingStr}`;
+      case 'error': {
+        const err = this.lastError();
+        return `${err || 'Errore di sincronizzazione'}${pendingStr}`;
+      }
     }
   });
 
@@ -100,7 +107,15 @@ export class SyncIndicatorComponent implements OnDestroy {
       const prev = this.previousStatus;
       this.previousStatus = current;
 
-      if (prev === 'syncing' && current === 'online-ok') {
+      if (current === 'error' || current === 'conflict' || current === 'offline') {
+        untracked(() => {
+          if (this.successTimer) {
+            clearTimeout(this.successTimer);
+            this.successTimer = null;
+          }
+          this.showSuccessCheckmark.set(false);
+        });
+      } else if (prev === 'syncing' && current === 'online-ok') {
         untracked(() => {
           this.triggerSuccessCheckmark();
         });
@@ -109,6 +124,10 @@ export class SyncIndicatorComponent implements OnDestroy {
   }
 
   triggerSuccessCheckmark(): void {
+    if (this.status() === 'error' || this.status() === 'conflict' || this.status() === 'offline') {
+      this.showSuccessCheckmark.set(false);
+      return;
+    }
     if (this.successTimer) {
       clearTimeout(this.successTimer);
       this.successTimer = null;
@@ -143,17 +162,47 @@ export class SyncIndicatorComponent implements OnDestroy {
 
   async onSyncNow(): Promise<void> {
     this.closeDropdown();
+    this.showSuccessCheckmark.set(false);
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+
     try {
-      await this.syncService.sync();
+      const res = await this.syncService.sync();
+      if (!res) {
+        this.showSuccessCheckmark.set(false);
+        if (this.status() === 'offline') {
+          this.toast.error('Impossibile sincronizzare: dispositivo offline');
+        } else if (this.status() === 'conflict') {
+          this.toast.error('Rilevato conflitto di sincronizzazione');
+        } else {
+          this.toast.error(this.lastError() || 'Errore durante la sincronizzazione');
+        }
+        return;
+      }
+
+      if (this.status() === 'conflict') {
+        this.showSuccessCheckmark.set(false);
+        this.toast.error('Rilevato conflitto di sincronizzazione');
+        return;
+      }
+
       this.toast.success('Sincronizzazione completata');
       this.triggerSuccessCheckmark();
     } catch {
-      this.toast.error('Errore durante la sincronizzazione');
+      this.showSuccessCheckmark.set(false);
+      this.toast.error(this.lastError() || 'Errore durante la sincronizzazione');
     }
   }
 
   async onDownloadServerVersion(): Promise<void> {
     this.closeDropdown();
+    this.showSuccessCheckmark.set(false);
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
 
     const dialogRef = this.dialog.open<boolean>(ConfirmModalComponent, {
       data: {
@@ -172,11 +221,17 @@ export class SyncIndicatorComponent implements OnDestroy {
     }
 
     try {
-      await this.syncService.downloadServerVersion();
+      const res = await this.syncService.downloadServerVersion();
+      if (!res || this.status() === 'error' || this.status() === 'offline') {
+        this.showSuccessCheckmark.set(false);
+        this.toast.error(this.lastError() || 'Errore durante il download dal server');
+        return;
+      }
       this.toast.success('Versione del server scaricata con successo');
       this.triggerSuccessCheckmark();
     } catch {
-      this.toast.error('Errore durante il download dal server');
+      this.showSuccessCheckmark.set(false);
+      this.toast.error(this.lastError() || 'Errore durante il download dal server');
     }
   }
 

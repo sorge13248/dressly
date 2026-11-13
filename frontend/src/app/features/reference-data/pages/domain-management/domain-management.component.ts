@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
-import { ReferenceKind, BaseReferenceItem, LocationItem, RoomItem } from '../../../../core/models';
+import { ReferenceKind, BaseReferenceItem, LocationItem, RoomItem, WashingProgramItem, DetergentItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { BackupRestoreModalComponent } from '../../../../shared/components/backup-restore-modal/backup-restore-modal.component';
 import {
@@ -37,6 +37,8 @@ const tabs = [
   { key: 'tags', label: 'Tag', emoji: '✨', tone: 'violet' },
   { key: 'rooms', label: 'Stanze', emoji: '🏠', tone: 'amber' },
   { key: 'locations', label: 'Posizioni', emoji: '📍', tone: 'teal' },
+  { key: 'washing-programs', label: 'Programmi lavatrice', emoji: '🌀', tone: 'blue' },
+  { key: 'detergents', label: 'Detersivi', emoji: '🧴', tone: 'violet' },
 ] as const satisfies readonly TabMeta[];
 
 @Component({
@@ -44,9 +46,18 @@ const tabs = [
   imports: [CommonModule, CdkDropList, CdkDrag, CdkDragHandle, ButtonComponent, WindowFrameComponent],
   templateUrl: './domain-management.component.html',
   styleUrl: './domain-management.component.scss',
-})
+  })
 export class DomainManagementPageComponent {
-  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials', 'rooms'];
+  private readonly sortableKinds: ReferenceKind[] = [
+    'seasons',
+    'temperatures',
+    'use-cases',
+    'fits',
+    'materials',
+    'rooms',
+    'washing-programs',
+    'detergents',
+  ];
 
   private readonly referenceStore = inject(ReferenceStoreService);
   private readonly toast = inject(ToastService);
@@ -80,6 +91,10 @@ export class DomainManagementPageComponent {
         return this.referenceStore.rooms();
       case 'locations':
         return this.referenceStore.locationsSortedByRoomAndName();
+      case 'washing-programs':
+        return this.referenceStore.washingPrograms();
+      case 'detergents':
+        return this.referenceStore.detergents();
     }
   });
 
@@ -108,6 +123,7 @@ export class DomainManagementPageComponent {
   });
 
   readonly showSortOrder = computed(() => this.sortableKinds.includes(this.selectedKind()));
+  readonly canViewInWardrobe = computed(() => !['washing-programs', 'detergents'].includes(this.selectedKind()));
 
   cancelOrClose(): void {
     void this.router.navigate(['/wardrobe']);
@@ -290,9 +306,34 @@ export class DomainManagementPageComponent {
     return null;
   }
 
+  getWashingProgramSpecs(row: BaseReferenceItem): string | null {
+    if (this.selectedKind() !== 'washing-programs') {
+      return null;
+    }
+    const prog = row as WashingProgramItem;
+    const parts: string[] = [];
+    if (prog.temperature) {
+      parts.push(`${prog.temperature}°`);
+    }
+    if (prog.spinSpeed != null) {
+      parts.push(`${prog.spinSpeed} giri`);
+    }
+    return parts.length ? parts.join(' · ') : null;
+  }
+
+  getDetergentDescription(row: BaseReferenceItem): string | null {
+    if (this.selectedKind() !== 'detergents') {
+      return null;
+    }
+    const det = row as DetergentItem;
+    return det.description || null;
+  }
+
   private async openEditorModal(mode: 'create' | 'edit', row?: ReferenceDisplayRow) {
     const isLocation = this.selectedKind() === 'locations';
     const isRoom = this.selectedKind() === 'rooms';
+    const isWashingProgram = this.selectedKind() === 'washing-programs';
+    const isDetergent = this.selectedKind() === 'detergents';
     const dialogRef = this.dialog.open<ReferenceEditorDialogResult | null>(ReferenceEditorModalComponent, {
       data: {
         mode,
@@ -302,7 +343,14 @@ export class DomainManagementPageComponent {
         showSortOrder: this.showSortOrder(),
         usesColorPicker: this.selectedKind() === 'colors',
         isLocation,
-        hideExtra: isLocation || isRoom || ['fits', 'materials', 'types', 'tags'].includes(this.selectedKind()),
+        isWashingProgram,
+        isDetergent,
+        hideExtra:
+          isLocation ||
+          isRoom ||
+          isWashingProgram ||
+          isDetergent ||
+          ['fits', 'materials', 'types', 'tags'].includes(this.selectedKind()),
         roomOptions: isLocation ? this.referenceStore.rooms().map((r) => ({ id: r.id, name: r.name })) : undefined,
         initial: {
           name: row?.name ?? '',
@@ -312,6 +360,12 @@ export class DomainManagementPageComponent {
               ? String(row?.hexCode ?? '#5a9de8')
               : String(row?.hexCode ?? row?.logoUrl ?? row?.icon ?? ''),
           roomId: (row as LocationItem)?.roomId ?? '',
+          temperature: isWashingProgram ? (row as WashingProgramItem)?.temperature ?? '' : '',
+          spinSpeed:
+            isWashingProgram && (row as WashingProgramItem)?.spinSpeed != null
+              ? String((row as WashingProgramItem).spinSpeed)
+              : '',
+          description: isDetergent ? (row as DetergentItem)?.description ?? '' : '',
         },
       },
     });
@@ -353,6 +407,14 @@ export class DomainManagementPageComponent {
     if (this.selectedKind() === 'brands') payload['logoUrl'] = result.extra || null;
     if (['seasons', 'temperatures', 'use-cases'].includes(this.selectedKind())) payload['icon'] = result.extra || null;
     if (this.selectedKind() === 'locations') payload['roomId'] = result.roomId || null;
+    if (this.selectedKind() === 'washing-programs') {
+      payload['temperature'] = result.temperature || null;
+      payload['spinSpeed'] =
+        result.spinSpeed != null && result.spinSpeed !== '' ? Number(result.spinSpeed) : null;
+    }
+    if (this.selectedKind() === 'detergents') {
+      payload['description'] = result.description || null;
+    }
 
     return payload;
   }
@@ -381,6 +443,8 @@ export class DomainManagementPageComponent {
         return { room_ids: id };
       case 'locations':
         return { location_ids: id };
+      default:
+        return {};
     }
   }
 }

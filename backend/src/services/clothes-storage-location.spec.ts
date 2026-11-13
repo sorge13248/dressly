@@ -22,6 +22,8 @@ import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { Room } from '../entities/room.entity';
 import { Location } from '../entities/location.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { ClothesService } from './clothes.service';
 import { ReferenceDataService } from './reference-data.service';
 import { AuthUser } from '../common/auth/auth.types';
@@ -55,6 +57,8 @@ async function runStorageLocationTests() {
       Room,
       Location,
       SyncTombstone,
+      WashingProgram,
+      Detergent,
     ],
     synchronize: true,
   });

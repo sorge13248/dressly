@@ -9,7 +9,9 @@ export type ReferenceKind =
   | 'types'
   | 'tags'
   | 'rooms'
-  | 'locations';
+  | 'locations'
+  | 'washing-programs'
+  | 'detergents';
 
 export type ClothesStatus = 'in_wardrobe' | 'in_storage' | 'dismissed';
 
@@ -71,6 +73,15 @@ export interface LocationItem extends BaseReferenceItem {
   room?: RoomItem | null;
 }
 
+export interface WashingProgramItem extends BaseReferenceItem {
+  temperature: number | null;
+  spinSpeed: number | null;
+}
+
+export interface DetergentItem extends BaseReferenceItem {
+  description: string | null;
+}
+
 export interface AttachmentItem {
   id: string;
   userId: string;
@@ -100,7 +111,12 @@ export interface WashingInstructionItem {
   washSeparately?: boolean;
   colorLossTestTemperature?: number | null;
   useColorCatcher?: boolean;
-  colorLossRisk?: boolean;
+  colorLossRisk?: number | null | boolean;
+  washingProgramId?: string | null;
+  washingProgram?: WashingProgramItem | null;
+  detergentId?: string | null;
+  detergent?: DetergentItem | null;
+  notes?: string | null;
   wash_type?: 'do_not_wash' | 'hand_wash_only' | 'washer_ok';
   bleach_type?: 'no_bleach' | 'non_chlorine_bleach' | 'any_bleach';
   washing_temperature?: number | null;
@@ -109,8 +125,10 @@ export interface WashingInstructionItem {
   similar_colors?: boolean;
   wash_separately?: boolean;
   use_color_catcher?: boolean;
-  color_loss?: boolean;
+  color_loss?: number | null | boolean;
   color_loss_test_temperature?: number | null;
+  washing_program_id?: string | null;
+  detergent_id?: string | null;
 }
 
 export interface DryingInstructionItem {
@@ -325,8 +343,22 @@ export interface WashingClothesItem {
     similarColors: boolean;
     washSeparately: boolean;
     useColorCatcher: boolean;
-    colorLossRisk: boolean;
+    colorLossRisk: number | null | boolean;
     colorLossTestTemperature: number | null;
+    notes?: string | null;
+    washingProgramId?: string | null;
+    washingProgram?: {
+      id: string;
+      name: string;
+      temperature: number | null;
+      spinSpeed: number | null;
+    } | null;
+    detergentId?: string | null;
+    detergent?: {
+      id: string;
+      name: string;
+      description: string | null;
+    } | null;
   } | null;
   primaryAttachment: {
     id: string;
@@ -350,7 +382,7 @@ export interface LaundryCountsResponse {
   ironingCount: number;
 }
 
-export type SyncStatus = 'syncing' | 'online-ok' | 'offline' | 'conflict';
+export type SyncStatus = 'syncing' | 'online-ok' | 'offline' | 'conflict' | 'error';
 
 export interface FieldUpdate<T = unknown> {
   value: T;

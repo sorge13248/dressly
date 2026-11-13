@@ -23,6 +23,8 @@ import { WashingItem } from '../entities/washing-item.entity';
 import { Outfit } from '../entities/outfit.entity';
 import { Room } from '../entities/room.entity';
 import { Location } from '../entities/location.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { ReferenceDataService } from './reference-data.service';
 import { SyncService } from './sync.service';
 
@@ -55,6 +57,8 @@ async function runTests() {
       Room,
       Location,
       SyncTombstone,
+      WashingProgram,
+      Detergent,
     ],
     synchronize: true,
   });

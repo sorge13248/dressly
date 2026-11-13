@@ -2,7 +2,7 @@
 
 This document details the database schema, entity-relationship architecture, constraints, and cascading behaviors of the **Dressly** application.
 
-Dressly uses **SQLite** through **TypeORM** and the high-performance **`better-sqlite3`** driver.
+Dressly uses **SQLite** through **TypeORM** and the high-performance **`better-sqlite3`** driver with Write-Ahead Logging (`journal_mode = WAL`), `synchronous = NORMAL`, and strict foreign key constraints enabled at connection initialization via `prepareDatabase`.
 
 ---
 
@@ -27,6 +27,8 @@ erDiagram
     User ||--o{ Type : configures
     User ||--o{ UseCase : configures
     User ||--o{ Room : configures
+    User ||--o{ WashingProgram : configures
+    User ||--o{ Detergent : configures
 
     Room ||--o{ Location : contains
 
@@ -37,6 +39,9 @@ erDiagram
     Clothes ||--o| BuyDetail : records
     Clothes ||--o{ WashingItem : enters
     Clothes ||--o{ IroningItem : enters
+
+    WashingInstruction }o--o| WashingProgram : "washingProgramId (SET NULL)"
+    WashingInstruction }o--o| Detergent : "detergentId (SET NULL)"
 
     Clothes }o--o| Brand : "brandId (SET NULL)"
     Clothes }o--o| Fit : "fitId (SET NULL)"
@@ -152,7 +157,9 @@ These child tables cascade-delete when their parent `Clothes` record is removed.
 | :--- | :--- | :--- | :--- |
 | `id` | `varchar` (UUID) | PK | Unique instruction ID |
 | `clothesId` | `varchar` | Unique, Not Null, FK `CASCADE` | Parent clothes item |
-| `temperature` | `varchar` | Nullable | Max wash temperature (e.g. `cold`, `30`, `40`, `60`, `90`) |
+| `washingProgramId` | `varchar` | Nullable, FK `SET NULL` | Linked washing program from reference domain |
+| `temperature` | `varchar` | Nullable | Max wash temperature (e.g. `0`, `30`, `40`, `60`, `90`); cleared/hidden when a program is selected |
+| `detergentId` | `varchar` | Nullable, FK `SET NULL` | Linked detergent from reference domain |
 | `washType` | `varchar` | Nullable | `do_not_wash` \| `hand_wash_only` \| `washer_ok` |
 | `bleachType` | `varchar` | Nullable | `no_bleach` \| `non_chlorine_bleach` \| `any_bleach` |
 | `stretch` | `boolean` | Default: `false` | Reshape while damp |
@@ -161,8 +168,9 @@ These child tables cascade-delete when their parent `Clothes` record is removed.
 | `similarColors` | `boolean` | Default: `false` | Wash with like colors |
 | `washSeparately`| `boolean` | Default: `false` | Wash separately |
 | `useColorCatcher`| `boolean`| Default: `false` | Use color-catching sheet |
-| `colorLossRisk` | `boolean` | Default: `false` | Prone to color bleeding |
+| `colorLossRisk` | `integer` | Nullable, Default: `null` | Tri-state color bleed risk: `null` (not tested), `0` (does not bleed), `1` (bleeds color) |
 | `colorLossTestTemperature` | `integer` | Nullable | Bleed test temperature |
+| `notes` | `varchar` | Nullable | Optional free-text washing instructions / notes |
 
 ### 3.2. DryingInstruction (`drying_instructions`)
 | Column | Type | Constraints | Description |
@@ -245,6 +253,8 @@ Composite constraint: `@Unique(['userId', 'name'])` on every catalog table.
 | `tags` (`Tag`) | — | Custom categorization | Fully custom per user (not pre-seeded) |
 | `rooms` (`Room`) | — | Physical storage rooms (e.g. "Soffitta", "Camera") | User-defined storage rooms |
 | `locations` (`Location`) | `roomId: varchar` (FK `Room`) | Storage container/spot inside a room | User-defined positions/containers |
+| `washing_programs` (`WashingProgram`) | `temperature: varchar` (Nullable, 0-95), `spinSpeed: integer` (Nullable, >=0) | Washing machine program presets with temperature and spin speed | Cotone 40°, Cotone 60°, Sintetici 30°, Delicati / Seta 30°, Lana 20°, Rapido 30', Eco 40-60, Lavaggio a freddo |
+| `detergents` (`Detergent`) | `description: varchar` (Nullable) | Laundry detergents and specialized washing agents | Universale liquido, Capi colorati, Lana e delicati, Capi scuri, In polvere per bianchi |
 
 ---
 
@@ -310,7 +320,7 @@ The manifest contains metadata, item counts, and full entity graphs:
 | `exportedAt` | `string` (ISO 8601) | Timestamp of archive creation |
 | `user` | `object` | Snapshot of user profile (`id`, `subject`, `displayName`, `email`) |
 | `stats` | `object` | Item and media counts for quick verification |
-| `data.referenceCatalogs` | `object` | Catalogs: `colors`, `brands`, `seasons`, `temperatures`, `useCases`, `fits`, `materials`, `types`, `rooms`, `locations`, `tags` |
+| `data.referenceCatalogs` | `object` | Catalogs: `colors`, `brands`, `seasons`, `temperatures`, `useCases`, `fits`, `materials`, `types`, `rooms`, `locations`, `tags`, `washingPrograms`, `detergents` |
 | `data.clothes` | `array` | Complete `Clothes` entities including one-to-one instructions (`washingInstruction`, `dryingInstruction`, `ironingInstruction`, `buyDetail`), reference relations, and `attachments` |
 | `data.outfits` | `array` | Complete `Outfit` entities including 2D canvas layout JSON, item references, and attachments |
 | `data.laundry` | `object` | Operational laundry state: `{ washingItems: WashingItem[], ironingItems: IroningItem[] }` |

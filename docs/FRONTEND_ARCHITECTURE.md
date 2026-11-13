@@ -93,10 +93,11 @@ graph TD
     Shell --> Categories
 ```
 
-### Route Guards
+### Route Guards & Title Strategy
 - **`authGuard`**: Intercepts navigation to protected shell routes. If `authService.isAuthenticated()` is false, redirects to `/login`.
 - **`canDeactivateWardrobeWizard`**: Detects unsaved modifications inside the clothing creation or editing wizard and displays a confirmation dialog before allowing navigation away. Integrates with the photo error recovery workflow: if photo upload fails during creation, the wizard transitions into edit mode (`Location.replaceState`), preserving in-memory files and guarding remaining pending photos against accidental loss.
 - **`canDeactivateSeasonalChange`**: Detects unsaved selections or pending stage modifications in the Seasonal Wardrobe Rotation wizard and prompts the user with `ConfirmModalComponent` before allowing navigation away.
+- **`AppTitleStrategy`**: Custom implementation of Angular `TitleStrategy` configured in `app.config.ts`. Automatically formats browser window titles as `${title} - Dressly`, while detail and editor pages dynamically update the document title using Angular's `Title` service to reflect active item names (e.g. `[Nome Capo] - Dressly`, `Modifica [Nome Capo] - Dressly`).
 
 ---
 
@@ -106,11 +107,11 @@ graph TD
 | :--- | :--- | :--- |
 | `ApiService` | Root | Centralized HTTP client wrapping all REST endpoints with `credentials: 'include'`; handles binary stream downloads (PDF cards, ZIP backups) and multipart backup restoration. |
 | `AuthService` | Root | Exposes user profile signal (`currentUser`), auth state (`isAuthenticated`), and login/logout methods. |
-| `SyncService` | Root | Coordinates background synchronization, tracks online/offline state, processes sync queues, and surfaces sync status signals. |
+| `SyncService` | Root | Coordinates background synchronization, tracks online/offline/error states, processes sync queues, captures and formats server/gateway errors, and surfaces sync status signals to UI indicators. |
 | `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`); handles multi-criteria query/sorting engine (`queryClothes`), offline availability checks (`isTagCodeAvailable`), sync queues, and complete cache purging (`clearAllStores()`). |
 | `LaundryService` | Root | Reactive store for clothes in washing and ironing queues. |
 | `PwaUpdateService` | Root | Detects new Service Worker versions and triggers the update modal. |
-| `ReferenceStoreService`| Root | Reactive cache of reference catalogs (colors, brands, tags, types). |
+| `ReferenceStoreService`| Root | Reactive cache and mutation manager of all 13 reference catalogs (colors, brands, tags, types, washing programs, detergents, etc.) with drag-and-drop and alphabetical auto-sorting. |
 | `ToastService` | Root | Reactive queue for displaying transient toast alerts (success, error, warning). |
 
 ---

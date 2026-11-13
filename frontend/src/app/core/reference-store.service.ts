@@ -16,6 +16,8 @@ import {
   TemperatureItem,
   TypeItem,
   UseCaseItem,
+  WashingProgramItem,
+  DetergentItem,
 } from './models';
 
 type ReferenceState = {
@@ -30,6 +32,8 @@ type ReferenceState = {
   tags: TagItem[];
   rooms: RoomItem[];
   locations: LocationItem[];
+  'washing-programs': WashingProgramItem[];
+  detergents: DetergentItem[];
 };
 
 type ReferenceItem =
@@ -43,7 +47,9 @@ type ReferenceItem =
   | TypeItem
   | TagItem
   | RoomItem
-  | LocationItem;
+  | LocationItem
+  | WashingProgramItem
+  | DetergentItem;
 
 const emptyState: ReferenceState = {
   colors: [],
@@ -57,6 +63,8 @@ const emptyState: ReferenceState = {
   tags: [],
   rooms: [],
   locations: [],
+  'washing-programs': [],
+  detergents: [],
 };
 
 @Injectable({ providedIn: 'root' })
@@ -77,7 +85,16 @@ export class ReferenceStoreService {
     }
   }
 
-  private readonly sortableKinds: ReferenceKind[] = ['seasons', 'temperatures', 'use-cases', 'fits', 'materials', 'rooms'];
+  private readonly sortableKinds: ReferenceKind[] = [
+    'seasons',
+    'temperatures',
+    'use-cases',
+    'fits',
+    'materials',
+    'rooms',
+    'washing-programs',
+    'detergents',
+  ];
 
   private isSortableKind(kind: ReferenceKind) {
     return this.sortableKinds.includes(kind);
@@ -115,6 +132,8 @@ export class ReferenceStoreService {
   readonly tags = computed(() => this.sortForKind('tags', this.state().tags));
   readonly rooms = computed(() => this.sortForKind('rooms', this.state().rooms));
   readonly locations = computed(() => this.state().locations);
+  readonly washingPrograms = computed(() => this.sortForKind('washing-programs', this.state()['washing-programs']));
+  readonly detergents = computed(() => this.sortForKind('detergents', this.state().detergents));
 
   readonly locationsSortedByRoomAndName = computed(() => {
     const roomsList = this.rooms();
@@ -141,8 +160,14 @@ export class ReferenceStoreService {
         return false;
       }
 
-      // Tags, rooms, locations are user-defined and may legitimately be empty.
-      if (kind === 'tags' || kind === 'rooms' || kind === 'locations') {
+      // Tags, rooms, locations, washing programs, and detergents are user-defined and may legitimately be empty.
+      if (
+        kind === 'tags' ||
+        kind === 'rooms' ||
+        kind === 'locations' ||
+        kind === 'washing-programs' ||
+        kind === 'detergents'
+      ) {
         return true;
       }
 
@@ -169,6 +194,8 @@ export class ReferenceStoreService {
           tags: (cached['tags'] ?? []) as TagItem[],
           rooms: (cached['rooms'] ?? []) as RoomItem[],
           locations: (cached['locations'] ?? []) as LocationItem[],
+          'washing-programs': (cached['washing-programs'] ?? []) as WashingProgramItem[],
+          detergents: (cached['detergents'] ?? []) as DetergentItem[],
         };
 
         if (this.hasStateChanged(this.state(), nextState)) {
@@ -193,6 +220,8 @@ export class ReferenceStoreService {
       'tags',
       'rooms',
       'locations',
+      'washing-programs',
+      'detergents',
     ];
     for (const kind of kinds) {
       const c = curr[kind] ?? [];
@@ -204,7 +233,10 @@ export class ReferenceStoreService {
           c[i].updatedAt !== n[i].updatedAt ||
           c[i].name !== n[i].name ||
           (c[i] as any).hexCode !== (n[i] as any).hexCode ||
-          (c[i] as any).sortOrder !== (n[i] as any).sortOrder
+          (c[i] as any).sortOrder !== (n[i] as any).sortOrder ||
+          (c[i] as any).temperature !== (n[i] as any).temperature ||
+          (c[i] as any).spinSpeed !== (n[i] as any).spinSpeed ||
+          (c[i] as any).description !== (n[i] as any).description
         ) {
           return true;
         }
@@ -251,6 +283,17 @@ export class ReferenceStoreService {
             roomId: (payload['roomId'] ?? payload['room_id'] ?? null) as string | null,
           }
         : {}),
+      ...(kind === 'washing-programs'
+        ? {
+            temperature: (payload['temperature'] as string | null) ?? null,
+            spinSpeed: (payload['spinSpeed'] as number | null) ?? null,
+          }
+        : {}),
+      ...(kind === 'detergents'
+        ? {
+            description: (payload['description'] as string | null) ?? null,
+          }
+        : {}),
     };
     this.patchAppend(kind, localItem);
     if (this.storage) {
@@ -273,6 +316,15 @@ export class ReferenceStoreService {
       ...(kind === 'colors' && payload['hexCode'] !== undefined ? { hexCode: payload['hexCode'] as string } : {}),
       ...(kind === 'locations' && (payload['roomId'] !== undefined || payload['room_id'] !== undefined)
         ? { roomId: (payload['roomId'] ?? payload['room_id'] ?? null) as string | null }
+        : {}),
+      ...(kind === 'washing-programs'
+        ? {
+            ...(payload['temperature'] !== undefined ? { temperature: payload['temperature'] as string | null } : {}),
+            ...(payload['spinSpeed'] !== undefined ? { spinSpeed: payload['spinSpeed'] as number | null } : {}),
+          }
+        : {}),
+      ...(kind === 'detergents' && payload['description'] !== undefined
+        ? { description: payload['description'] as string | null }
         : {}),
     };
     this.patchReplace(kind, updated);

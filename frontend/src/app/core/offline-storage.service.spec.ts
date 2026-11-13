@@ -178,4 +178,46 @@ describe('OfflineStorageService', () => {
       expect(byLocation.items[0].id).toBe('cloth-stored');
     });
   });
+
+  describe('getAllReferenceData', () => {
+    it('should include washing-programs and detergents alongside standard domains', async () => {
+      await service.saveReferenceData('washing-programs', [
+        {
+          id: 'prog-1',
+          userId: 'user-1',
+          name: 'Cotone 40°',
+          sortOrder: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          temperature: '40',
+          spinSpeed: 1000,
+        } as any,
+      ]);
+      await service.saveReferenceData('detergents', [
+        {
+          id: 'det-1',
+          userId: 'user-1',
+          name: 'Liquido delicato',
+          sortOrder: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          description: 'Per capi delicati',
+        } as any,
+      ]);
+
+      const all = await service.getAllReferenceData();
+      expect(all['washing-programs']).toBeDefined();
+      expect(all['washing-programs'].length).toBe(1);
+      expect(all['washing-programs'][0].name).toBe('Cotone 40°');
+
+      expect(all['detergents']).toBeDefined();
+      expect(all['detergents'].length).toBe(1);
+      expect(all['detergents'][0].name).toBe('Liquido delicato');
+
+      expect(all['colors']).toBeDefined();
+      expect(all['brands']).toBeDefined();
+      expect(all['rooms']).toBeDefined();
+      expect(all['locations']).toBeDefined();
+    });
+  });
 });

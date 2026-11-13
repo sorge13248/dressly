@@ -15,6 +15,8 @@ export type ReferenceEditorDialogData = {
   showSortOrder: boolean;
   usesColorPicker: boolean;
   isLocation?: boolean;
+  isWashingProgram?: boolean;
+  isDetergent?: boolean;
   hideExtra?: boolean;
   roomOptions?: { id: string; name: string }[];
   initial: {
@@ -22,6 +24,9 @@ export type ReferenceEditorDialogData = {
     sortOrder: string;
     extra: string;
     roomId?: string;
+    temperature?: string;
+    spinSpeed?: string;
+    description?: string;
   };
 };
 
@@ -30,6 +35,9 @@ export type ReferenceEditorDialogResult = {
   sortOrder: string;
   extra: string;
   roomId?: string | null;
+  temperature?: string | null;
+  spinSpeed?: string | null;
+  description?: string | null;
 };
 
 @Component({
@@ -46,10 +54,17 @@ export class ReferenceEditorModalComponent {
     sortOrder: this.data.initial.sortOrder,
     extra: this.data.initial.extra,
     roomId: this.data.initial.roomId ?? '',
+    temperature: this.data.initial.temperature ?? '',
+    spinSpeed: this.data.initial.spinSpeed ?? '',
+    description: this.data.initial.description ?? '',
   });
   readonly modalForm = form(this.model, (schema) => {
     required(schema.name, { message: 'Il nome è obbligatorio' });
     pattern(schema.sortOrder, /^$|^\d+$/, { message: 'L ordine deve contenere solo numeri' });
+    if (this.data.isWashingProgram) {
+      pattern(schema.temperature, /^$|^(?:[0-9]|[1-8][0-9]|9[0-5])$/, { message: 'Temperatura compresa tra 0 e 95' });
+      pattern(schema.spinSpeed, /^$|^\d+$/, { message: 'La centrifuga deve essere maggiore o uguale a 0' });
+    }
   });
   readonly attempted = signal(false);
   readonly colorPickerValue = computed(() => this.normalizeHexColor(this.modalForm.extra().value()));
@@ -63,7 +78,12 @@ export class ReferenceEditorModalComponent {
   confirm() {
     this.attempted.set(true);
 
-    if (this.modalForm.name().invalid() || this.modalForm.sortOrder().invalid()) {
+    if (
+      this.modalForm.name().invalid() ||
+      this.modalForm.sortOrder().invalid() ||
+      (this.data.isWashingProgram &&
+        (this.modalForm.temperature().invalid() || this.modalForm.spinSpeed().invalid()))
+    ) {
       return;
     }
 
@@ -72,14 +92,17 @@ export class ReferenceEditorModalComponent {
       sortOrder: this.modalForm.sortOrder().value().trim(),
       extra: this.modalForm.extra().value().trim(),
       roomId: this.modalForm.roomId().value() ? this.modalForm.roomId().value().trim() : null,
+      temperature: this.data.isWashingProgram ? this.modalForm.temperature().value().trim() || null : null,
+      spinSpeed: this.data.isWashingProgram ? this.modalForm.spinSpeed().value().trim() || null : null,
+      description: this.data.isDetergent ? this.modalForm.description().value().trim() || null : null,
     });
   }
 
-  showError(field: ReturnType<typeof this.modalForm.name> | ReturnType<typeof this.modalForm.sortOrder>) {
+  showError(field: { invalid: () => boolean; touched: () => boolean; dirty: () => boolean }) {
     return field.invalid() && (field.touched() || field.dirty() || this.attempted());
   }
 
-  firstError(field: ReturnType<typeof this.modalForm.name> | ReturnType<typeof this.modalForm.sortOrder>) {
+  firstError(field: { errors: () => Array<{ message?: string }> }) {
     return field.errors()[0]?.message ?? 'Valore non valido';
   }
 

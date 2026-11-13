@@ -20,6 +20,75 @@ import {
 import { OfflineStorageService } from './offline-storage.service';
 import { ToastService } from './toast.service';
 
+export function formatSyncErrorMessage(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 502) {
+      return 'Errore del server (502 Bad Gateway)';
+    }
+    if (err.status === 503) {
+      return 'Servizio non disponibile (503 Service Unavailable)';
+    }
+    if (err.status === 504) {
+      return 'Gateway Timeout (504)';
+    }
+    if (err.status === 500) {
+      if (err.error && typeof err.error === 'object' && typeof err.error.message === 'string') {
+        return `Errore interno del server (500): ${err.error.message}`;
+      }
+      return 'Errore interno del server (500)';
+    }
+    if (err.status === 401 || err.status === 403) {
+      return 'Sessione non valida o scaduta (401/403)';
+    }
+    if (err.status === 404) {
+      return 'Endpoint di sincronizzazione non trovato (404)';
+    }
+    if (err.status > 0) {
+      if (err.error && typeof err.error === 'object' && typeof err.error.message === 'string') {
+        return `Errore ${err.status}: ${err.error.message}`;
+      }
+      const statusText = err.statusText ? ` ${err.statusText}` : '';
+      return `Errore del server (${err.status}${statusText})`;
+    }
+  }
+
+  if (err && typeof err === 'object') {
+    const obj = err as Record<string, unknown>;
+    const status = typeof obj['status'] === 'number' ? obj['status'] : undefined;
+    const statusText = typeof obj['statusText'] === 'string' && obj['statusText'] ? ` ${obj['statusText']}` : '';
+
+    if (status === 502) {
+      return 'Errore del server (502 Bad Gateway)';
+    }
+    if (status === 503) {
+      return 'Servizio non disponibile (503 Service Unavailable)';
+    }
+    if (status === 504) {
+      return 'Gateway Timeout (504)';
+    }
+    if (status === 500) {
+      return 'Errore interno del server (500)';
+    }
+    if (status && status > 0) {
+      return `Errore del server (${status}${statusText})`;
+    }
+
+    if (typeof obj['message'] === 'string' && obj['message'].trim().length > 0) {
+      const msg = obj['message'];
+      if (msg.includes('502 Bad Gateway') || (msg.includes('502') && msg.toLowerCase().includes('bad gateway'))) {
+        return 'Errore del server (502 Bad Gateway)';
+      }
+      return msg;
+    }
+  }
+
+  if (typeof err === 'string' && err.trim().length > 0) {
+    return err;
+  }
+
+  return 'Errore durante la sincronizzazione';
+}
+
 @Injectable({ providedIn: 'root' })
 export class SyncService {
   private readonly api = inject(ApiService);
@@ -27,6 +96,7 @@ export class SyncService {
   private readonly toast = inject(ToastService, { optional: true });
 
   readonly status = signal<SyncStatus>('online-ok');
+  readonly lastError = signal<string | null>(null);
   readonly conflicts = signal<SyncConflict[]>([]);
   readonly isOnline = signal<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   readonly pendingCount = signal<number>(0);
@@ -39,6 +109,7 @@ export class SyncService {
 
   readonly isSyncing = computed(() => this.status() === 'syncing');
   readonly isConflict = computed(() => this.status() === 'conflict');
+  readonly isError = computed(() => this.status() === 'error');
   readonly isOffline = computed(() => !this.isOnline() || this.status() === 'offline');
   readonly isOk = computed(() => this.isOnline() && this.status() === 'online-ok');
 
@@ -82,6 +153,7 @@ export class SyncService {
   markOffline(): void {
     this.isOnline.set(false);
     this.status.set('offline');
+    this.lastError.set(null);
     this.conflicts.set([]);
     this.startHealthProbe();
   }
@@ -143,13 +215,20 @@ export class SyncService {
       if (meta.lastSyncAt) {
         this.lastSyncTime.set(new Date(meta.lastSyncAt));
       }
+      if (meta.lastSyncError) {
+        this.lastError.set(meta.lastSyncError);
+      }
       if (meta.conflicts && meta.conflicts.length > 0) {
         this.conflicts.set(meta.conflicts);
         this.status.set('conflict');
       } else if (!this.isOnline()) {
         this.status.set('offline');
+      } else if (meta.lastSyncStatus === 'conflict') {
+        this.status.set('conflict');
+      } else if (meta.lastSyncStatus === 'error') {
+        this.status.set('error');
       } else {
-        this.status.set(meta.lastSyncStatus === 'conflict' ? 'conflict' : 'online-ok');
+        this.status.set('online-ok');
       }
 
       const queue = await this.storage.getQueue();
@@ -275,6 +354,7 @@ export class SyncService {
       }
 
       this.conflicts.set([]);
+      this.lastError.set(null);
       this.status.set('online-ok');
       const serverDate = new Date(response.serverTime);
       this.lastSyncTime.set(serverDate);
@@ -282,6 +362,7 @@ export class SyncService {
       await this.storage.setMetadata({
         lastSyncAt: response.serverTime,
         lastSyncStatus: 'online-ok',
+        lastSyncError: null,
         conflicts: [],
       });
 
@@ -293,7 +374,21 @@ export class SyncService {
       if (this.isOfflineError(err)) {
         this.markOffline();
       } else {
-        this.status.set('conflict');
+        const errorMsg = formatSyncErrorMessage(err);
+        this.lastError.set(errorMsg);
+        this.status.set('error');
+        this.stopHealthProbe();
+        try {
+          const meta = await this.storage.getMetadata();
+          await this.storage.setMetadata({
+            lastSyncAt: meta.lastSyncAt,
+            lastSyncStatus: 'error',
+            lastSyncError: errorMsg,
+            conflicts: [],
+          });
+        } catch {
+          // ignore
+        }
       }
       return null;
     }
@@ -430,6 +525,7 @@ export class SyncService {
 
       const nextStatus: SyncStatus = hasUnresolved || response.status === 'conflict' ? 'conflict' : 'online-ok';
       this.status.set(nextStatus);
+      this.lastError.set(null);
 
       const serverDate = new Date(response.serverTime);
       this.lastSyncTime.set(serverDate);
@@ -437,6 +533,7 @@ export class SyncService {
       await this.storage.setMetadata({
         lastSyncAt: response.serverTime,
         lastSyncStatus: nextStatus,
+        lastSyncError: null,
         conflicts: response.conflicts ?? [],
       });
 
@@ -448,7 +545,21 @@ export class SyncService {
       if (this.isOfflineError(err)) {
         this.markOffline();
       } else {
-        this.status.set('conflict');
+        const errorMsg = formatSyncErrorMessage(err);
+        this.lastError.set(errorMsg);
+        this.status.set('error');
+        this.stopHealthProbe();
+        try {
+          const meta = await this.storage.getMetadata();
+          await this.storage.setMetadata({
+            lastSyncAt: meta.lastSyncAt,
+            lastSyncStatus: 'error',
+            lastSyncError: errorMsg,
+            conflicts: [],
+          });
+        } catch {
+          // ignore
+        }
       }
       return null;
     }

@@ -22,6 +22,8 @@ import { IroningItem } from './entities/ironing-item.entity';
 import { Outfit } from './entities/outfit.entity';
 import { Room } from './entities/room.entity';
 import { Location } from './entities/location.entity';
+import { WashingProgram } from './entities/washing-program.entity';
+import { Detergent } from './entities/detergent.entity';
 import { AuthController } from './auth.controller';
 import { BearerJwtGuard } from './common/auth/bearer-jwt.guard';
 import { CurrentUserController } from './controllers/current-user.controller';
@@ -68,10 +70,17 @@ import { BackupService } from './services/backup.service';
         Room,
         Location,
         SyncTombstone,
+        WashingProgram,
+        Detergent,
       ],
       autoLoadEntities: process.env.DB_AUTO_LOAD_ENTITIES !== 'false',
       synchronize: process.env.DB_SYNCHRONIZE !== 'false',
       logging: process.env.DB_LOGGING === 'true',
+      prepareDatabase: (db: any) => {
+        db.pragma('journal_mode = WAL');
+        db.pragma('synchronous = NORMAL');
+        db.pragma('foreign_keys = ON');
+      },
     }),
   ],
   controllers: [

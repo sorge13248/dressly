@@ -33,6 +33,8 @@ import { BuyDetail } from '../entities/buy-detail.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { IroningItem } from '../entities/ironing-item.entity';
 import { Location } from '../entities/location.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { ReferenceDataService } from './reference-data.service';
 import { StorageCleanupService } from './storage-cleanup.service';
 
@@ -94,6 +96,39 @@ export class ClothesService implements OnModuleInit {
   async onModuleInit() {
     await this.generateMissingPreviews();
     await this.backfillMissingTagCodes();
+    await this.migrateColorLossRiskTriState();
+  }
+
+  async migrateColorLossRiskTriState() {
+    try {
+      await this.dataSource.query(
+        'CREATE TABLE IF NOT EXISTS _app_migrations (id TEXT PRIMARY KEY, appliedAt DATETIME);',
+      );
+      const applied = await this.dataSource.query(
+        'SELECT id FROM _app_migrations WHERE id = ?;',
+        ['20261113_color_loss_risk_tri_state'],
+      );
+      if (applied && applied.length > 0) {
+        return;
+      }
+
+      this.logger.log('Running one-time migration: 20261113_color_loss_risk_tri_state...');
+      // Treat false (0) as null if test temperature was not set, otherwise keep false (0)
+      await this.dataSource.query(`
+        UPDATE washing_instructions
+        SET colorLossRisk = NULL
+        WHERE (colorLossRisk = 0 OR colorLossRisk = FALSE)
+          AND colorLossTestTemperature IS NULL;
+      `);
+
+      await this.dataSource.query(
+        'INSERT INTO _app_migrations (id, appliedAt) VALUES (?, CURRENT_TIMESTAMP);',
+        ['20261113_color_loss_risk_tri_state'],
+      );
+      this.logger.log('Migration 20261113_color_loss_risk_tri_state completed successfully.');
+    } catch (err) {
+      this.logger.warn(`Could not run colorLossRisk migration: ${String(err)}`);
+    }
   }
 
   async backfillMissingTagCodes() {
@@ -351,6 +386,8 @@ export class ClothesService implements OnModuleInit {
       .leftJoinAndSelect('clothes.type', 'type')
       .leftJoinAndSelect('clothes.colors', 'colors')
       .leftJoinAndSelect('clothes.washingInstruction', 'washingInstruction')
+      .leftJoinAndSelect('washingInstruction.washingProgram', 'washingProgram')
+      .leftJoinAndSelect('washingInstruction.detergent', 'detergent')
       .leftJoinAndSelect('clothes.attachments', 'attachments')
       .where('clothes.userId = :userId', { userId: user.id })
       .andWhere('clothes.id IN (:...ids)', { ids });
@@ -395,6 +432,24 @@ export class ClothesService implements OnModuleInit {
                 useColorCatcher: item.washingInstruction.useColorCatcher,
                 colorLossRisk: item.washingInstruction.colorLossRisk,
                 colorLossTestTemperature: item.washingInstruction.colorLossTestTemperature,
+                notes: item.washingInstruction.notes,
+                washingProgramId: item.washingInstruction.washingProgramId,
+                washingProgram: item.washingInstruction.washingProgram
+                  ? {
+                      id: item.washingInstruction.washingProgram.id,
+                      name: item.washingInstruction.washingProgram.name,
+                      temperature: item.washingInstruction.washingProgram.temperature,
+                      spinSpeed: item.washingInstruction.washingProgram.spinSpeed,
+                    }
+                  : null,
+                detergentId: item.washingInstruction.detergentId,
+                detergent: item.washingInstruction.detergent
+                  ? {
+                      id: item.washingInstruction.detergent.id,
+                      name: item.washingInstruction.detergent.name,
+                      description: item.washingInstruction.detergent.description,
+                    }
+                  : null,
               }
             : null,
           primaryAttachment: primaryAttachment
@@ -723,7 +778,7 @@ export class ClothesService implements OnModuleInit {
         useCases: true,
         tags: true,
         attachments: true,
-        washingInstruction: true,
+        washingInstruction: { washingProgram: true, detergent: true },
         dryingInstruction: true,
         ironingInstruction: true,
         buyDetail: true,
@@ -768,7 +823,7 @@ export class ClothesService implements OnModuleInit {
         temperatures: true,
         useCases: true,
         tags: true,
-        washingInstruction: true,
+        washingInstruction: { washingProgram: true, detergent: true },
         dryingInstruction: true,
         ironingInstruction: true,
         buyDetail: true,
@@ -800,7 +855,7 @@ export class ClothesService implements OnModuleInit {
         useCases: true,
         tags: true,
         attachments: true,
-        washingInstruction: true,
+        washingInstruction: { washingProgram: true, detergent: true },
         dryingInstruction: true,
         ironingInstruction: true,
         buyDetail: true,
@@ -871,6 +926,9 @@ export class ClothesService implements OnModuleInit {
         useColorCatcher: original.washingInstruction.useColorCatcher,
         colorLossRisk: original.washingInstruction.colorLossRisk,
         colorLossTestTemperature: original.washingInstruction.colorLossTestTemperature,
+        notes: original.washingInstruction.notes,
+        washingProgramId: original.washingInstruction.washingProgramId,
+        detergentId: original.washingInstruction.detergentId,
       });
     }
 
@@ -1281,12 +1339,43 @@ export class ClothesService implements OnModuleInit {
           washingBody.useColorCatcher ?? washingBody.use_color_catcher,
           false,
         );
-        const colorLossRisk = this.toBooleanWithDefault(washingBody.colorLossRisk ?? washingBody.color_loss, false);
+        const washingProgramId = trimToNull(washingBody.washingProgramId ?? washingBody.washing_program_id);
+        if (washingProgramId) {
+          const wp = await this.dataSource.getRepository(WashingProgram).findOne({
+            where: { id: washingProgramId, userId: user.id },
+          });
+          if (!wp) {
+            throw new BadRequestException('Programma lavatrice non valido');
+          }
+        }
+
+        const detergentId = trimToNull(washingBody.detergentId ?? washingBody.detergent_id);
+        if (detergentId) {
+          const det = await this.dataSource.getRepository(Detergent).findOne({
+            where: { id: detergentId, userId: user.id },
+          });
+          if (!det) {
+            throw new BadRequestException('Detersivo non valido');
+          }
+        }
+
+        const rawColorLoss = washingBody.colorLossRisk !== undefined ? washingBody.colorLossRisk : washingBody.color_loss;
+        let colorLossRisk: number | null = null;
+        if (rawColorLoss === null || rawColorLoss === undefined || rawColorLoss === '') {
+          colorLossRisk = null;
+        } else if (rawColorLoss === 1 || rawColorLoss === true || rawColorLoss === '1') {
+          colorLossRisk = 1;
+        } else if (rawColorLoss === 0 || rawColorLoss === false || rawColorLoss === '0') {
+          colorLossRisk = 0;
+        }
+
         const colorLossTestTemperature = this.toOptionalNumber(
           washingBody.colorLossTestTemperature ?? washingBody.color_loss_test_temperature,
           'washingInstruction.color_loss_test_temperature',
         );
-        const normalizedWashingTemperature = washType === 'washer_ok' ? washingTemperature : null;
+        const notes = trimToNull(washingBody.notes);
+        const normalizedWashingTemperature =
+          washType === 'washer_ok' && !washingProgramId ? washingTemperature : null;
 
         const next = this.dataSource
           .getRepository(WashingInstruction)
@@ -1303,6 +1392,9 @@ export class ClothesService implements OnModuleInit {
             useColorCatcher,
             colorLossRisk,
             colorLossTestTemperature,
+            notes,
+            washingProgramId: washType === 'washer_ok' ? washingProgramId : null,
+            detergentId: washType !== 'do_not_wash' ? detergentId : null,
           });
         if (existing?.washingInstruction?.id) {
           next.id = existing.washingInstruction.id;
@@ -1407,12 +1499,13 @@ export class ClothesService implements OnModuleInit {
     if (washing) {
       const washTypeRaw = washing.washType ?? washing.wash_type;
       const washType = washTypeRaw === null || washTypeRaw === undefined ? null : String(washTypeRaw).trim();
+      const washingProgramId = trimToNull(washing.washingProgramId ?? washing.washing_program_id);
       const washingTemperature = this.toOptionalNumber(
         washing.washing_temperature ?? washing.temperature,
         'washingInstruction.washing_temperature',
       );
 
-      if (washType === 'washer_ok' && washingTemperature === null) {
+      if (washType === 'washer_ok' && washingTemperature === null && !washingProgramId) {
         throw new BadRequestException('Temperatura lavaggio obbligatoria (0-95)');
       }
 

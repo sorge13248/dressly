@@ -63,7 +63,7 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 │   │   ├── entities/                     # TypeORM SQLite entities
 │   │   ├── services/                     # Business logic, database operations, PDFKit, backup ZIP
 │   │   └── seed/                         # Default catalog seeds (colors, types, etc.)
-│   └── package.json                      # NestJS 12, TypeORM 1.1, better-sqlite3 12, sharp, pdfkit, adm-zip
+│   └── package.json                      # NestJS 12, TypeORM 1.1, better-sqlite3 13, sharp, pdfkit, adm-zip
 ├── frontend/
 │   ├── src/app/
 │   │   ├── app.config.ts                 # Standalone providers

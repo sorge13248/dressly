@@ -11,6 +11,8 @@ import { UseCase } from '../entities/use-case.entity';
 import { Fit } from '../entities/fit.entity';
 import { Material } from '../entities/material.entity';
 import { Type } from '../entities/type.entity';
+import { WashingProgram } from '../entities/washing-program.entity';
+import { Detergent } from '../entities/detergent.entity';
 import { User } from '../entities/user.entity';
 
 const FALLBACK_DISPLAY_NAME = 'Dressly user';
@@ -80,6 +82,8 @@ export class UsersService {
       await manager.getRepository(Fit).save(defaultReferenceSeeds.fits.map((item) => ({ ...item, userId })));
       await manager.getRepository(Material).save(defaultReferenceSeeds.materials.map((item) => ({ ...item, userId })));
       await manager.getRepository(Type).save(defaultReferenceSeeds.types.map((item) => ({ ...item, userId })));
+      await manager.getRepository(WashingProgram).save(defaultReferenceSeeds.washingPrograms.map((item) => ({ ...item, userId })));
+      await manager.getRepository(Detergent).save(defaultReferenceSeeds.detergents.map((item) => ({ ...item, userId })));
     });
   }
 }

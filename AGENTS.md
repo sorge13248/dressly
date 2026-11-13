@@ -23,7 +23,7 @@ Whenever **ANY** modification is made to the software (including features, archi
 
 **Dressly** is a private-first digital wardrobe, outfit composition planner, and laundry management system with offline-first PWA resilience and bi-directional synchronization.
 
-- **Backend**: NestJS 12, TypeORM 1.1 with `better-sqlite3` v12 (WAL mode enabled), `sharp` for image compression (WebP), `jose` for OIDC/PKCE verification.
+- **Backend**: NestJS 12, TypeORM 1.1 with `better-sqlite3` v13 (WAL mode enabled), `sharp` for image compression (WebP), `jose` for OIDC/PKCE verification.
 - **Frontend**: Angular 22 standalone components (no `NgModule`), Angular Signals (`signal`, `computed`, `effect`), IndexedDB (`OfflineStorageService`), custom Service Worker (`sw.js`).
 - **Container**: Unified multi-stage Docker container running Nginx and NestJS managed by `supervisord`.
 
