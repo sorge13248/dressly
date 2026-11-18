@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationBootstrap, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import * as path from 'node:path';
@@ -6,6 +6,8 @@ import * as fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import * as os from 'node:os';
 import { Attachment } from '../entities/attachment.entity';
+import { IFileStorageProvider, STORAGE_PROVIDER } from '../common/storage/storage-provider.interface';
+import { LocalDiskStorageProvider } from '../common/storage/local-disk-storage.provider';
 
 export interface CleanupStats {
   removedFiles: number;
@@ -17,7 +19,10 @@ export interface CleanupStats {
 export class StorageCleanupService implements OnApplicationBootstrap {
   private readonly logger = new Logger(StorageCleanupService.name);
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @Optional() @Inject(STORAGE_PROVIDER) private readonly storageProvider: IFileStorageProvider = new LocalDiskStorageProvider(),
+  ) {}
 
   async onApplicationBootstrap() {
     await this.cleanupOrphans();
@@ -25,31 +30,15 @@ export class StorageCleanupService implements OnApplicationBootstrap {
   }
 
   getUploadsRootDir(): string {
-    const configured = process.env.UPLOADS_DIR?.trim();
-    if (configured) {
-      return path.resolve(configured);
-    }
-    return path.resolve(__dirname, '../../uploads');
+    return this.storageProvider.getUploadsRootDir();
   }
 
   normalizeStoredAttachmentPath(storedPath: string): string {
-    return storedPath.replace(/\\/g, '/');
+    return this.storageProvider.normalizeStoredAttachmentPath(storedPath);
   }
 
   resolveAttachmentAbsolutePath(storedPath: string): string {
-    if (path.isAbsolute(storedPath)) {
-      return storedPath;
-    }
-
-    const uploadsRootDir = this.getUploadsRootDir();
-    const normalizedStoredPath = this.normalizeStoredAttachmentPath(storedPath);
-
-    // Backward compatibility for older rows saved as "uploads/...".
-    if (normalizedStoredPath.startsWith('uploads/')) {
-      return path.join(uploadsRootDir, normalizedStoredPath.slice('uploads/'.length));
-    }
-
-    return path.join(uploadsRootDir, normalizedStoredPath);
+    return this.storageProvider.resolveAttachmentAbsolutePath(storedPath);
   }
 
   async deleteAttachmentFiles(attachment: { path: string; previewPath?: string | null }): Promise<void> {

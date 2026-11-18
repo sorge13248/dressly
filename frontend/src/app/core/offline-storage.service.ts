@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { isValidTagCode, normalizeTagCode } from '../shared/utils/tag-code.utils';
 import { getPrimaryAttachment, sortAttachments } from '../shared/utils/attachment.utils';
+import { getCurrentAstronomicalSeason } from '../shared/utils/season.utils';
 import {
   BaseReferenceItem,
   ClothesFilters,
@@ -35,21 +36,6 @@ export interface StorageMetadata {
 
 function getClothesPreferredName(item: ClothesItem): string {
   return (item.name?.trim() || item.fullTitle?.trim() || item.type?.name?.trim() || '').toLowerCase();
-}
-
-function getCurrentAstronomicalSeason(date = new Date()): 'Primavera' | 'Estate' | 'Autunno' | 'Inverno' {
-  const month = date.getMonth(); // 0 = Jan, 11 = Dec
-  const day = date.getDate();
-  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
-    return 'Primavera';
-  }
-  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 20)) {
-    return 'Estate';
-  }
-  if ((month === 8 && day >= 21) || month === 9 || month === 10 || (month === 11 && day <= 20)) {
-    return 'Autunno';
-  }
-  return 'Inverno';
 }
 
 function getSeasonCycleRank(item: ClothesItem): number {

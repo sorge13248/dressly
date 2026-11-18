@@ -123,10 +123,11 @@ Per consultare approfondimenti tecnici dettagliati su ogni componente, visita la
 .
 ├── backend/                  # API NestJS, entità TypeORM, servizi, controller, seed
 │   ├── src/
-│   │   ├── common/           # Guard di autenticazione, decoratori, tipi sync, utilità codici
+│   │   ├── common/           # Guard auth, decoratori, tipi sync, storage, utilità tag code e stagioni
 │   │   ├── controllers/      # Controller REST API (capi, outfit, sync, categorie)
 │   │   ├── entities/         # Entità TypeORM per SQLite
-│   │   ├── services/         # Logica di business e repository SQLite
+│   │   ├── modules/          # Moduli NestJS a feature (Auth, Capi, Bucato, Outfit, Sync, ecc.)
+│   │   ├── services/         # Logica di business, bucato, export PDF, migrazioni
 │   │   └── database/         # Configurazione data source e script di seed
 │   └── package.json
 ├── frontend/                 # Applicazione SPA Angular 22 (PWA)
@@ -270,7 +271,7 @@ docker compose up -d --build
 - `npm --prefix frontend run start:lan`: Avvia `ng serve --host 0.0.0.0` per test da smartphone o altri dispositivi nella rete locale.
 - `npm --prefix frontend run start:lan:ssl`: Avvia `ng serve` con certificato SSL auto-firmato per test PWA su dispositivi mobili.
 - `npm --prefix frontend run build`: Genera la build di produzione in `dist/`.
-- `npm --prefix frontend run test`: Esegue la suite di test con Vitest (`31 file di test, oltre 230 test superati`).
+- `npm --prefix frontend run test`: Esegue la suite di test con Vitest (`40 file di test, 340 test superati`).
 
 ---
 

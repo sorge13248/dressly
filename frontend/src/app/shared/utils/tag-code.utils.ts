@@ -30,3 +30,30 @@ export function generateRandomTagCode(): string {
   return result;
 }
 
+/**
+ * Generates a guaranteed unique 3-character code for an existing set of user codes.
+ */
+export function generateUniqueTagCode(existingCodes: Set<string>): string {
+  const maxAttempts = 200;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const candidate = generateRandomTagCode();
+    if (!existingCodes.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Fallback: systematic traversal of the charset if random collisions occur
+  for (let i = 0; i < TAG_CODE_CHARSET.length; i++) {
+    for (let j = 0; j < TAG_CODE_CHARSET.length; j++) {
+      for (let k = 0; k < TAG_CODE_CHARSET.length; k++) {
+        const candidate = `${TAG_CODE_CHARSET[i]}${TAG_CODE_CHARSET[j]}${TAG_CODE_CHARSET[k]}`;
+        if (!existingCodes.has(candidate)) {
+          return candidate;
+        }
+      }
+    }
+  }
+
+  throw new Error('All tag codes in the 3-character space are exhausted for this user.');
+}
+

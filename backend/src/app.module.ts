@@ -24,23 +24,15 @@ import { Room } from './entities/room.entity';
 import { Location } from './entities/location.entity';
 import { WashingProgram } from './entities/washing-program.entity';
 import { Detergent } from './entities/detergent.entity';
-import { AuthController } from './auth.controller';
-import { BearerJwtGuard } from './common/auth/bearer-jwt.guard';
-import { CurrentUserController } from './controllers/current-user.controller';
-import { ClothesController } from './controllers/clothes.controller';
-import { OutfitsController } from './controllers/outfits.controller';
-import { SyncController } from './controllers/sync.controller';
 import { HealthController } from './health.controller';
-import { PublicController } from './public.controller';
-import { ReferenceDataController } from './controllers/reference-data.controller';
-import { BackupController } from './controllers/backup.controller';
-import { ClothesService } from './services/clothes.service';
-import { OutfitsService } from './services/outfits.service';
-import { ReferenceDataService } from './services/reference-data.service';
-import { StorageCleanupService } from './services/storage-cleanup.service';
-import { SyncService } from './services/sync.service';
-import { UsersService } from './services/users.service';
-import { BackupService } from './services/backup.service';
+import { AuthModule } from './modules/auth.module';
+import { ReferenceDataModule } from './modules/reference-data.module';
+import { StorageModule } from './modules/storage.module';
+import { LaundryModule } from './modules/laundry.module';
+import { ClothesModule } from './modules/clothes.module';
+import { OutfitsModule } from './modules/outfits.module';
+import { SyncModule } from './modules/sync.module';
+import { BackupModule } from './modules/backup.module';
 
 @Module({
   imports: [
@@ -82,27 +74,15 @@ import { BackupService } from './services/backup.service';
         db.pragma('foreign_keys = ON');
       },
     }),
+    AuthModule,
+    ReferenceDataModule,
+    StorageModule,
+    LaundryModule,
+    ClothesModule,
+    OutfitsModule,
+    SyncModule,
+    BackupModule,
   ],
-  controllers: [
-    AuthController,
-    HealthController,
-    PublicController,
-    CurrentUserController,
-    ReferenceDataController,
-    ClothesController,
-    OutfitsController,
-    SyncController,
-    BackupController,
-  ],
-  providers: [
-    BearerJwtGuard,
-    UsersService,
-    ReferenceDataService,
-    StorageCleanupService,
-    ClothesService,
-    OutfitsService,
-    SyncService,
-    BackupService,
-  ],
+  controllers: [HealthController],
 })
 export class AppModule {}
