@@ -4,6 +4,7 @@ import { BearerJwtGuard } from '../common/auth/bearer-jwt.guard';
 import { CurrentUser } from '../common/auth/current-user.decorator';
 import { AuthUser } from '../common/auth/auth.types';
 import { ClothesService } from '../services/clothes.service';
+import { LaundryService } from '../services/laundry.service';
 
 interface ResponseWriter {
   setHeader(name: string, value: string | number): void;
@@ -20,11 +21,19 @@ interface UploadFile {
 @Controller('clothes')
 @UseGuards(BearerJwtGuard)
 export class ClothesController {
-  constructor(private readonly clothesService: ClothesService) {}
+  constructor(
+    private readonly clothesService: ClothesService,
+    private readonly laundryService: LaundryService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: AuthUser, @Query() query: Record<string, string | undefined>) {
     return this.clothesService.list(user, query);
+  }
+
+  @Get('count')
+  getClothesCount(@CurrentUser() user: AuthUser, @Query('status') status?: string) {
+    return this.clothesService.countClothes(user, status);
   }
 
   @Post()
@@ -34,22 +43,22 @@ export class ClothesController {
 
   @Get('laundry-counts')
   getLaundryCounts(@CurrentUser() user: AuthUser) {
-    return this.clothesService.getLaundryCounts(user);
+    return this.laundryService.getLaundryCounts(user);
   }
 
   @Get('washing')
   getWashingList(@CurrentUser() user: AuthUser) {
-    return this.clothesService.getWashingList(user);
+    return this.laundryService.getWashingList(user);
   }
 
   @Post('washing')
   addToWashing(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
-    return this.clothesService.addToWashing(user, this.extractIds(body));
+    return this.laundryService.addToWashing(user, this.extractIds(body));
   }
 
   @Delete('washing')
   clearWashing(@CurrentUser() user: AuthUser) {
-    return this.clothesService.clearWashing(user);
+    return this.laundryService.clearWashing(user);
   }
 
   @Delete('washing/:clothesId')
@@ -58,7 +67,7 @@ export class ClothesController {
     @Param('clothesId') clothesId: string,
     @Query('all') all?: string,
   ) {
-    return this.clothesService.removeFromWashing(user, clothesId, 1, all === 'true');
+    return this.laundryService.removeFromWashing(user, clothesId, 1, all === 'true');
   }
 
   @Post('washing/:clothesId/move-to-ironing')
@@ -67,22 +76,22 @@ export class ClothesController {
     @Param('clothesId') clothesId: string,
     @Query('all') all?: string,
   ) {
-    return this.clothesService.moveWashingToIroning(user, clothesId, 1, all === 'true');
+    return this.laundryService.moveWashingToIroning(user, clothesId, 1, all === 'true');
   }
 
   @Get('ironing')
   getIroningList(@CurrentUser() user: AuthUser, @Query('ids') ids: string | undefined) {
-    return this.clothesService.getIroningList(user, ids);
+    return this.laundryService.getIroningList(user, ids);
   }
 
   @Post('ironing')
   addToIroning(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
-    return this.clothesService.addToIroning(user, this.extractIds(body));
+    return this.laundryService.addToIroning(user, this.extractIds(body));
   }
 
   @Delete('ironing')
   clearIroning(@CurrentUser() user: AuthUser) {
-    return this.clothesService.clearIroning(user);
+    return this.laundryService.clearIroning(user);
   }
 
   @Delete('ironing/:clothesId')
@@ -91,7 +100,7 @@ export class ClothesController {
     @Param('clothesId') clothesId: string,
     @Query('all') all?: string,
   ) {
-    return this.clothesService.removeFromIroning(user, clothesId, 1, all === 'true');
+    return this.laundryService.removeFromIroning(user, clothesId, 1, all === 'true');
   }
 
   private extractIds(body: Record<string, unknown>): string[] {

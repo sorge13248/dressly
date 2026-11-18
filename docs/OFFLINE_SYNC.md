@@ -123,6 +123,19 @@ export interface FieldUpdate {
 }
 ```
 
+### Reference Catalogs Mutation (`ReferenceDataSyncInput`)
+Offline reference catalog mutations (`ReferenceDataSyncInput`) support all 13 reference domains including domain-specific metadata (`hexCode` for colors, `logoUrl` for brands, `icon` for seasons/temperatures/use-cases, `roomId` for locations, `temperature` and `spinSpeed` for washing programs, and `description` for detergents). In offline creations and updates, metadata fields are normalized, validated, and persisted with field-level LWW:
+```typescript
+export interface ReferenceDataSyncInput {
+  kind: string;
+  id: string;
+  updatedAt: string;
+  deleted?: boolean;
+  fields?: Record<string, FieldUpdate | unknown>;
+  data?: Record<string, unknown>;
+}
+```
+
 ### Deterministic Attachment Ordering in Sync Payloads
 When the server reconciles clothing and outfit entities (`SyncService.getChangesSince`), photo attachments are deterministically ordered by `sortOrder ASC`, breaking ties with `createdAt ASC`. On the client, `OfflineStorageService.saveClothes` and `getPrimaryAttachment` ensure that local IndexedDB records preserve this ordering so that gallery cards, canvas outfits, and laundry lists consistently display the configured primary photo (`sortOrder: 0`) without relying on arbitrary database join traversal.
 

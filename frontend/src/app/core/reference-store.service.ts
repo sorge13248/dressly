@@ -259,6 +259,12 @@ export class ReferenceStoreService {
             item.updatedAt !== other.updatedAt ||
             item.name !== other.name ||
             (item as any).hexCode !== (other as any).hexCode ||
+            (item as any).logoUrl !== (other as any).logoUrl ||
+            (item as any).icon !== (other as any).icon ||
+            (item as any).roomId !== (other as any).roomId ||
+            (item as any).temperature !== (other as any).temperature ||
+            (item as any).spinSpeed !== (other as any).spinSpeed ||
+            (item as any).description !== (other as any).description ||
             (item as any).sortOrder !== (other as any).sortOrder
           );
         });
@@ -278,6 +284,8 @@ export class ReferenceStoreService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       ...(kind === 'colors' ? { hexCode: (payload['hexCode'] as string) ?? null } : {}),
+      ...(kind === 'brands' ? { logoUrl: (payload['logoUrl'] as string) ?? null } : {}),
+      ...(['seasons', 'temperatures', 'use-cases'].includes(kind) ? { icon: (payload['icon'] as string) ?? null } : {}),
       ...(kind === 'locations'
         ? {
             roomId: (payload['roomId'] ?? payload['room_id'] ?? null) as string | null,
@@ -285,13 +293,19 @@ export class ReferenceStoreService {
         : {}),
       ...(kind === 'washing-programs'
         ? {
-            temperature: (payload['temperature'] as string | null) ?? null,
-            spinSpeed: (payload['spinSpeed'] as number | null) ?? null,
+            temperature:
+              payload['temperature'] !== undefined && payload['temperature'] !== null && payload['temperature'] !== ''
+                ? Number(payload['temperature'])
+                : null,
+            spinSpeed:
+              payload['spinSpeed'] !== undefined && payload['spinSpeed'] !== null && payload['spinSpeed'] !== ''
+                ? Number(payload['spinSpeed'])
+                : null,
           }
         : {}),
       ...(kind === 'detergents'
         ? {
-            description: (payload['description'] as string | null) ?? null,
+            description: payload['description'] !== undefined && payload['description'] !== null ? String(payload['description']).trim() : null,
           }
         : {}),
     };
@@ -314,17 +328,33 @@ export class ReferenceStoreService {
       sortOrder: payload['sortOrder'] !== undefined ? Number(payload['sortOrder']) : existing?.sortOrder ?? 0,
       updatedAt: new Date().toISOString(),
       ...(kind === 'colors' && payload['hexCode'] !== undefined ? { hexCode: payload['hexCode'] as string } : {}),
+      ...(kind === 'brands' && payload['logoUrl'] !== undefined ? { logoUrl: payload['logoUrl'] as string } : {}),
+      ...(['seasons', 'temperatures', 'use-cases'].includes(kind) && payload['icon'] !== undefined ? { icon: payload['icon'] as string } : {}),
       ...(kind === 'locations' && (payload['roomId'] !== undefined || payload['room_id'] !== undefined)
         ? { roomId: (payload['roomId'] ?? payload['room_id'] ?? null) as string | null }
         : {}),
       ...(kind === 'washing-programs'
         ? {
-            ...(payload['temperature'] !== undefined ? { temperature: payload['temperature'] as string | null } : {}),
-            ...(payload['spinSpeed'] !== undefined ? { spinSpeed: payload['spinSpeed'] as number | null } : {}),
+            ...(payload['temperature'] !== undefined
+              ? {
+                  temperature:
+                    payload['temperature'] !== null && payload['temperature'] !== ''
+                      ? Number(payload['temperature'])
+                      : null,
+                }
+              : {}),
+            ...(payload['spinSpeed'] !== undefined
+              ? {
+                  spinSpeed:
+                    payload['spinSpeed'] !== null && payload['spinSpeed'] !== ''
+                      ? Number(payload['spinSpeed'])
+                      : null,
+                }
+              : {}),
           }
         : {}),
       ...(kind === 'detergents' && payload['description'] !== undefined
-        ? { description: payload['description'] as string | null }
+        ? { description: payload['description'] !== null ? String(payload['description']).trim() : null }
         : {}),
     };
     this.patchReplace(kind, updated);

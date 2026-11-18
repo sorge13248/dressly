@@ -315,9 +315,12 @@
             </svg>
           </button>
 
-          <div class="pager-status" title="{{ total() }} capi totali">
+          <div
+            class="pager-status"
+            [title]="hasActiveFilters() || activeStatus() !== 'all' ? (total() + ' capi filtrati su ' + totalClothesCount() + ' totali') : (totalClothesCount() + ' capi totali')"
+          >
             <span class="pager-label">Pagina {{ filters().page }} di {{ totalPages() }}</span>
-            <small class="pager-count">({{ total() }})</small>
+            <small class="pager-count">({{ total() }}<ng-container *ngIf="totalClothesCount() > 0 && total() !== totalClothesCount()"> / {{ totalClothesCount() }}</ng-container>)</small>
           </div>
 
           <button

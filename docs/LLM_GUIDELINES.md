@@ -51,8 +51,10 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 │   │   ├── public.controller.ts          # /oidc/config and /oidc/metadata
 │   │   ├── common/
 │   │   │   ├── auth/                     # BearerJwtGuard, CurrentUser decorator, AuthUser
+│   │   │   ├── storage/                  # IFileStorageProvider, LocalDiskStorageProvider, STORAGE_PROVIDER
 │   │   │   ├── sync/                     # SyncPayloadDto, SyncResponseDto, SyncConflict
-│   │   │   └── utils/                    # tag-code.util.ts (3-char charset, collision math)
+│   │   │   └── utils/                    # tag-code.util.ts, season.util.ts, attachment-preview.util.ts
+│   │   ├── modules/                      # NestJS feature modules (Auth, Clothes, Laundry, Outfits, etc.)
 │   │   ├── controllers/
 │   │   │   ├── current-user.controller.ts# GET /api/me (triggers user provisioning & seed)
 │   │   │   ├── clothes.controller.ts     # Clothes CRUD, laundry queues, attachments, PDF export
@@ -61,7 +63,7 @@ When generating, modifying, or refactoring code in Dressly, you MUST uphold the 
 │   │   │   ├── backup.controller.ts      # GET /api/backup/stats, GET export, POST restore
 │   │   │   └── sync.controller.ts        # POST /api/sync, GET /api/sync
 │   │   ├── entities/                     # TypeORM SQLite entities
-│   │   ├── services/                     # Business logic, database operations, PDFKit, backup ZIP
+│   │   ├── services/                     # Business logic, LaundryService, ClothesPdfService, ClothesMigrationService, BackupService
 │   │   └── seed/                         # Default catalog seeds (colors, types, etc.)
 │   └── package.json                      # NestJS 12, TypeORM 1.1, better-sqlite3 13, sharp, pdfkit, adm-zip
 ├── frontend/

@@ -220,6 +220,11 @@ Represent items currently queued in the laundry cycle.
 #### Composite Constraint
 `@Unique(['userId', 'clothesId'])`: An item appears at most once in each queue; quantity increments track stacked multiples.
 
+#### UI Grouping Semantics
+In the presentation layer (`/wardrobe/washing`), items in `WashingItem` are organized into two sequential groupings:
+1. **Primary Grouping (Duets)**: Grouped by distinct `(washingProgram, detergent)` pairs, surfacing washing machine cycle parameters (temperature, spin speed) and detergent recommendations.
+2. **Secondary Grouping (Standalone Temperatures)**: Grouped by wash temperature (`temperature`) for items configured with manual free temperatures without a reference domain washing program preset.
+
 ---
 
 ## 5. Reference Catalogs & Metadata
@@ -253,7 +258,7 @@ Composite constraint: `@Unique(['userId', 'name'])` on every catalog table.
 | `tags` (`Tag`) | — | Custom categorization | Fully custom per user (not pre-seeded) |
 | `rooms` (`Room`) | — | Physical storage rooms (e.g. "Soffitta", "Camera") | User-defined storage rooms |
 | `locations` (`Location`) | `roomId: varchar` (FK `Room`) | Storage container/spot inside a room | User-defined positions/containers |
-| `washing_programs` (`WashingProgram`) | `temperature: varchar` (Nullable, 0-95), `spinSpeed: integer` (Nullable, >=0) | Washing machine program presets with temperature and spin speed | Cotone 40°, Cotone 60°, Sintetici 30°, Delicati / Seta 30°, Lana 20°, Rapido 30', Eco 40-60, Lavaggio a freddo |
+| `washing_programs` (`WashingProgram`) | `temperature: integer` (Nullable, 0-95), `spinSpeed: integer` (Nullable, >=0) | Washing machine program presets with temperature and spin speed | Cotone 40°, Cotone 60°, Sintetici 30°, Delicati / Seta 30°, Lana 20°, Rapido 30', Eco 40-60, Lavaggio a freddo |
 | `detergents` (`Detergent`) | `description: varchar` (Nullable) | Laundry detergents and specialized washing agents | Universale liquido, Capi colorati, Lana e delicati, Capi scuri, In polvere per bianchi |
 
 ---

@@ -186,10 +186,28 @@ export class SyncService {
         };
 
         if (kind === 'colors') {
-          entityData['hexCode'] = fields['hexCode']?.value ?? item.data?.['hexCode'] ?? null;
+          entityData['hexCode'] = fields['hexCode']?.value ?? fields['hex_code']?.value ?? item.data?.['hexCode'] ?? item.data?.['hex_code'] ?? null;
+        }
+        if (kind === 'brands') {
+          entityData['logoUrl'] = fields['logoUrl']?.value ?? fields['logo_url']?.value ?? item.data?.['logoUrl'] ?? item.data?.['logo_url'] ?? null;
+        }
+        if (kind === 'seasons' || kind === 'temperatures' || kind === 'use-cases') {
+          entityData['icon'] = fields['icon']?.value ?? item.data?.['icon'] ?? null;
         }
         if (kind === 'locations') {
           entityData['roomId'] = fields['roomId']?.value ?? fields['room_id']?.value ?? item.data?.['roomId'] ?? item.data?.['room_id'] ?? null;
+        }
+        if (kind === 'washing-programs') {
+          const rawTemp = fields['temperature']?.value ?? item.data?.['temperature'];
+          entityData['temperature'] =
+            rawTemp !== undefined && rawTemp !== null && rawTemp !== '' ? Math.round(Number(rawTemp)) : null;
+          const rawSpin = fields['spinSpeed']?.value ?? fields['spin_speed']?.value ?? item.data?.['spinSpeed'] ?? item.data?.['spin_speed'];
+          entityData['spinSpeed'] =
+            rawSpin !== undefined && rawSpin !== null && rawSpin !== '' ? Math.round(Number(rawSpin)) : null;
+        }
+        if (kind === 'detergents') {
+          const rawDesc = fields['description']?.value ?? item.data?.['description'];
+          entityData['description'] = rawDesc !== undefined && rawDesc !== null ? String(rawDesc).trim() : null;
         }
 
         const newEntity = repo.create(entityData as never) as unknown as Record<string, unknown>;
@@ -203,12 +221,34 @@ export class SyncService {
       const serverTime = new Date(existing['updatedAt'] as string | Date).getTime();
       let modified = false;
 
-      for (const [fieldKey, fieldUpdate] of Object.entries(fields)) {
+      for (const [rawFieldKey, fieldUpdate] of Object.entries(fields)) {
+        let fieldKey = rawFieldKey;
+        if (fieldKey === 'room_id') fieldKey = 'roomId';
+        else if (fieldKey === 'spin_speed') fieldKey = 'spinSpeed';
+        else if (fieldKey === 'logo_url') fieldKey = 'logoUrl';
+        else if (fieldKey === 'hex_code') fieldKey = 'hexCode';
+
         const clientFieldTime = fieldUpdate.updatedAt
           ? new Date(fieldUpdate.updatedAt).getTime()
           : clientTime;
         const currentServerVal = existing[fieldKey];
-        const clientVal = fieldUpdate.value;
+        let clientVal = fieldUpdate.value;
+
+        if (kind === 'washing-programs' && (fieldKey === 'temperature' || fieldKey === 'spinSpeed')) {
+          clientVal = clientVal !== undefined && clientVal !== null && clientVal !== '' ? Math.round(Number(clientVal)) : null;
+        }
+        if (kind === 'detergents' && fieldKey === 'description') {
+          clientVal = clientVal !== undefined && clientVal !== null ? String(clientVal).trim() : null;
+        }
+        if (kind === 'colors' && fieldKey === 'hexCode') {
+          clientVal = clientVal !== undefined && clientVal !== null ? String(clientVal).trim() : null;
+        }
+        if (kind === 'brands' && fieldKey === 'logoUrl') {
+          clientVal = clientVal !== undefined && clientVal !== null ? String(clientVal).trim() : null;
+        }
+        if ((kind === 'seasons' || kind === 'temperatures' || kind === 'use-cases') && fieldKey === 'icon') {
+          clientVal = clientVal !== undefined && clientVal !== null ? String(clientVal).trim() : null;
+        }
 
         if (currentServerVal === clientVal) {
           continue;
@@ -612,6 +652,8 @@ export class SyncService {
       .leftJoinAndSelect('clothes.tags', 'tags')
       .leftJoinAndSelect('clothes.attachments', 'attachments')
       .leftJoinAndSelect('clothes.washingInstruction', 'washingInstruction')
+      .leftJoinAndSelect('washingInstruction.washingProgram', 'washingProgram')
+      .leftJoinAndSelect('washingInstruction.detergent', 'detergent')
       .leftJoinAndSelect('clothes.dryingInstruction', 'dryingInstruction')
       .leftJoinAndSelect('clothes.ironingInstruction', 'ironingInstruction')
       .leftJoinAndSelect('clothes.buyDetail', 'buyDetail')

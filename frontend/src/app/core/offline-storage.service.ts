@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { isValidTagCode, normalizeTagCode } from '../shared/utils/tag-code.utils';
 import { getPrimaryAttachment, sortAttachments } from '../shared/utils/attachment.utils';
+import { getCurrentAstronomicalSeason } from '../shared/utils/season.utils';
 import {
   BaseReferenceItem,
   ClothesFilters,
   ClothesItem,
   ClothesSortKey,
+  ClothesStatus,
   IroningClothesItem,
   ReferenceKind,
   SyncConflict,
@@ -34,21 +36,6 @@ export interface StorageMetadata {
 
 function getClothesPreferredName(item: ClothesItem): string {
   return (item.name?.trim() || item.fullTitle?.trim() || item.type?.name?.trim() || '').toLowerCase();
-}
-
-function getCurrentAstronomicalSeason(date = new Date()): 'Primavera' | 'Estate' | 'Autunno' | 'Inverno' {
-  const month = date.getMonth(); // 0 = Jan, 11 = Dec
-  const day = date.getDate();
-  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
-    return 'Primavera';
-  }
-  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 20)) {
-    return 'Estate';
-  }
-  if ((month === 8 && day >= 21) || month === 9 || month === 10 || (month === 11 && day <= 20)) {
-    return 'Autunno';
-  }
-  return 'Inverno';
 }
 
 function getSeasonCycleRank(item: ClothesItem): number {
@@ -160,6 +147,31 @@ export class OfflineStorageService {
         req.onerror = () => resolve(Array.from(this.memoryStore.clothes.values()));
       } catch {
         resolve(Array.from(this.memoryStore.clothes.values()));
+      }
+    });
+  }
+
+  /**
+   * Counts the total number of clothes records in local storage.
+   * Only counts entries on the respective table, ignoring the cumulative/multiple flag.
+   */
+  async countClothes(options?: { status?: ClothesStatus | 'all' }): Promise<number> {
+    if (options?.status && options.status !== 'all') {
+      const all = await this.getAllClothes();
+      return all.filter((item) => (item.status ?? 'in_wardrobe') === options.status).length;
+    }
+    const db = await this.getDB();
+    if (!db) {
+      return this.memoryStore.clothes.size;
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_CLOTHES, 'readonly');
+        const req = tx.objectStore(STORE_CLOTHES).count();
+        req.onsuccess = () => resolve(req.result ?? 0);
+        req.onerror = () => resolve(this.memoryStore.clothes.size);
+      } catch {
+        resolve(this.memoryStore.clothes.size);
       }
     });
   }

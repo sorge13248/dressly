@@ -1,13 +1,23 @@
 :host {
   display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .dropdown-shell {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .trigger {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 24px;
   border-radius: 3px;
   border: 1px solid rgba(100, 140, 210, 0.45);
@@ -23,6 +33,7 @@
   box-sizing: border-box;
   user-select: none;
   position: relative;
+  overflow: hidden;
 
   &.has-clear {
     padding-right: 44px;

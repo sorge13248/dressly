@@ -182,6 +182,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
   readonly filtersOpen = signal(false);
   readonly items = signal<ClothesItem[]>([]);
   readonly total = signal(0);
+  readonly totalClothesCount = signal(0);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly pendingActionIds = signal<Set<string>>(new Set());
@@ -1284,7 +1285,11 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
 
     try {
       if (this.storage) {
-        const res = await this.storage.queryClothes(query);
+        const [res, totalClothes] = await Promise.all([
+          this.storage.queryClothes(query),
+          typeof this.storage.countClothes === 'function' ? this.storage.countClothes() : Promise.resolve(0),
+        ]);
+        this.totalClothesCount.set(totalClothes);
         if (res.total > 0 || res.items.length > 0) {
           this.items.set(res.items);
           this.total.set(res.total);
@@ -1297,9 +1302,13 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
           try {
             await this.syncService.sync(true);
             this.syncService.showStartupToastIfFirst();
-            const refreshed = await this.storage.queryClothes(query);
+            const [refreshed, refreshedTotal] = await Promise.all([
+              this.storage.queryClothes(query),
+              typeof this.storage.countClothes === 'function' ? this.storage.countClothes() : Promise.resolve(0),
+            ]);
             this.items.set(refreshed.items);
             this.total.set(refreshed.total);
+            this.totalClothesCount.set(refreshedTotal);
             this.initialLoaded = true;
             return;
           } catch {
@@ -1309,6 +1318,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
 
         this.items.set([]);
         this.total.set(0);
+        this.totalClothesCount.set(0);
         this.initialLoaded = true;
         return;
       }

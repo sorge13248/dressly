@@ -99,40 +99,52 @@ sequenceDiagram
 
 ## 4. Subsystems Overview
 
-### 4.1. Authentication Subsystem
+### 4.1. Backend Modular Structure
+The NestJS backend adopts a feature-modular architecture enforcing loose coupling and single responsibility:
+- **`AuthModule`**: OIDC PKCE authorization code exchange, `HttpOnly` cookie handling, JWKS validation (`BearerJwtGuard`), and user auto-provisioning (`UsersService`).
+- **`ClothesModule`**: Core garment catalog CRUD, filtering, duplication, and tag codes (`ClothesService`), delegating document export to `ClothesPdfService` and database backfills to `ClothesMigrationService`.
+- **`LaundryModule`**: Independent queue management for washing (`WashingItem`) and ironing (`IroningItem`), handling individual vs cumulative garments and live laundry counts (`LaundryService`).
+- **`OutfitsModule`**: Outfit compositions, context tags, and 2D canvas coordinate layers (`OutfitsService`).
+- **`ReferenceDataModule`**: Unified catalog taxonomies (`ReferenceDataService`) providing generic CRUD across colors, brands, seasons, materials, types, rooms, locations, detergents, etc.
+- **`SyncModule`**: Bi-directional synchronization engine (`SyncService`) with field-level LWW conflict resolution.
+- **`BackupModule`**: Disaster recovery, ZIP archive packaging and multi-tenant transactional restoration (`BackupService`).
+- **`StorageModule`**: Filesystem storage provider abstraction (`IFileStorageProvider`, `LocalDiskStorageProvider`) with startup orphan cleanup and temporary backup purges (`StorageCleanupService`).
+
+### 4.2. Authentication Subsystem
 - **Standard**: OpenID Connect (OIDC) Confidential Authorization Code Flow with PKCE (`S256`).
 - **Guard Layer**: `BearerJwtGuard` extracts JWT from `dressly_at` cookie or `Authorization: Bearer` header, retrieves the provider's JWKS public keys using `jose`, and validates signatures and expirations.
 - **User Provisioning**: `UsersService.ensureUser()` automatically creates user records in the local SQLite database upon first login and seeds default reference catalogs (colors, types, seasons, materials, etc.).
 - See [AUTHENTICATION.md](./AUTHENTICATION.md) for detailed flow charts.
 
-### 4.2. Wardrobe & Laundry Domain
+### 4.3. Wardrobe & Laundry Domain
 - **Clothing Catalog**: Master inventory tracking items by brand, category, fit, material, colors, seasons, temperatures, tags, purchase details, and care instructions.
 - **Unique Tag Code System**: 3-character marker-friendly identifier (e.g. `K7P`, `9XB`) generated from a 30-character unambiguous charset (`23456789ABCDEFGHJKMNPQRSTVWXYZ`) allowing physical tagging of physical clothes.
-- **Laundry State Engine**: Interactive queues for Washing and Ironing. Supports both individual clothing pieces and cumulative items with multi-quantity tracking.
+- **Centralized Clothes Counting**: Standardized calculation across both backend (`ClothesService.countClothes()`) and client-side IndexedDB (`OfflineStorageService.countClothes()`). Strictly counts distinct records on the clothes table, deliberately ignoring the cumulative/multiple item flag so that 1 garment entry always equals 1 count across both the wardrobe main view and domain export statistics.
+- **Laundry State Engine**: Interactive queues for Washing and Ironing handled by `LaundryService`. Supports both individual clothing pieces and cumulative items with multi-quantity tracking.
 - See [WARDROBE_FEATURES.md](./WARDROBE_FEATURES.md) for full mechanics.
 
-### 4.3. Outfits & 2D Canvas Subsystem
+### 4.4. Outfits & 2D Canvas Subsystem
 - **Compositions**: Dynamic aggregation of clothes representing styled outfits with season, temperature, and use-case tags.
 - **Interactive 2D Canvas**: Drag-and-drop workspace recording 2D positioning (`x`, `y`), scaling, rotation, and z-index layering for clothing imagery.
 - See [WARDROBE_FEATURES.md](./WARDROBE_FEATURES.md).
 
-### 4.4. Media Pipeline Subsystem
+### 4.5. Media Pipeline Subsystem
 - **Upload Ingress**: Handles multi-part image uploads up to 10MB (aligned across Nginx `client_max_body_size`, Multer middleware, and frontend validators).
-- **Processing Engine**: Powered by `sharp` via the unified `attachment-preview.util.ts` helper. Converts images into optimized WebP formats (max 640x640, quality 80), auto-rotates via EXIF orientation metadata, generates responsive previews on ingestion, and handles dynamic on-demand regeneration whenever an archive is restored or a preview file is missing from disk.
-- **Storage**: Media files are stored on disk with paths tracked in SQLite.
+- **Processing Engine**: Powered by `sharp` via the unified `attachment-preview.util.ts` helper and storage provider. Converts images into optimized WebP formats (max 640x640, quality 80), auto-rotates via EXIF orientation metadata, generates responsive previews on ingestion, and handles dynamic on-demand regeneration whenever an archive is restored or a preview file is missing from disk.
+- **Storage**: Media files are stored on disk with paths tracked in SQLite via `IFileStorageProvider`.
 
-### 4.5. Offline Synchronization Subsystem
+### 4.6. Offline Synchronization Subsystem
 - **Client Store**: Browser-based IndexedDB database (`dressly_offline_v1`) maintaining local replicas of clothes, reference catalogs, laundry status, and outfits.
 - **Sync Protocol**: Bi-directional HTTP payload sent to `POST /api/sync`.
 - **Conflict Resolution**: Field-level Last-Write-Wins (LWW) with server-side tombstone tracking (`SyncTombstone`) to reconcile deletions made while offline.
 - See [OFFLINE_SYNC.md](./OFFLINE_SYNC.md).
 
-### 4.6. PDF Export Subsystem
-- **Generator**: Powered by `pdfkit` for native vector layout and typography, combined with `sharp` for photo pre-processing and format normalization.
+### 4.7. PDF Export Subsystem
+- **Generator**: Dedicated `ClothesPdfService` powered by `pdfkit` for native vector layout and typography, combined with `sharp` for photo pre-processing and format normalization.
 - **Layout**: High-density A4 technical specification cards containing tag codes, badges, detailed care instructions, color swatches, and thumbnail galleries.
 - **Delivery**: Direct HTTP binary streaming via `GET /api/clothes/:id/pdf` triggered from the garment detail toolbar.
 
-### 4.7. Backup & Disaster Recovery Subsystem
+### 4.8. Backup & Disaster Recovery Subsystem
 - **Engine**: Archive compression and extraction powered by `adm-zip`.
 - **Portability**: Self-contained ZIP archives carrying `manifest.json`, serialized relational JSON data, and physical photo attachments.
 - **Large Archive Ingress & Safeguards**: Multer `SafeBackupDiskStorage` streams uploads up to 2GB directly to disk with live connection abortion tracking (`req.on('aborted')` / `req.on('close')`), `finally` unlink guarantees, and automated startup purge of stale temporary archives via `StorageCleanupService`.

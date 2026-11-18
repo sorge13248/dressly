@@ -32,10 +32,11 @@ Whenever **ANY** modification is made to the software (including features, archi
 /
 ├── backend/                  # NestJS API, TypeORM entities, services, controllers, seed
 │   ├── src/
-│   │   ├── common/           # Auth guards, decorators, sync types, tag code utility
+│   │   ├── common/           # Auth guards, decorators, sync types, storage, tag code & season utils
 │   │   ├── controllers/      # REST API controllers (clothes, outfits, sync, domains)
 │   │   ├── entities/         # TypeORM entity definitions
-│   │   ├── services/         # Domain services and SQLite repositories
+│   │   ├── modules/          # NestJS feature modules (Auth, Clothes, Laundry, Outfits, Sync, etc.)
+│   │   ├── services/         # Domain services, laundry, PDF generation, migrations
 │   │   └── database/         # Database dataSource and seed runner
 │   └── package.json
 ├── frontend/                 # Angular 22 Single-Page Application (PWA)

@@ -34,11 +34,11 @@ Le tipiche applicazioni per la gestione del guardaroba presentano spesso traccia
 ## ⚡ Funzionalità principali (v1.4.0)
 
 - 🔒 **Autenticazione OIDC confidenziale**: Accesso sicuro con Keycloak, Authentik, Google o qualunque provider OIDC conforme tramite PKCE e cookie di sessione protetti.
-- 👔 **Catalogo capi completo**: Tracciamento dettagliato di tipo capo, brand, vestibilità, materiali, colori primari e secondari, stagioni, temperature, occasioni d'uso, taglia e note. Le dropdown custom nell'editor capi consentono l'annullamento a 1 clic della selezione effettuata (es. brand, vestibilità, tipologia, posizione) tramite pulsante dedicato sul trigger (`✕`), opzioni di azzeramento nel menu a tendina o scorciatoia da tastiera.
+- 👔 **Catalogo capi completo**: Tracciamento dettagliato di tipo capo, brand, vestibilità, materiali, colori primari e secondari, stagioni, temperature, occasioni d'uso, taglia e note. Le dropdown custom nell'editor capi consentono l'annullamento a 1 clic della selezione effettuata (es. brand, vestibilità, tipologia, posizione) tramite pulsante dedicato sul trigger (`✕`), opzioni di azzeramento nel menu a tendina o scorciatoia da tastiera, con vincolo rigoroso alla larghezza del contenitore genitore e troncamento con puntini di sospensione per etichette lunghe.
 - 📦 **Cambio di stagione & Posizioni di deposito**: Gestione realistica del cambio armadio stagionale con 3 stati operativi (`in_wardrobe` - nell'armadio, `in_storage` - in deposito, `dismissed` - dismesso) e gerarchia di contenitori fisici (Stanze e Posizioni/Scatole). Include una barra di navigazione stato responsive con selezione rapida a 1 tocco (con fisarmonica intelligente su mobile per prevenire qualsiasi scorrimento orizzontale) e una procedura guidata in 5 passaggi (`/wardrobe/seasonal-change`) con selezione multi-stagione, mantenimento intelligente dei capi multi-stagione adatti anche alle stagioni entranti, visualizzazione capi in formato card mini, blocco di sicurezza sulle modifiche non salvate (`canDeactivate`), integrazione diretta nelle code di lavaggio e stiratura e avvisi amichevoli sulle schede degli outfit contenenti capi riposti.
 - ↕️ **Motore di ordinamento guardaroba & Ricerca in tempo reale**: Casella di ricerca libera globale con pulsante "cancella" (`✕`) istantaneo nel pannello fluttuante in home page, con ricerca incrociata tra nome, brand, codice etichetta e note. Ordinamento capi per data di aggiunta (recenti/meno recenti), nome alfabetico (A-Z/Z-A), gerarchia di vestizione consigliata (dalla parte superiore alle calzature), tipologia A-Z, stagionalità smart (stagione astronomica corrente in cima), ciclo annuale, codice etichetta e disponibilità puliti/lavanderia con sincronizzazione parametri URL e persistenza locale.
 - 🏷️ **Sistema di codici etichetta a 3 caratteri**: Codici alfanumerici univoci generati da un set di 30 caratteri privo di ambiguità (`23456789ABCDEFGHJKMNPQRSTVWXYZ`), escludendo caratteri facilmente confondibili a mano (`0`/`O`, `1`/`I`/`L` e `U`), con verifica immediata di unicità offline su IndexedDB durante la digitazione nell'editor (feedback visivo verde/rosso e icona V/X).
-- 🧺 **Code bucato (Lavaggio e Stiratura)**: Monitoraggio dei capi in lavaggio o in attesa di stiratura. Spostamento atomico dei capi da lavaggio a stiratura con un singolo clic.
+- 🧺 **Code bucato & Card di lavaggio per duette**: Monitoraggio dei capi in lavatrice o in attesa di stiratura. La schermata dei capi da lavare (`/wardrobe/washing`) raggruppa i capi primariamente per duette programma lavatrice e detersivo abbinato (`(programma, detersivo)`), mostrando le specifiche del ciclo (temperatura, centrifuga) e il detersivo consigliato, e solo in secondo luogo mostra le card delle temperature di lavaggio "disabbinate" (temperature libere senza programma di dominio). Spostamento atomico dei capi da lavaggio a stiratura con un singolo clic.
 - 📦 **Supporto capi cumulativi e quantità multipla**: Gestione di gruppi di capi identici (es. 5 paia di calzini uguali) con allocazione parziale nelle code del bucato.
 - 🎨 **Outfit con Canvas interattiva 2D**: Creazione e stile degli outfit su superficie 2D. Supporta selezione multipla tramite rettangolo di selezione (marquee), trascinamento di gruppo, rotazione, ridimensionamento e ordinamento dei livelli z-index, con segnalazione di capi in deposito.
 - 🧼 **Istruzioni di cura complete e rischio perdita colore a 3 stati**: Gestione dettagliata delle impostazioni di lavaggio con programmi predefiniti della lavatrice (con temperatura e centrifuga integrate e scomparsa automatica della temperatura libera), selezione detersivi (per lavatrice e bucato a mano), note libere di lavaggio, controllo tri-stato del rischio perdita colore (non testato, non perde colore, perde colore), asciugatrice, stiratura e dettagli di acquisto.
@@ -123,10 +123,11 @@ Per consultare approfondimenti tecnici dettagliati su ogni componente, visita la
 .
 ├── backend/                  # API NestJS, entità TypeORM, servizi, controller, seed
 │   ├── src/
-│   │   ├── common/           # Guard di autenticazione, decoratori, tipi sync, utilità codici
+│   │   ├── common/           # Guard auth, decoratori, tipi sync, storage, utilità tag code e stagioni
 │   │   ├── controllers/      # Controller REST API (capi, outfit, sync, categorie)
 │   │   ├── entities/         # Entità TypeORM per SQLite
-│   │   ├── services/         # Logica di business e repository SQLite
+│   │   ├── modules/          # Moduli NestJS a feature (Auth, Capi, Bucato, Outfit, Sync, ecc.)
+│   │   ├── services/         # Logica di business, bucato, export PDF, migrazioni
 │   │   └── database/         # Configurazione data source e script di seed
 │   └── package.json
 ├── frontend/                 # Applicazione SPA Angular 22 (PWA)
@@ -135,7 +136,7 @@ Per consultare approfondimenti tecnici dettagliati su ogni componente, visita la
 │   │   ├── features/         # Funzionalità: guardaroba, outfit, categorie, auth, errori
 │   │   ├── layout/           # AppShellComponent con barra superiore, contatori e stato sync
 │   │   └── shared/           # Componenti riutilizzabili (window frame, modali, dropdown, bottoni)
-│   ├── public/               # Asset statici, manifest.webmanifest e sw.js
+│   ├── public/               # Asset statici (logo Atelier a nastro di seta e icone), manifest.webmanifest e sw.js
 │   └── package.json
 ├── deploy/                   # Configurazioni runtime (supervisord.conf, nginx.unified.conf)
 ├── docs/                     # Suite completa di documentazione tecnica (in inglese)
@@ -270,7 +271,7 @@ docker compose up -d --build
 - `npm --prefix frontend run start:lan`: Avvia `ng serve --host 0.0.0.0` per test da smartphone o altri dispositivi nella rete locale.
 - `npm --prefix frontend run start:lan:ssl`: Avvia `ng serve` con certificato SSL auto-firmato per test PWA su dispositivi mobili.
 - `npm --prefix frontend run build`: Genera la build di produzione in `dist/`.
-- `npm --prefix frontend run test`: Esegue la suite di test con Vitest (`31 file di test, oltre 230 test superati`).
+- `npm --prefix frontend run test`: Esegue la suite di test con Vitest (`40 file di test, 340 test superati`).
 
 ---
 

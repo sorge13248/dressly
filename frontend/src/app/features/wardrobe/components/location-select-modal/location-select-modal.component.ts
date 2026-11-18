@@ -84,6 +84,8 @@ export interface LocationSelectModalResult {
       font-size: 0.85rem;
       font-weight: 600;
       color: #334155;
+      min-width: 0;
+      max-width: 100%;
     }
     .modal-footer {
       display: flex;

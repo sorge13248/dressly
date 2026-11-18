@@ -6,11 +6,32 @@ import { firstValueFrom } from 'rxjs';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
+import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { ToastService } from '../../../../core/toast.service';
 import { WashingClothesItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { IroningIconComponent } from '../../../../shared/components/icons';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state';
+
+export interface WashingProgramDetergentGroup {
+  key: string;
+  program: {
+    id?: string;
+    name: string;
+    temperature: number | null;
+    spinSpeed: number | null;
+  };
+  detergent: {
+    id?: string;
+    name: string;
+    description: string | null;
+  } | null;
+  title: string;
+  subtitle: string;
+  temperatureLabel: string | null;
+  spinSpeedLabel: string | null;
+  items: WashingClothesItem[];
+}
 
 export interface WashingTemperatureGroup {
   temperature: number;
@@ -32,6 +53,7 @@ export class WashingPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
+  private readonly referenceStore = inject(ReferenceStoreService);
   readonly laundryService = inject(LaundryService);
 
   readonly loading = signal(true);
@@ -54,21 +76,99 @@ export class WashingPageComponent implements OnInit {
       if (type === 'do_not_wash' || type === 'hand_wash_only') {
         return false;
       }
-      return this.parseTemperature(item) === null;
+      const hasProgram = Boolean(this.resolveProgram(item));
+      const hasTemp = this.parseManualTemperature(item) !== null;
+      return !hasProgram && !hasTemp;
     }),
   );
 
-  readonly temperatureGroups = computed<WashingTemperatureGroup[]>(() => {
+  readonly programDetergentGroups = computed<WashingProgramDetergentGroup[]>(() => {
     const validItems = this.items().filter((item) => {
       const type = item.washingInstruction?.washType;
       if (type === 'do_not_wash' || type === 'hand_wash_only') {
         return false;
       }
-      return this.parseTemperature(item) !== null;
+      return Boolean(this.resolveProgram(item));
+    });
+
+    const groupsMap = new Map<
+      string,
+      {
+        program: { id?: string; name: string; temperature: number | null; spinSpeed: number | null };
+        detergent: { id?: string; name: string; description: string | null } | null;
+        items: WashingClothesItem[];
+      }
+    >();
+
+    for (const item of validItems) {
+      const program = this.resolveProgram(item)!;
+      const detergent = this.resolveDetergent(item);
+      const progKey = program.id ?? program.name;
+      const detKey = detergent ? (detergent.id ?? detergent.name) : '__none__';
+      const key = `${progKey}:::${detKey}`;
+
+      if (!groupsMap.has(key)) {
+        groupsMap.set(key, { program, detergent, items: [] });
+      }
+      groupsMap.get(key)!.items.push(item);
+    }
+
+    const groups = Array.from(groupsMap.entries()).map(([key, data]) => {
+      const temp = data.program.temperature;
+      const spin = data.program.spinSpeed;
+      const tempLabel = temp === 0 ? 'A freddo' : temp !== null && temp !== undefined ? `${temp}°C` : null;
+      const spinLabel = spin === 0 ? 'Senza centrifuga' : spin !== null && spin !== undefined ? `${spin} giri/min` : null;
+
+      const title = data.detergent
+        ? `${data.program.name} • ${data.detergent.name}`
+        : `${data.program.name} • Senza detersivo`;
+
+      const subtitleParts: string[] = [];
+      if (tempLabel) subtitleParts.push(tempLabel);
+      if (spinLabel) subtitleParts.push(spinLabel);
+      if (data.detergent?.description) subtitleParts.push(data.detergent.description);
+      const subtitle = subtitleParts.length > 0 ? subtitleParts.join(' • ') : 'Programma lavatrice';
+
+      return {
+        key,
+        program: data.program,
+        detergent: data.detergent,
+        title,
+        subtitle,
+        temperatureLabel: tempLabel,
+        spinSpeedLabel: spinLabel,
+        items: data.items,
+      };
+    });
+
+    return groups.sort((a, b) => {
+      const tempA = a.program.temperature ?? 999;
+      const tempB = b.program.temperature ?? 999;
+      if (tempA !== tempB) return tempA - tempB;
+
+      const nameComp = a.program.name.localeCompare(b.program.name);
+      if (nameComp !== 0) return nameComp;
+
+      const detA = a.detergent?.name ?? '';
+      const detB = b.detergent?.name ?? '';
+      return detA.localeCompare(detB);
+    });
+  });
+
+  readonly standaloneTemperatureGroups = computed<WashingTemperatureGroup[]>(() => {
+    const validItems = this.items().filter((item) => {
+      const type = item.washingInstruction?.washType;
+      if (type === 'do_not_wash' || type === 'hand_wash_only') {
+        return false;
+      }
+      if (this.resolveProgram(item)) {
+        return false;
+      }
+      return this.parseManualTemperature(item) !== null;
     });
 
     const temps = Array.from(
-      new Set(validItems.map((item) => this.parseTemperature(item)!)),
+      new Set(validItems.map((item) => this.parseManualTemperature(item)!)),
     ).sort((a, b) => a - b);
 
     return temps.map((temp) => ({
@@ -76,9 +176,19 @@ export class WashingPageComponent implements OnInit {
       label: temp === 0 ? 'A freddo' : `${temp}°C`,
       title: temp === 0 ? 'Lavaggio a freddo' : `Temperatura ${temp}°C`,
       subtitle: this.getTempSubtitle(temp),
-      items: validItems.filter((item) => this.parseTemperature(item) === temp),
+      items: validItems.filter((item) => this.parseManualTemperature(item) === temp),
     }));
   });
+
+  readonly temperatureGroups = this.standaloneTemperatureGroups;
+
+  readonly programDetergentItemCount = computed(() =>
+    this.programDetergentGroups().reduce((acc, g) => acc + g.items.length, 0),
+  );
+
+  readonly standaloneTemperatureItemCount = computed(() =>
+    this.standaloneTemperatureGroups().reduce((acc, g) => acc + g.items.length, 0),
+  );
 
   readonly totalCount = computed(() => this.items().length);
   private initialLoaded = false;
@@ -235,12 +345,66 @@ export class WashingPageComponent implements OnInit {
     void this.router.navigate(['/wardrobe']);
   }
 
+  resolveProgram(
+    item: WashingClothesItem,
+  ): { id?: string; name: string; temperature: number | null; spinSpeed: number | null } | null {
+    const wash = item.washingInstruction;
+    if (!wash) return null;
+    if (wash.washingProgram) return wash.washingProgram;
+    if (wash.washingProgramId) {
+      const found = this.referenceStore.washingPrograms().find((p) => p.id === wash.washingProgramId);
+      if (found) {
+        return {
+          id: found.id,
+          name: found.name,
+          temperature: found.temperature ?? null,
+          spinSpeed: found.spinSpeed ?? null,
+        };
+      }
+    }
+    return null;
+  }
+
+  resolveDetergent(
+    item: WashingClothesItem,
+  ): { id?: string; name: string; description: string | null } | null {
+    const wash = item.washingInstruction;
+    if (!wash) return null;
+    if (wash.detergent) return wash.detergent;
+    if (wash.detergentId) {
+      const found = this.referenceStore.detergents().find((d) => d.id === wash.detergentId);
+      if (found) {
+        return {
+          id: found.id,
+          name: found.name,
+          description: found.description ?? null,
+        };
+      }
+    }
+    return null;
+  }
+
+  parseManualTemperature(item: WashingClothesItem): number | null {
+    const wash = item.washingInstruction;
+    if (!wash) return null;
+    const temp = wash.temperature;
+    if (temp === null || temp === undefined || temp === '') {
+      return null;
+    }
+    const num = Number(temp);
+    if (Number.isNaN(num) || num < 0) {
+      return null;
+    }
+    return num;
+  }
+
   parseTemperature(item: WashingClothesItem): number | null {
     const wash = item.washingInstruction;
     if (!wash) {
       return null;
     }
-    const temp = wash.temperature ?? wash.washingProgram?.temperature;
+    const program = this.resolveProgram(item);
+    const temp = wash.temperature ?? program?.temperature;
     if (temp === null || temp === undefined || temp === '') {
       return null;
     }
@@ -294,6 +458,10 @@ export class WashingPageComponent implements OnInit {
 
   trackByTemp(_: number, group: WashingTemperatureGroup) {
     return group.temperature;
+  }
+
+  trackByProgramDetergent(_: number, group: WashingProgramDetergentGroup) {
+    return group.key;
   }
 }
 

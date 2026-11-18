@@ -1,19 +1,21 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit, Optional } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, Logger, NotFoundException, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { existsSync, promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
-import PDFDocument from 'pdfkit';
-import { DataSource, In, IsNull, Not } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, IsNull, Not } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
 import { generateUniqueTagCode, isValidTagCode, normalizeTagCode } from '../common/utils/tag-code.util';
+import { getCurrentAstronomicalSeason, getCurrentSeasonName } from '../common/utils/season.util';
 import {
   createImagePreview,
   ensureAttachmentPreview,
   resolveAttachmentFile,
   sortAttachments,
 } from '../common/utils/attachment-preview.util';
+import { IFileStorageProvider, STORAGE_PROVIDER } from '../common/storage/storage-provider.interface';
+import { LocalDiskStorageProvider } from '../common/storage/local-disk-storage.provider';
 import { Attachment } from '../entities/attachment.entity';
 import { Brand } from '../entities/brand.entity';
 import { Clothes } from '../entities/clothes.entity';
@@ -37,6 +39,9 @@ import { WashingProgram } from '../entities/washing-program.entity';
 import { Detergent } from '../entities/detergent.entity';
 import { ReferenceDataService } from './reference-data.service';
 import { StorageCleanupService } from './storage-cleanup.service';
+import { LaundryService } from './laundry.service';
+import { ClothesPdfService } from './clothes-pdf.service';
+import { ClothesMigrationService } from './clothes-migration.service';
 
 function parseCsv(value: string | undefined) {
   return (value ?? '')
@@ -68,21 +73,6 @@ function normalizeStoredAttachmentPath(storedPath: string) {
   return storedPath.replace(/\\/g, '/');
 }
 
-function getCurrentSeasonName(date = new Date()): 'Primavera' | 'Estate' | 'Autunno' | 'Inverno' {
-  const month = date.getMonth(); // 0-indexed
-  const day = date.getDate();
-  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
-    return 'Primavera';
-  }
-  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 20)) {
-    return 'Estate';
-  }
-  if ((month === 8 && day >= 21) || month === 9 || month === 10 || (month === 11 && day <= 20)) {
-    return 'Autunno';
-  }
-  return 'Inverno';
-}
-
 @Injectable()
 export class ClothesService implements OnModuleInit {
   private readonly logger = new Logger(ClothesService.name);
@@ -91,79 +81,35 @@ export class ClothesService implements OnModuleInit {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly referenceDataService: ReferenceDataService,
     @Optional() private readonly storageCleanupService: StorageCleanupService = new StorageCleanupService(dataSource),
+    @Optional() private readonly laundryService: LaundryService = new LaundryService(dataSource),
+    @Optional() private readonly clothesPdfService: ClothesPdfService = new ClothesPdfService(),
+    @Optional() private readonly clothesMigrationService: ClothesMigrationService = new ClothesMigrationService(dataSource),
+    @Optional() @Inject(STORAGE_PROVIDER) private readonly storageProvider: IFileStorageProvider = new LocalDiskStorageProvider(),
   ) {}
 
   async onModuleInit() {
     await this.generateMissingPreviews();
-    await this.backfillMissingTagCodes();
-    await this.migrateColorLossRiskTriState();
+    await this.clothesMigrationService.runStartupMigrations();
   }
 
   async migrateColorLossRiskTriState() {
-    try {
-      await this.dataSource.query(
-        'CREATE TABLE IF NOT EXISTS _app_migrations (id TEXT PRIMARY KEY, appliedAt DATETIME);',
-      );
-      const applied = await this.dataSource.query(
-        'SELECT id FROM _app_migrations WHERE id = ?;',
-        ['20261113_color_loss_risk_tri_state'],
-      );
-      if (applied && applied.length > 0) {
-        return;
-      }
-
-      this.logger.log('Running one-time migration: 20261113_color_loss_risk_tri_state...');
-      // Treat false (0) as null if test temperature was not set, otherwise keep false (0)
-      await this.dataSource.query(`
-        UPDATE washing_instructions
-        SET colorLossRisk = NULL
-        WHERE (colorLossRisk = 0 OR colorLossRisk = FALSE)
-          AND colorLossTestTemperature IS NULL;
-      `);
-
-      await this.dataSource.query(
-        'INSERT INTO _app_migrations (id, appliedAt) VALUES (?, CURRENT_TIMESTAMP);',
-        ['20261113_color_loss_risk_tri_state'],
-      );
-      this.logger.log('Migration 20261113_color_loss_risk_tri_state completed successfully.');
-    } catch (err) {
-      this.logger.warn(`Could not run colorLossRisk migration: ${String(err)}`);
-    }
+    return this.clothesMigrationService.migrateColorLossRiskTriState();
   }
 
   async backfillMissingTagCodes() {
-    const repository = this.dataSource.getRepository(Clothes);
-    const unassigned = await repository.find({
-      where: { code: IsNull() },
-      order: { createdAt: 'ASC' },
-    });
+    return this.clothesMigrationService.backfillMissingTagCodes();
+  }
 
-    if (unassigned.length === 0) return;
-
-    this.logger.log(`Backfilling tag codes for ${unassigned.length} clothes items...`);
-
-    const byUser = new Map<string, Clothes[]>();
-    for (const item of unassigned) {
-      const list = byUser.get(item.userId) ?? [];
-      list.push(item);
-      byUser.set(item.userId, list);
+  /**
+   * Counts the total number of clothes records for a user.
+   * Considers only distinct rows on the clothes table, ignoring the cumulative/multiple flag.
+   */
+  async countClothes(user: AuthUser, status?: string): Promise<number> {
+    const where: FindOptionsWhere<Clothes> = { userId: user.id };
+    if (status && status !== 'all') {
+      where.status = status as 'in_wardrobe' | 'in_storage' | 'dismissed';
     }
-
-    for (const [userId, items] of byUser.entries()) {
-      const assigned = await repository.find({
-        where: { userId, code: Not(IsNull()) },
-        select: { code: true },
-      });
-      const userCodes = new Set(assigned.map((c) => c.code).filter(Boolean) as string[]);
-
-      for (const item of items) {
-        const newCode = generateUniqueTagCode(userCodes);
-        userCodes.add(newCode);
-        await repository.update(item.id, { code: newCode });
-      }
-    }
-
-    this.logger.log(`Successfully backfilled tag codes for ${unassigned.length} clothes items.`);
+    return this.dataSource.getRepository(Clothes).count({ where });
   }
 
   async list(user: AuthUser, query: Record<string, string | undefined>) {
@@ -368,400 +314,43 @@ export class ClothesService implements OnModuleInit {
   }
 
   async getWashingList(user: AuthUser) {
-    const washingEntries = await this.dataSource.getRepository(WashingItem).find({
-      where: { userId: user.id },
-      order: { addedAt: 'DESC' },
-      select: { clothesId: true, quantity: true },
-    });
-    const ids = washingEntries.map((w) => w.clothesId);
-    if (ids.length === 0) {
-      return { items: [] };
-    }
-    const quantitiesByClothesId = new Map(washingEntries.map((w) => [w.clothesId, w.quantity || 1]));
-
-    const qb = this.dataSource
-      .getRepository(Clothes)
-      .createQueryBuilder('clothes')
-      .leftJoinAndSelect('clothes.brand', 'brand')
-      .leftJoinAndSelect('clothes.type', 'type')
-      .leftJoinAndSelect('clothes.colors', 'colors')
-      .leftJoinAndSelect('clothes.washingInstruction', 'washingInstruction')
-      .leftJoinAndSelect('washingInstruction.washingProgram', 'washingProgram')
-      .leftJoinAndSelect('washingInstruction.detergent', 'detergent')
-      .leftJoinAndSelect('clothes.attachments', 'attachments')
-      .where('clothes.userId = :userId', { userId: user.id })
-      .andWhere('clothes.id IN (:...ids)', { ids });
-
-    const items = await qb.getMany();
-    const itemsById = new Map(items.map((i) => [i.id, i]));
-    const orderedItems = ids.map((id) => itemsById.get(id)).filter((item): item is Clothes => Boolean(item));
-
-    for (const item of orderedItems) {
-      this.sortAttachments(item);
-    }
-
-    return {
-      items: orderedItems.map((item) => {
-        const primaryAttachment =
-          (item.attachments ?? []).find((att) => att.mimeType?.startsWith('image/')) ??
-          item.attachments?.[0] ??
-          null;
-        return {
-          id: item.id,
-          code: item.code,
-          name: item.name,
-          fullTitle: item.fullTitle,
-          isCumulative: item.isCumulative ?? false,
-          quantity: item.quantity ?? 1,
-          washingQuantity: quantitiesByClothesId.get(item.id) ?? 1,
-          isInWashing: true,
-          brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
-          type: item.type ? { id: item.type.id, name: item.type.name } : null,
-          colors: (item.colors ?? []).map((c) => ({ id: c.id, name: c.name, hexCode: c.hexCode })),
-          washingInstruction: item.washingInstruction
-            ? {
-                id: item.washingInstruction.id,
-                temperature: item.washingInstruction.temperature,
-                washType: item.washingInstruction.washType,
-                bleachType: item.washingInstruction.bleachType,
-                stretch: item.washingInstruction.stretch,
-                reverseWashing: item.washingInstruction.reverseWashing,
-                closedZips: item.washingInstruction.closedZips,
-                similarColors: item.washingInstruction.similarColors,
-                washSeparately: item.washingInstruction.washSeparately,
-                useColorCatcher: item.washingInstruction.useColorCatcher,
-                colorLossRisk: item.washingInstruction.colorLossRisk,
-                colorLossTestTemperature: item.washingInstruction.colorLossTestTemperature,
-                notes: item.washingInstruction.notes,
-                washingProgramId: item.washingInstruction.washingProgramId,
-                washingProgram: item.washingInstruction.washingProgram
-                  ? {
-                      id: item.washingInstruction.washingProgram.id,
-                      name: item.washingInstruction.washingProgram.name,
-                      temperature: item.washingInstruction.washingProgram.temperature,
-                      spinSpeed: item.washingInstruction.washingProgram.spinSpeed,
-                    }
-                  : null,
-                detergentId: item.washingInstruction.detergentId,
-                detergent: item.washingInstruction.detergent
-                  ? {
-                      id: item.washingInstruction.detergent.id,
-                      name: item.washingInstruction.detergent.name,
-                      description: item.washingInstruction.detergent.description,
-                    }
-                  : null,
-              }
-            : null,
-          primaryAttachment: primaryAttachment
-            ? {
-                id: primaryAttachment.id,
-                fileName: primaryAttachment.fileName,
-                previewPath: primaryAttachment.previewPath,
-                mimeType: primaryAttachment.mimeType,
-              }
-            : null,
-        };
-      }),
-    };
+    return this.laundryService.getWashingList(user);
   }
 
   async addToWashing(user: AuthUser, clothesIds: string[]) {
-    if (!clothesIds || clothesIds.length === 0) {
-      return { added: 0, existing: 0, total: 0 };
-    }
-    const countById = new Map<string, number>();
-    for (const id of clothesIds.filter(Boolean)) {
-      countById.set(id, (countById.get(id) ?? 0) + 1);
-    }
-    const uniqueIds = Array.from(countById.keys());
-    const validClothes = await this.dataSource.getRepository(Clothes).find({
-      where: { userId: user.id, id: In(uniqueIds) },
-      select: { id: true, isCumulative: true, quantity: true },
-    });
-    if (validClothes.length === 0) {
-      return { added: 0, existing: 0, total: 0 };
-    }
-
-    const washingRepo = this.dataSource.getRepository(WashingItem);
-    const existingItems = await washingRepo.find({
-      where: { userId: user.id, clothesId: In(validClothes.map((c) => c.id)) },
-    });
-    const existingMap = new Map(existingItems.map((e) => [e.clothesId, e]));
-
-    let addedCount = 0;
-    for (const cloth of validClothes) {
-      const requested = countById.get(cloth.id) ?? 1;
-      const existing = existingMap.get(cloth.id);
-      if (existing) {
-        if (cloth.isCumulative) {
-          const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
-          const newQty = Math.min(maxQty, (existing.quantity || 1) + requested);
-          if (newQty > (existing.quantity || 1)) {
-            addedCount += newQty - (existing.quantity || 1);
-            existing.quantity = newQty;
-            await washingRepo.save(existing);
-          }
-        }
-      } else {
-        const initialQty = cloth.isCumulative
-          ? Math.min(cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1, requested)
-          : 1;
-        await washingRepo.save(washingRepo.create({ userId: user.id, clothesId: cloth.id, quantity: initialQty }));
-        addedCount += initialQty;
-      }
-    }
-
-    const counts = await this.getLaundryCounts(user);
-    return {
-      added: addedCount,
-      existing: existingItems.length,
-      total: counts.washingCount,
-    };
+    return this.laundryService.addToWashing(user, clothesIds);
   }
 
   async removeFromWashing(user: AuthUser, clothesId: string, quantityToRemove = 1, removeAll = false) {
-    const washingRepo = this.dataSource.getRepository(WashingItem);
-    const existing = await washingRepo.findOne({ where: { userId: user.id, clothesId } });
-    if (existing) {
-      const cloth = await this.dataSource.getRepository(Clothes).findOne({ where: { id: clothesId, userId: user.id } });
-      if (removeAll || !cloth?.isCumulative || (existing.quantity || 1) <= quantityToRemove) {
-        await washingRepo.delete({ id: existing.id });
-      } else {
-        existing.quantity = (existing.quantity || 1) - quantityToRemove;
-        await washingRepo.save(existing);
-      }
-    }
-    const counts = await this.getLaundryCounts(user);
-    return { removed: true, total: counts.washingCount };
+    return this.laundryService.removeFromWashing(user, clothesId, quantityToRemove, removeAll);
   }
 
   async clearWashing(user: AuthUser) {
-    const washingRepo = this.dataSource.getRepository(WashingItem);
-    await washingRepo.delete({ userId: user.id });
-    return { cleared: true };
+    return this.laundryService.clearWashing(user);
   }
 
   async moveWashingToIroning(user: AuthUser, clothesId: string, quantityToMove = 1, moveAll = false) {
-    const washingRepo = this.dataSource.getRepository(WashingItem);
-    const ironingRepo = this.dataSource.getRepository(IroningItem);
-
-    const existingWashing = await washingRepo.findOne({ where: { userId: user.id, clothesId } });
-    if (!existingWashing) {
-      throw new NotFoundException('Capo non trovato nella lavatrice');
-    }
-
-    const cloth = await this.dataSource.getRepository(Clothes).findOne({
-      where: { id: clothesId, userId: user.id },
-    });
-    if (!cloth) {
-      throw new NotFoundException('Capo non trovato');
-    }
-
-    const actualMoveCount = moveAll || !cloth.isCumulative || (existingWashing.quantity || 1) <= quantityToMove
-      ? (existingWashing.quantity || 1)
-      : quantityToMove;
-
-    if (actualMoveCount >= (existingWashing.quantity || 1)) {
-      await washingRepo.delete({ id: existingWashing.id });
-    } else {
-      existingWashing.quantity = (existingWashing.quantity || 1) - actualMoveCount;
-      await washingRepo.save(existingWashing);
-    }
-
-    const existingIroning = await ironingRepo.findOne({ where: { userId: user.id, clothesId } });
-    if (existingIroning) {
-      if (cloth.isCumulative) {
-        const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
-        existingIroning.quantity = Math.min(maxQty, (existingIroning.quantity || 1) + actualMoveCount);
-        await ironingRepo.save(existingIroning);
-      }
-    } else {
-      await ironingRepo.save(
-        ironingRepo.create({
-          userId: user.id,
-          clothesId,
-          quantity: cloth.isCumulative ? actualMoveCount : 1,
-        }),
-      );
-    }
-
-    const counts = await this.getLaundryCounts(user);
-    return { moved: true, washingCount: counts.washingCount, ironingCount: counts.ironingCount };
+    return this.laundryService.moveWashingToIroning(user, clothesId, quantityToMove, moveAll);
   }
 
   async getIroningList(user: AuthUser, rawIds?: string) {
-    let ids = parseCsv(rawIds);
-    let ironingEntries: Array<{ clothesId: string; quantity: number }> = [];
-    if (ids.length === 0) {
-      ironingEntries = await this.dataSource.getRepository(IroningItem).find({
-        where: { userId: user.id },
-        order: { addedAt: 'DESC' },
-        select: { clothesId: true, quantity: true },
-      });
-      ids = ironingEntries.map((item) => item.clothesId);
-    } else {
-      ironingEntries = await this.dataSource.getRepository(IroningItem).find({
-        where: { userId: user.id, clothesId: In(ids) },
-        select: { clothesId: true, quantity: true },
-      });
-    }
-    if (ids.length === 0) {
-      return { items: [] };
-    }
-    const ironingQuantities = new Map(ironingEntries.map((i) => [i.clothesId, i.quantity || 1]));
-
-    const qb = this.dataSource
-      .getRepository(Clothes)
-      .createQueryBuilder('clothes')
-      .leftJoinAndSelect('clothes.brand', 'brand')
-      .leftJoinAndSelect('clothes.type', 'type')
-      .leftJoinAndSelect('clothes.colors', 'colors')
-      .leftJoinAndSelect('clothes.ironingInstruction', 'ironingInstruction')
-      .leftJoinAndSelect('clothes.attachments', 'attachments')
-      .where('clothes.userId = :userId', { userId: user.id })
-      .andWhere('clothes.id IN (:...ids)', { ids });
-
-    const items = await qb.getMany();
-    const itemsById = new Map(items.map((i) => [i.id, i]));
-    const orderedItems = ids.map((id) => itemsById.get(id)).filter((item): item is Clothes => Boolean(item));
-
-    for (const item of orderedItems) {
-      this.sortAttachments(item);
-    }
-
-    return {
-      items: orderedItems.map((item) => {
-        const primaryAttachment =
-          (item.attachments ?? []).find((att) => att.mimeType?.startsWith('image/')) ??
-          item.attachments?.[0] ??
-          null;
-        return {
-          id: item.id,
-          code: item.code,
-          name: item.name,
-          fullTitle: item.fullTitle,
-          isCumulative: item.isCumulative ?? false,
-          quantity: item.quantity ?? 1,
-          ironingQuantity: ironingQuantities.get(item.id) ?? 1,
-          isInIroning: true,
-          brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
-          type: item.type ? { id: item.type.id, name: item.type.name } : null,
-          colors: (item.colors ?? []).map((c) => ({ id: c.id, name: c.name, hexCode: c.hexCode })),
-          ironingInstruction: item.ironingInstruction
-            ? {
-                id: item.ironingInstruction.id,
-                temperature: item.ironingInstruction.temperature,
-                ironType: item.ironingInstruction.ironType,
-                ironInsideOut: item.ironingInstruction.ironInsideOut,
-              }
-            : null,
-          primaryAttachment: primaryAttachment
-            ? {
-                id: primaryAttachment.id,
-                fileName: primaryAttachment.fileName,
-                previewPath: primaryAttachment.previewPath,
-                mimeType: primaryAttachment.mimeType,
-              }
-            : null,
-        };
-      }),
-    };
+    return this.laundryService.getIroningList(user, rawIds);
   }
 
   async addToIroning(user: AuthUser, clothesIds: string[]) {
-    if (!clothesIds || clothesIds.length === 0) {
-      return { added: 0, existing: 0, total: 0 };
-    }
-    const countById = new Map<string, number>();
-    for (const id of clothesIds.filter(Boolean)) {
-      countById.set(id, (countById.get(id) ?? 0) + 1);
-    }
-    const uniqueIds = Array.from(countById.keys());
-    const validClothes = await this.dataSource.getRepository(Clothes).find({
-      where: { userId: user.id, id: In(uniqueIds) },
-      select: { id: true, isCumulative: true, quantity: true },
-    });
-    if (validClothes.length === 0) {
-      return { added: 0, existing: 0, total: 0 };
-    }
-
-    const ironingRepo = this.dataSource.getRepository(IroningItem);
-    const existingItems = await ironingRepo.find({
-      where: { userId: user.id, clothesId: In(validClothes.map((c) => c.id)) },
-    });
-    const existingMap = new Map(existingItems.map((e) => [e.clothesId, e]));
-
-    let addedCount = 0;
-    for (const cloth of validClothes) {
-      const requested = countById.get(cloth.id) ?? 1;
-      const existing = existingMap.get(cloth.id);
-      if (existing) {
-        if (cloth.isCumulative) {
-          const maxQty = cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1;
-          const newQty = Math.min(maxQty, (existing.quantity || 1) + requested);
-          if (newQty > (existing.quantity || 1)) {
-            addedCount += newQty - (existing.quantity || 1);
-            existing.quantity = newQty;
-            await ironingRepo.save(existing);
-          }
-        }
-      } else {
-        const initialQty = cloth.isCumulative
-          ? Math.min(cloth.quantity && cloth.quantity > 0 ? cloth.quantity : 1, requested)
-          : 1;
-        await ironingRepo.save(ironingRepo.create({ userId: user.id, clothesId: cloth.id, quantity: initialQty }));
-        addedCount += initialQty;
-      }
-    }
-
-    const counts = await this.getLaundryCounts(user);
-    return {
-      added: addedCount,
-      existing: existingItems.length,
-      total: counts.ironingCount,
-    };
+    return this.laundryService.addToIroning(user, clothesIds);
   }
 
   async removeFromIroning(user: AuthUser, clothesId: string, quantityToRemove = 1, removeAll = false) {
-    const ironingRepo = this.dataSource.getRepository(IroningItem);
-    const existing = await ironingRepo.findOne({ where: { userId: user.id, clothesId } });
-    if (existing) {
-      const cloth = await this.dataSource.getRepository(Clothes).findOne({ where: { id: clothesId, userId: user.id } });
-      if (removeAll || !cloth?.isCumulative || (existing.quantity || 1) <= quantityToRemove) {
-        await ironingRepo.delete({ id: existing.id });
-      } else {
-        existing.quantity = (existing.quantity || 1) - quantityToRemove;
-        await ironingRepo.save(existing);
-      }
-    }
-    const counts = await this.getLaundryCounts(user);
-    return { removed: true, total: counts.ironingCount };
+    return this.laundryService.removeFromIroning(user, clothesId, quantityToRemove, removeAll);
   }
 
   async clearIroning(user: AuthUser) {
-    const ironingRepo = this.dataSource.getRepository(IroningItem);
-    await ironingRepo.delete({ userId: user.id });
-    return { cleared: true };
+    return this.laundryService.clearIroning(user);
   }
 
   async getLaundryCounts(user: AuthUser) {
-    const washingRes = await this.dataSource
-      .getRepository(WashingItem)
-      .createQueryBuilder('w')
-      .where('w.userId = :userId', { userId: user.id })
-      .select('COALESCE(SUM(w.quantity), 0)', 'total')
-      .getRawOne();
-    const ironingRes = await this.dataSource
-      .getRepository(IroningItem)
-      .createQueryBuilder('i')
-      .where('i.userId = :userId', { userId: user.id })
-      .select('COALESCE(SUM(i.quantity), 0)', 'total')
-      .getRawOne();
-
-    return {
-      washingCount: Number(washingRes?.total ?? 0),
-      ironingCount: Number(ironingRes?.total ?? 0),
-    };
+    return this.laundryService.getLaundryCounts(user);
   }
 
   async getOne(user: AuthUser, id: string) {
@@ -1702,28 +1291,11 @@ export class ClothesService implements OnModuleInit {
   }
 
   private resolveAttachmentAbsolutePath(storedPath: string) {
-    if (path.isAbsolute(storedPath)) {
-      return storedPath;
-    }
-
-    const uploadsRootDir = this.getUploadsRootDir();
-    const normalizedStoredPath = normalizeStoredAttachmentPath(storedPath);
-
-    // Backward compatibility for older rows saved as "uploads/...".
-    if (normalizedStoredPath.startsWith('uploads/')) {
-      return path.join(uploadsRootDir, normalizedStoredPath.slice('uploads/'.length));
-    }
-
-    return path.join(uploadsRootDir, normalizedStoredPath);
+    return this.storageProvider.resolveAttachmentAbsolutePath(storedPath);
   }
 
   private getUploadsRootDir() {
-    const configuredRoot = process.env.UPLOADS_DIR?.trim();
-    if (configuredRoot) {
-      return path.resolve(configuredRoot);
-    }
-
-    return path.resolve(process.cwd(), 'uploads');
+    return this.storageProvider.getUploadsRootDir();
   }
 
   async bulkUpdateStatus(
@@ -1775,387 +1347,6 @@ export class ClothesService implements OnModuleInit {
 
   async generateClothPdf(user: AuthUser, id: string): Promise<{ buffer: Buffer; filename: string }> {
     const item = await this.getOne(user, id);
-
-    // Primary photo preparation
-    const primaryAttachment = item.attachments?.find((a) => a.kind === 'photo') ?? item.attachments?.[0];
-    let primaryPhotoBuffer: Buffer | null = null;
-    if (primaryAttachment) {
-      try {
-        const photoAbsPath = this.resolveAttachmentAbsolutePath(primaryAttachment.path);
-        primaryPhotoBuffer = await sharp(photoAbsPath)
-          .rotate()
-          .resize(400, 500, { fit: 'inside' })
-          .jpeg({ quality: 88 })
-          .toBuffer();
-      } catch (err) {
-        this.logger.warn(`Could not load primary photo for PDF generation: ${String(err)}`);
-      }
-    }
-
-    // Secondary photos (up to 4 thumbnails)
-    const secondaryAttachments = (item.attachments ?? []).filter((a) => a.id !== primaryAttachment?.id).slice(0, 4);
-    const secondaryPhotoBuffers: Buffer[] = [];
-    for (const secAtt of secondaryAttachments) {
-      try {
-        let secPath = secAtt.previewPath ? this.resolveAttachmentAbsolutePath(secAtt.previewPath) : null;
-        if (!secPath || !existsSync(secPath)) {
-          secPath = this.resolveAttachmentAbsolutePath(secAtt.path);
-        }
-        const buf = await sharp(secPath)
-          .rotate()
-          .resize(120, 120, { fit: 'cover' })
-          .jpeg({ quality: 80 })
-          .toBuffer();
-        secondaryPhotoBuffers.push(buf);
-      } catch {
-        // Ignore unreadable secondary previews
-      }
-    }
-
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 36,
-      info: {
-        Title: item.name || item.code || 'Scheda Capo Dressly',
-        Author: 'Dressly Digital Wardrobe',
-      },
-    });
-
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk) => chunks.push(chunk));
-
-    const sanitize = (val: string | null | undefined) => {
-      if (!val) return '';
-      return val
-        .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}]/gu, '')
-        .trim();
-    };
-
-    // --- Header Section ---
-    // Top blue accent bar
-    doc.rect(36, 36, 523, 4).fill('#0284c7');
-
-    // Title / Brand
-    doc.fillColor('#0284c7').font('Helvetica-Bold').fontSize(16).text('DRESSLY', 36, 46);
-    doc.fillColor('#64748b').font('Helvetica').fontSize(8.5).text('SCHEDA TECNICA CAPO', 36, 64);
-
-    // Tag Code pill on the right
-    if (item.code) {
-      doc.roundedRect(460, 44, 99, 26, 5).fillAndStroke('#e0f2fe', '#0284c7');
-      doc.fillColor('#0369a1').font('Helvetica-Bold').fontSize(13).text(item.code, 460, 50, { width: 99, align: 'center' });
-    }
-
-    const genDateStr = `Generato il ${new Date().toLocaleDateString('it-IT')}`;
-    doc.fillColor('#94a3b8').font('Helvetica').fontSize(8).text(genDateStr, 300, 65, { width: 150, align: 'right' });
-
-    // Divider line
-    doc.moveTo(36, 78).lineTo(559, 78).strokeColor('#e2e8f0').lineWidth(0.8).stroke();
-
-    // --- Hero Section (Photo + Metadata) ---
-    const heroY = 88;
-    const photoWidth = 185;
-    const photoHeight = 225;
-
-    // Photo Box Frame
-    doc.roundedRect(36, heroY, photoWidth, photoHeight, 6).fillAndStroke('#f8fafc', '#cbd5e1');
-
-    if (primaryPhotoBuffer) {
-      doc.image(primaryPhotoBuffer, 38, heroY + 2, {
-        fit: [photoWidth - 4, photoHeight - 4],
-        align: 'center',
-        valign: 'center',
-      });
-    } else {
-      doc.fillColor('#94a3b8').font('Helvetica-Bold').fontSize(11).text('Nessuna Foto', 36, heroY + 100, {
-        width: photoWidth,
-        align: 'center',
-      });
-    }
-
-    // Metadata column on the right
-    const metaX = 232;
-    const metaWidth = 327;
-    let currentY = heroY + 2;
-
-    // Item Title
-    const titleText = sanitize(item.fullTitle || item.name || 'Capo senza nome');
-    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(15).text(titleText, metaX, currentY, {
-      width: metaWidth,
-      lineBreak: true,
-    });
-    currentY = doc.y + 6;
-
-    // Status Badge
-    let statusLabel = "Nell'armadio";
-    let statusBg = '#d1fae5';
-    let statusColor = '#065f46';
-    let statusBorder = '#10b981';
-
-    if (item.status === 'in_storage') {
-      const roomLocParts = [item.location?.room?.name, item.location?.name].filter(Boolean).join(' > ');
-      statusLabel = `In Deposito${roomLocParts ? ': ' + sanitize(roomLocParts) : ''}`;
-      statusBg = '#fef3c7';
-      statusColor = '#92400e';
-      statusBorder = '#f59e0b';
-    } else if (item.status === 'dismissed') {
-      statusLabel = 'Dismesso';
-      statusBg = '#f1f5f9';
-      statusColor = '#475569';
-      statusBorder = '#94a3b8';
-    }
-
-    doc.font('Helvetica-Bold').fontSize(8.5);
-    const badgeWidth = Math.min(220, doc.widthOfString(statusLabel) + 16);
-    doc.roundedRect(metaX, currentY, badgeWidth, 18, 4).fillAndStroke(statusBg, statusBorder);
-    doc.fillColor(statusColor).font('Helvetica-Bold').fontSize(8.5).text(statusLabel, metaX, currentY + 4, {
-      width: badgeWidth,
-      align: 'center',
-    });
-
-    if (item.isInWashing) {
-      const washX = metaX + badgeWidth + 6;
-      doc.roundedRect(washX, currentY, 65, 18, 4).fillAndStroke('#e0f2fe', '#0284c7');
-      doc.fillColor('#0369a1').font('Helvetica-Bold').fontSize(8).text('In Lavatrice', washX, currentY + 4, { width: 65, align: 'center' });
-    } else if (item.isInIroning) {
-      const ironX = metaX + badgeWidth + 6;
-      doc.roundedRect(ironX, currentY, 65, 18, 4).fillAndStroke('#fef3c7', '#d97706');
-      doc.fillColor('#b45309').font('Helvetica-Bold').fontSize(8).text('Da Stirare', ironX, currentY + 4, { width: 65, align: 'center' });
-    }
-
-    currentY += 26;
-
-    // Key properties grid
-    const properties: Array<{ label: string; value: string; isColors?: boolean }> = [];
-    if (item.isCumulative || (item.quantity && item.quantity > 1)) {
-      properties.push({ label: 'Quantita', value: String(item.quantity || 1) });
-    }
-    if (item.size) properties.push({ label: 'Taglia', value: sanitize(item.size) });
-    if (item.brand?.name) properties.push({ label: 'Brand', value: sanitize(item.brand.name) });
-    if (item.type?.name) properties.push({ label: 'Categoria', value: sanitize(item.type.name) });
-    if (item.fit?.name) properties.push({ label: 'Fit', value: sanitize(item.fit.name) });
-
-    if (item.seasons && item.seasons.length > 0) {
-      properties.push({ label: 'Stagioni', value: item.seasons.map((s) => sanitize(s.name)).join(', ') });
-    }
-    if (item.temperatures && item.temperatures.length > 0) {
-      properties.push({ label: 'Temperature', value: item.temperatures.map((t) => sanitize(t.name)).join(', ') });
-    }
-    if (item.useCases && item.useCases.length > 0) {
-      properties.push({ label: 'Occasioni', value: item.useCases.map((u) => sanitize(u.name)).join(', ') });
-    }
-    if (item.colors && item.colors.length > 0) {
-      properties.push({ label: 'Colori', value: item.colors.map((c) => sanitize(c.name)).join(', '), isColors: true });
-    }
-    if (item.materials && item.materials.length > 0) {
-      properties.push({ label: 'Materiali', value: item.materials.map((m) => sanitize(m.name)).join(', ') });
-    }
-    if (item.tags && item.tags.length > 0) {
-      properties.push({ label: 'Tag', value: item.tags.map((t) => '#' + sanitize(t.name)).join(' ') });
-    }
-
-    for (const prop of properties) {
-      if (currentY > heroY + photoHeight + 10) break;
-      doc.fillColor('#64748b').font('Helvetica-Bold').fontSize(8.5).text(prop.label, metaX, currentY, { width: 75 });
-
-      if (prop.isColors && item.colors && item.colors.length > 0) {
-        let colX = metaX + 80;
-        for (const col of item.colors) {
-          if (col.hexCode && /^#[0-9A-Fa-f]{6}$/.test(col.hexCode)) {
-            doc.circle(colX + 4, currentY + 5, 4).fillAndStroke(col.hexCode, '#cbd5e1');
-            colX += 12;
-          }
-          const colName = sanitize(col.name);
-          doc.fillColor('#1e293b').font('Helvetica').fontSize(8.5).text(colName + '  ', colX, currentY);
-          colX += doc.widthOfString(colName + '  ');
-        }
-      } else {
-        doc.fillColor('#1e293b').font('Helvetica').fontSize(8.5).text(prop.value, metaX + 80, currentY, {
-          width: metaWidth - 85,
-          lineBreak: false,
-          ellipsis: true,
-        });
-      }
-      currentY += 15;
-    }
-
-    // --- Notes Section ---
-    let sectionY = Math.max(heroY + photoHeight + 14, currentY + 10);
-    if (item.notes) {
-      const noteText = sanitize(item.notes);
-      doc.font('Helvetica').fontSize(8.5);
-      const noteHeight = Math.min(48, Math.max(28, doc.heightOfString(noteText, { width: 505 }) + 14));
-      doc.roundedRect(36, sectionY, 523, noteHeight, 5).fillAndStroke('#f8fafc', '#e2e8f0');
-      doc.fillColor('#0284c7').font('Helvetica-Bold').fontSize(7.5).text('NOTE', 44, sectionY + 4);
-      doc.fillColor('#334155').font('Helvetica-Oblique').fontSize(8.5).text(noteText, 44, sectionY + 14, {
-        width: 505,
-        height: noteHeight - 16,
-        ellipsis: true,
-      });
-      sectionY += noteHeight + 12;
-    }
-
-    // --- Care Instructions Grid (4 panels) ---
-    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(11).text('CURA E MANUTENZIONE', 36, sectionY);
-    sectionY += 16;
-
-    const careCardWidth = 125;
-    const careCardHeight = 110;
-    const cardGap = 8;
-
-    // Card 1: Lavaggio
-    const washX = 36;
-    doc.roundedRect(washX, sectionY, careCardWidth, careCardHeight, 5).fillAndStroke('#f8fafc', '#e2e8f0');
-    doc.rect(washX, sectionY, careCardWidth, 18).fill('#e0f2fe');
-    doc.fillColor('#0369a1').font('Helvetica-Bold').fontSize(8.5).text('LAVAGGIO', washX, sectionY + 5, { width: careCardWidth, align: 'center' });
-
-    let washDetails = 'Nessuna indicazione';
-    if (item.washingInstruction) {
-      const wi = item.washingInstruction;
-      const lines: string[] = [];
-      if (wi.washType === 'do_not_wash') lines.push('Non lavare');
-      else if (wi.washType === 'hand_wash_only') lines.push('Solo lavaggio a mano');
-      else if (wi.washType === 'washer_ok') lines.push('Lavabile in lavatrice');
-
-      if (wi.temperature) {
-        lines.push(wi.temperature === '0' ? 'A freddo' : `${wi.temperature}°C max`);
-      }
-      if (wi.bleachType === 'no_bleach') lines.push('Non candeggiare');
-      else if (wi.bleachType === 'non_chlorine_bleach') lines.push('Solo senza cloro');
-      else if (wi.bleachType === 'any_bleach') lines.push('Candeggio consentito');
-
-      if (wi.washSeparately) lines.push('Separatamente');
-      if (wi.reverseWashing) lines.push('Al rovescio');
-      washDetails = lines.join('\n');
-    }
-    doc.fillColor('#334155').font('Helvetica').fontSize(7.5).text(washDetails, washX + 8, sectionY + 24, {
-      width: careCardWidth - 16,
-      lineBreak: true,
-    });
-
-    // Card 2: Asciugatura
-    const dryX = washX + careCardWidth + cardGap;
-    doc.roundedRect(dryX, sectionY, careCardWidth, careCardHeight, 5).fillAndStroke('#f8fafc', '#e2e8f0');
-    doc.rect(dryX, sectionY, careCardWidth, 18).fill('#e0f2fe');
-    doc.fillColor('#0369a1').font('Helvetica-Bold').fontSize(8.5).text('ASCIUGATURA', dryX, sectionY + 5, { width: careCardWidth, align: 'center' });
-
-    let dryDetails = 'Nessuna indicazione';
-    if (item.dryingInstruction) {
-      const di = item.dryingInstruction;
-      const lines: string[] = [];
-      if (di.tumbleDry === false) {
-        lines.push('Asciugatrice vietata');
-      } else if (di.tumbleDry === true) {
-        if (di.tumbleDryTemperature === 'low') lines.push('Asciugatrice bassa temp (*)');
-        else if (di.tumbleDryTemperature === 'medium') lines.push('Asciugatrice media temp (**)');
-        else if (di.tumbleDryTemperature === 'high') lines.push('Asciugatrice alta temp (***)');
-        else lines.push('Asciugatrice consentita');
-      }
-
-      if (di.method) {
-        const methodMap: Record<string, string> = {
-          line_dry: 'Stendere all\'aperto',
-          flat_dry: 'Asciugare disteso in piano',
-          drip_dry: 'Asciugare gocciolante',
-          line_shade: 'All\'ombra appeso',
-          flat_shade: 'All\'ombra disteso',
-        };
-        lines.push(methodMap[di.method] || sanitize(di.method));
-      }
-      dryDetails = lines.join('\n');
-    }
-    doc.fillColor('#334155').font('Helvetica').fontSize(7.5).text(dryDetails, dryX + 8, sectionY + 24, {
-      width: careCardWidth - 16,
-      lineBreak: true,
-    });
-
-    // Card 3: Stiratura
-    const ironX = dryX + careCardWidth + cardGap;
-    doc.roundedRect(ironX, sectionY, careCardWidth, careCardHeight, 5).fillAndStroke('#f8fafc', '#e2e8f0');
-    doc.rect(ironX, sectionY, careCardWidth, 18).fill('#e0f2fe');
-    doc.fillColor('#0369a1').font('Helvetica-Bold').fontSize(8.5).text('STIRATURA', ironX, sectionY + 5, { width: careCardWidth, align: 'center' });
-
-    let ironDetails = 'Nessuna indicazione';
-    if (item.ironingInstruction) {
-      const ii = item.ironingInstruction;
-      const lines: string[] = [];
-      if (ii.ironType === 'no') lines.push('Non stirare');
-      else if (ii.ironType === 'without_steam') lines.push('Stirare senza vapore');
-      else if (ii.ironType === 'yes') lines.push('Stirabile con vapore');
-
-      const temp = Number(ii.temperature);
-      if (temp === 1) lines.push('Bassa temp 110°C (*)');
-      else if (temp === 2) lines.push('Media temp 150°C (**)');
-      else if (temp === 3) lines.push('Alta temp 200°C (***)');
-
-      if (ii.ironInsideOut) lines.push('Stirare al rovescio');
-      ironDetails = lines.join('\n');
-    }
-    doc.fillColor('#334155').font('Helvetica').fontSize(7.5).text(ironDetails, ironX + 8, sectionY + 24, {
-      width: careCardWidth - 16,
-      lineBreak: true,
-    });
-
-    // Card 4: Dettagli Acquisto
-    const buyX = ironX + careCardWidth + cardGap;
-    doc.roundedRect(buyX, sectionY, careCardWidth, careCardHeight, 5).fillAndStroke('#f8fafc', '#e2e8f0');
-    doc.rect(buyX, sectionY, careCardWidth, 18).fill('#f1f5f9');
-    doc.fillColor('#475569').font('Helvetica-Bold').fontSize(8.5).text('ACQUISTO', buyX, sectionY + 5, { width: careCardWidth, align: 'center' });
-
-    let buyDetails = 'Non specificato';
-    if (item.buyDetail) {
-      const bd = item.buyDetail;
-      const lines: string[] = [];
-      if (bd.store) lines.push(`Negozio: ${sanitize(bd.store)}`);
-      if (bd.purchaseDate) lines.push(`Data: ${sanitize(bd.purchaseDate)}`);
-      if (bd.priceCents != null) {
-        lines.push(`Prezzo: ${(bd.priceCents / 100).toFixed(2)} EUR`);
-      }
-      if (bd.shopUrl) lines.push('Link store disponibile');
-      buyDetails = lines.join('\n') || 'Non specificato';
-    }
-    doc.fillColor('#334155').font('Helvetica').fontSize(7.5).text(buyDetails, buyX + 8, sectionY + 24, {
-      width: careCardWidth - 16,
-      lineBreak: true,
-    });
-
-    sectionY += careCardHeight + 14;
-
-    // --- Secondary Photos Strip (if any) ---
-    if (secondaryPhotoBuffers.length > 0 && sectionY < 720) {
-      doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text('GALLERIA FOTOGRAFICA', 36, sectionY);
-      sectionY += 14;
-
-      const thumbSize = 65;
-      let thumbX = 36;
-      for (const thumbBuf of secondaryPhotoBuffers) {
-        doc.roundedRect(thumbX, sectionY, thumbSize, thumbSize, 4).fillAndStroke('#f8fafc', '#cbd5e1');
-        doc.image(thumbBuf, thumbX + 1, sectionY + 1, {
-          fit: [thumbSize - 2, thumbSize - 2],
-          align: 'center',
-          valign: 'center',
-        });
-        thumbX += thumbSize + 10;
-      }
-    }
-
-    // --- Footer ---
-    doc.moveTo(36, 792).lineTo(559, 792).strokeColor('#e2e8f0').lineWidth(0.8).stroke();
-    doc.fillColor('#94a3b8').font('Helvetica').fontSize(8).text('Dressly — Guardaroba Digitale Personale', 36, 800);
-    doc.fillColor('#94a3b8').font('Helvetica').fontSize(8).text('Pagina 1 / 1', 460, 800, { width: 99, align: 'right' });
-
-    doc.end();
-
-    const buffer = await new Promise<Buffer>((resolve, reject) => {
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-    });
-
-    const slug = (item.name || item.code || 'capo')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .slice(0, 30);
-    const filename = `capo-${item.code ? item.code + '-' : ''}${slug}.pdf`;
-
-    return { buffer, filename };
+    return this.clothesPdfService.generateClothPdf(user, item, (rel) => this.resolveAttachmentAbsolutePath(rel));
   }
 }

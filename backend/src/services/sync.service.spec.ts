@@ -293,6 +293,114 @@ async function runTests() {
     console.log('✓ Test 5 passed!');
   }
 
+  // Test 6: WashingProgram and Detergent offline creation and metadata persistence via sync
+  console.log('Test 6: WashingProgram and Detergent sync metadata');
+  {
+    const wpRepo = dataSource.getRepository(WashingProgram);
+    const detRepo = dataSource.getRepository(Detergent);
+
+    // Create offline
+    const res = await syncService.sync(testUser, {
+      lastSyncAt: null,
+      changes: {
+        referenceData: [
+          {
+            kind: 'washing-programs',
+            id: 'wp_offline_1',
+            updatedAt: '2026-11-01T19:30:00.000Z',
+            fields: {
+              name: { value: 'Cotone Eco', updatedAt: '2026-11-01T19:30:00.000Z' },
+              temperature: { value: 40, updatedAt: '2026-11-01T19:30:00.000Z' },
+              spinSpeed: { value: 1200, updatedAt: '2026-11-01T19:30:00.000Z' },
+            },
+          },
+          {
+            kind: 'washing-programs',
+            id: 'wp_offline_cold',
+            updatedAt: '2026-11-01T19:30:00.000Z',
+            fields: {
+              name: { value: 'Lana Freddo', updatedAt: '2026-11-01T19:30:00.000Z' },
+              temperature: { value: 0, updatedAt: '2026-11-01T19:30:00.000Z' },
+              spinSpeed: { value: 600, updatedAt: '2026-11-01T19:30:00.000Z' },
+            },
+          },
+          {
+            kind: 'detergents',
+            id: 'det_offline_1',
+            updatedAt: '2026-11-01T19:30:00.000Z',
+            fields: {
+              name: { value: 'Bio Presto', updatedAt: '2026-11-01T19:30:00.000Z' },
+              description: { value: 'Per capi scuri e delicati', updatedAt: '2026-11-01T19:30:00.000Z' },
+            },
+          },
+        ],
+      },
+    });
+
+    const wp = await wpRepo.findOne({ where: { id: 'wp_offline_1' } });
+    assert(wp, 'Washing program created offline should be saved');
+    assert.strictEqual(wp.name, 'Cotone Eco');
+    assert.strictEqual(wp.temperature, 40);
+    assert.strictEqual(wp.spinSpeed, 1200);
+
+    const wpCold = await wpRepo.findOne({ where: { id: 'wp_offline_cold' } });
+    assert(wpCold, 'Cold wash program created offline should be saved');
+    assert.strictEqual(wpCold.temperature, 0);
+    assert.strictEqual(wpCold.spinSpeed, 600);
+
+    const det = await detRepo.findOne({ where: { id: 'det_offline_1' } });
+    assert(det, 'Detergent created offline should be saved');
+    assert.strictEqual(det.name, 'Bio Presto');
+    assert.strictEqual(det.description, 'Per capi scuri e delicati');
+
+    // Also verify that sync response returns them with their metadata
+    const returnedWps = res.serverChanges.referenceData['washing-programs'] as WashingProgram[];
+    const returnedWp = returnedWps.find((w) => w.id === 'wp_offline_1');
+    assert(returnedWp, 'Returned washing programs should include wp_offline_1');
+    assert.strictEqual(returnedWp.temperature, 40);
+    assert.strictEqual(returnedWp.spinSpeed, 1200);
+
+    const returnedDets = res.serverChanges.referenceData['detergents'] as Detergent[];
+    const returnedDet = returnedDets.find((d) => d.id === 'det_offline_1');
+    assert(returnedDet, 'Returned detergents should include det_offline_1');
+    assert.strictEqual(returnedDet.description, 'Per capi scuri e delicati');
+
+    // Test update via sync
+    await syncService.sync(testUser, {
+      lastSyncAt: '2026-11-01T19:30:00.000Z',
+      changes: {
+        referenceData: [
+          {
+            kind: 'washing-programs',
+            id: 'wp_offline_1',
+            updatedAt: '2026-11-01T20:00:00.000Z',
+            fields: {
+              temperature: { value: 60, updatedAt: '2026-11-01T20:00:00.000Z' },
+              spinSpeed: { value: 1400, updatedAt: '2026-11-01T20:00:00.000Z' },
+            },
+          },
+          {
+            kind: 'detergents',
+            id: 'det_offline_1',
+            updatedAt: '2026-11-01T20:00:00.000Z',
+            fields: {
+              description: { value: 'Formula concentrata aggiornata', updatedAt: '2026-11-01T20:00:00.000Z' },
+            },
+          },
+        ],
+      },
+    });
+
+    const updatedWp = await wpRepo.findOne({ where: { id: 'wp_offline_1' } });
+    assert.strictEqual(updatedWp?.temperature, 60);
+    assert.strictEqual(updatedWp?.spinSpeed, 1400);
+
+    const updatedDet = await detRepo.findOne({ where: { id: 'det_offline_1' } });
+    assert.strictEqual(updatedDet?.description, 'Formula concentrata aggiornata');
+
+    console.log('✓ Test 6 passed!');
+  }
+
   await dataSource.destroy();
   console.log('🎉 ALL BACKEND SYNC TESTS PASSED SUCCESSFULLY! 🎉');
 }

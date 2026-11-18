@@ -20,6 +20,10 @@ import {
   TemperatureItem,
   TypeItem,
   UseCaseItem,
+  RoomItem,
+  LocationItem,
+  WashingProgramItem,
+  DetergentItem,
   WashingInstructionItem,
   BuyDetailItem,
   IroningClothesResponse,
@@ -71,6 +75,11 @@ export class ApiService {
 
   listClothes(filters: Partial<ClothesFilters>) {
     return this.http.get<ClothesPageResponse>('/api/clothes', { params: this.toParams(filters) });
+  }
+
+  getClothesCount(status?: string): Observable<number> {
+    const params = status ? { status } : undefined;
+    return this.http.get<number>('/api/clothes/count', { params });
   }
 
   getLaundryCounts(): Observable<LaundryCountsResponse> {
@@ -201,6 +210,10 @@ export class ApiService {
       materials: MaterialItem[];
       types: TypeItem[];
       tags: TagItem[];
+      rooms: RoomItem[];
+      locations: LocationItem[];
+      'washing-programs': WashingProgramItem[];
+      detergents: DetergentItem[];
     }>('/api/reference-data');
   }
 

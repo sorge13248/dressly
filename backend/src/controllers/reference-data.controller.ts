@@ -238,4 +238,44 @@ export class ReferenceDataController {
   deleteLocation(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.referenceDataService.remove('locations', user, id);
   }
+
+  @Get('washing-programs')
+  listWashingPrograms(@CurrentUser() user: AuthUser) {
+    return this.referenceDataService.list('washing-programs', user);
+  }
+
+  @Post('washing-programs')
+  createWashingProgram(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.create('washing-programs', user, body);
+  }
+
+  @Put('washing-programs/:id')
+  updateWashingProgram(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.update('washing-programs', user, id, body);
+  }
+
+  @Delete('washing-programs/:id')
+  deleteWashingProgram(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.referenceDataService.remove('washing-programs', user, id);
+  }
+
+  @Get('detergents')
+  listDetergents(@CurrentUser() user: AuthUser) {
+    return this.referenceDataService.list('detergents', user);
+  }
+
+  @Post('detergents')
+  createDetergent(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.create('detergents', user, body);
+  }
+
+  @Put('detergents/:id')
+  updateDetergent(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.referenceDataService.update('detergents', user, id, body);
+  }
+
+  @Delete('detergents/:id')
+  deleteDetergent(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.referenceDataService.remove('detergents', user, id);
+  }
 }

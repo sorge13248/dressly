@@ -85,7 +85,7 @@ async function runBackupTests() {
   const referenceDataService = new ReferenceDataService(dataSource);
   const clothesService = new ClothesService(dataSource, referenceDataService);
   const outfitsService = new OutfitsService(dataSource);
-  const backupService = new BackupService(dataSource);
+  const backupService = new BackupService(dataSource, clothesService);
 
   try {
     // 1. Populate initial data for User A
@@ -150,6 +150,21 @@ async function runBackupTests() {
     assert.ok(statsA.referenceDataCount >= 5);
     assert.strictEqual(statsA.attachmentsCount, 1);
     assert.strictEqual(statsA.totalFileSizeBytes, dummyImg.length);
+
+    // Verify cumulative cloth counting (must count only table entry, not quantity)
+    const cumulativeCloth = await dataSource.getRepository(Clothes).save({
+      userId: userA.id,
+      name: 'Calzini sportivi',
+      isCumulative: true,
+      quantity: 5,
+    });
+    const clothesCountWithCumulative = await clothesService.countClothes(userA);
+    assert.strictEqual(clothesCountWithCumulative, 2, 'Cumulative cloth should count as 1 entry, not 5');
+    const statsAWithCumulative = await backupService.getBackupStats(userA);
+    assert.strictEqual(statsAWithCumulative.clothesCount, 2);
+    // Cleanup extra cumulative cloth to not break subsequent zip tests
+    await dataSource.getRepository(Clothes).delete(cumulativeCloth.id);
+
     console.log('✓ Test 1 passed!');
 
     // Test 2: exportBackup ZIP

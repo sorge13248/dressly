@@ -27,7 +27,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx supervisor poppler-utils \
+    && apt-get install -y --no-install-recommends nginx supervisor poppler-utils wget \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/backend /app/data /run/nginx /var/log/nginx /usr/share/nginx/html
 
