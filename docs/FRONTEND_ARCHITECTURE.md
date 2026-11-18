@@ -108,7 +108,7 @@ graph TD
 | `ApiService` | Root | Centralized HTTP client wrapping all REST endpoints with `credentials: 'include'`; handles binary stream downloads (PDF cards, ZIP backups) and multipart backup restoration. |
 | `AuthService` | Root | Exposes user profile signal (`currentUser`), auth state (`isAuthenticated`), and login/logout methods. |
 | `SyncService` | Root | Coordinates background synchronization, tracks online/offline/error states, processes sync queues, captures and formats server/gateway errors, and surfaces sync status signals to UI indicators. |
-| `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`); handles multi-criteria query/sorting engine (`queryClothes`), offline availability checks (`isTagCodeAvailable`), sync queues, and complete cache purging (`clearAllStores()`). |
+| `OfflineStorageService` | Root | Low-level driver for the IndexedDB database (`dressly_offline_v1`); handles multi-criteria query/sorting engine (`queryClothes`), centralized clothes record counting (`countClothes`), offline availability checks (`isTagCodeAvailable`), sync queues, and complete cache purging (`clearAllStores()`). |
 | `LaundryService` | Root | Reactive store for clothes in washing and ironing queues. |
 | `PwaUpdateService` | Root | Detects new Service Worker versions and triggers the update modal. |
 | `ReferenceStoreService`| Root | Reactive cache and mutation manager of all 13 reference catalogs (colors, brands, tags, types, washing programs, detergents, etc.) with drag-and-drop and alphabetical auto-sorting. |
@@ -178,6 +178,15 @@ graph TD
 3. When a new service worker installation completes and enters the `waiting` state, `PwaUpdateService` opens `UpdateModalComponent`.
 4. When the user clicks "Aggiorna ora" (Update now), the application sends a `SKIP_WAITING` message to the waiting worker and reloads the page.
 
+### 6.3. Brand Identity & PWA Assets
+The application visual identity is anchored by the haute couture "Atelier Sartoriale & Silk Ribbon" logo concept—a continuous fluid silk ribbon forming the silhouette of a tailored blazer collar wrapped around a chrome clothes hanger with subtle platinum accents over deep sapphire blue (`#07153b`):
+- **Web Header & Spinner (`frontend/public/assets/logo.webp`, `logo.svg`)**: 512×512 lossless WebP image and scalable vector SVG with transparent squircle corners for responsive in-app rendering (`ShellComponent` topbar brand mark and `SpinnerComponent` loading card).
+- **PWA Multi-Platform Icons (`frontend/public/icons/`)**:
+  - `icon-192x192.png` and `icon-512x512.png`: Standard PWA app icons for desktop and mobile web app installation.
+  - `icon-maskable-192x192.png` and `icon-maskable-512x512.png`: Full-bleed adaptive icons with deep sapphire background (`#07153b`) engineered to respect the W3C safe-zone circle constraint (central 80% diameter) across Android adaptive launchers.
+- **Apple Touch Icons (`frontend/public/icons/apple-touch-icon*.png`)**: Solid background variants at 180×180, 167×167, and 152×152 px preventing black letterboxing on iOS Safari Home Screen additions.
+- **Browser Favicons (`frontend/public/icons/favicon-*.png`, `frontend/public/favicon.ico`)**: Multi-resolution 16×16 px, 32×32 px, and unified `favicon.ico` for desktop browser tabs and bookmarks.
+
 ---
 
 ## 7. Shared Components & Export Workflows
@@ -185,7 +194,7 @@ graph TD
 ### 7.1. Backup & Disaster Recovery Modal (`BackupRestoreModalComponent`)
 Located at `frontend/src/app/shared/components/backup-restore-modal/`, this standalone modal is accessible strictly from within the Domain Management view (`/categories`) to consolidate all system-level administration:
 
-- **Live Data Metrics**: Calls `ApiService.getBackupStats()` on open to display real-time counts of clothes, outfits, reference data items, and total media storage footprint in MB.
+- **Live Data Metrics**: Retrieves real-time counts of clothes, outfits, reference data items, and total media storage footprint in MB. Clothes count is reconciled using `OfflineStorageService.countClothes()` to strictly count distinct entries on the clothes table, aligning perfectly with wardrobe inventory figures.
 - **Full ZIP Export**: Initiates streaming download of `dressly-backup-[userId]-[timestamp].zip` via `ApiService.downloadBackupZip()`.
 - **Restoration Workflow**:
   - Drag-and-drop or manual file selection with automatic `.zip` validation and upload size warnings.
@@ -223,6 +232,7 @@ Located at `frontend/src/app/shared/components/select-dropdown/` (`app-select-dr
   - Catalogs with pre-populated empty entries (e.g. `"Nessun brand"`, `"Nessun fit"`, `"Nessun tipo"`, `"Nessuna posizione"`) allow selecting the empty value directly from the list or search results.
 - **Keyboard Combobox Accessibility**: When the combobox trigger is focused and carries a selected value, pressing `Backspace` or `Delete` immediately clears the selection.
 - **Enforced Non-Clearable Dropdowns**: Mandatory single-selection dropdowns (such as garment operational status `statusOptions`, primary wash type `washTypeOptions`, or iron type `ironingTypeOptions`) specify `[clearable]="false"`, hiding the trigger clear button and preserving valid model states.
+- **Parent Container Width Containment**: Custom dropdowns (`app-select-dropdown` and `app-filter-multiselect-dropdown`) strictly respect parent layout bounds through `width: 100%`, `max-width: 100%`, `min-width: 0`, and `box-sizing: border-box` on `:host`, `.dropdown-shell`, and `.trigger`. Long option labels truncate cleanly with ellipsis (`text-overflow: ellipsis; white-space: nowrap;`) without overflowing parent grid columns or flex cards, exposing the full text via the native `title` attribute for immediate hover inspection.
 
 
 

@@ -172,6 +172,68 @@
       color: #991b1b;
     }
   }
+
+  &.card-program-detergent {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 247, 255, 0.96));
+    border-color: rgba(30, 109, 207, 0.35);
+    box-shadow: 0 4px 18px rgba(20, 55, 110, 0.1);
+
+    .head-title h2 {
+      color: #123e73;
+    }
+  }
+
+  &.card-temp--standalone {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 255, 0.95));
+    border-color: rgba(100, 146, 214, 0.35);
+  }
+}
+
+.head-duet-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+
+  .duet-detergent {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    color: #0284c7;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .duet-spin {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.08);
+    border: 1px solid rgba(100, 116, 139, 0.18);
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 500;
+  }
+}
+
+.program-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(30, 109, 207, 0.1);
+  border: 1px solid rgba(30, 109, 207, 0.25);
+  font-size: 0.95rem;
 }
 
 .card-head {
@@ -246,6 +308,12 @@
   }
 
   &--info {
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+    color: #0369a1;
+  }
+
+  &--program {
     background: rgba(14, 165, 233, 0.12);
     border-color: rgba(14, 165, 233, 0.3);
     color: #0369a1;

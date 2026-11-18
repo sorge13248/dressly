@@ -135,4 +135,14 @@ describe('BackupRestoreModalComponent', () => {
     comp.close(false);
     expect(dialogRefSpy.close).toHaveBeenCalledWith(false);
   });
+
+  it('should override clothesCount with storage.countClothes when available', async () => {
+    (storageMock as any).countClothes = vi.fn().mockResolvedValue(42);
+
+    const fixture = TestBed.createComponent(BackupRestoreModalComponent);
+    const comp = fixture.componentInstance;
+    await comp.fetchStats();
+
+    expect(comp.stats()?.clothesCount).toBe(42);
+  });
 });

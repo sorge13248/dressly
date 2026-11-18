@@ -30,6 +30,7 @@ import { WashingInstruction } from '../entities/washing-instruction.entity';
 import { WashingItem } from '../entities/washing-item.entity';
 import { WashingProgram } from '../entities/washing-program.entity';
 import { Detergent } from '../entities/detergent.entity';
+import { ClothesService } from './clothes.service';
 
 export interface BackupStatsDto {
   clothesCount: number;
@@ -63,7 +64,10 @@ interface BackupManifest {
 export class BackupService {
   private readonly logger = new Logger(BackupService.name);
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly clothesService: ClothesService,
+  ) {}
 
   private getUploadsRootDir(): string {
     const configuredRoot = process.env.UPLOADS_DIR?.trim();
@@ -86,7 +90,7 @@ export class BackupService {
   }
 
   async getBackupStats(user: AuthUser): Promise<BackupStatsDto> {
-    const clothesCount = await this.dataSource.getRepository(Clothes).count({ where: { userId: user.id } });
+    const clothesCount = await this.clothesService.countClothes(user);
     const outfitsCount = await this.dataSource.getRepository(Outfit).count({ where: { userId: user.id } });
 
     const refRepos = [

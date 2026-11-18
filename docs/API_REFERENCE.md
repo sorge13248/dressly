@@ -122,7 +122,11 @@ Returns all reference data categories grouped in a single payload.
     "fits": [{ "id": "...", "name": "Regular", "sortOrder": 1 }],
     "materials": [{ "id": "...", "name": "Wool", "sortOrder": 1 }],
     "types": [{ "id": "...", "name": "Sweater", "sortOrder": 1 }],
-    "tags": [{ "id": "...", "name": "Favorite", "sortOrder": 1 }]
+    "tags": [{ "id": "...", "name": "Favorite", "sortOrder": 1 }],
+    "rooms": [{ "id": "...", "name": "Camera da letto", "sortOrder": 1 }],
+    "locations": [{ "id": "...", "name": "Armadio Principale", "roomId": "...", "sortOrder": 1 }],
+    "washing-programs": [{ "id": "...", "name": "Cotone 40°", "temperature": 40, "spinSpeed": 1000, "sortOrder": 1 }],
+    "detergents": [{ "id": "...", "name": "Liquido delicato", "description": "Per capi delicati", "sortOrder": 1 }]
   }
   ```
 
@@ -184,6 +188,12 @@ Lists all wardrobe items with support for rich filtering, pagination, and multi-
   - `page` (number, default: 1): Page number.
   - `per_page` (number, default: 50, max: 100): Items per page.
 - **Response `200 OK`**: Object `{ items: Clothes[], total: number, page: number, perPage: number }`.
+
+### `GET /api/clothes/count`
+Retrieves the total count of distinct clothes entries for the authenticated user, considering strictly the entries on the clothes table (items with the cumulative/multiple flag enabled count as 1 entry, without summing their quantity).
+- **Query Parameters**:
+  - `status` (string, optional): Filter count by operational status (`in_wardrobe`, `in_storage`, `dismissed`, or `all`). When omitted or set to `'all'`, counts all entries across the entire wardrobe table.
+- **Response `200 OK`**: Integer count of matching clothes records (e.g. `42`).
 
 ### `POST /api/clothes`
 Creates a new clothing item, automatically generating care instruction relations and a unique tag code if not supplied.

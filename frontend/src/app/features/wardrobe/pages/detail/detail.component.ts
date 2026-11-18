@@ -114,7 +114,7 @@ export class WardrobeDetailPageComponent implements OnInit {
     if (wash?.washingProgram) {
       const prog = wash.washingProgram;
       const parts: string[] = [];
-      if (prog.temperature) parts.push(`${prog.temperature}°`);
+      if (prog.temperature != null) parts.push(`${prog.temperature}°`);
       if (prog.spinSpeed != null) parts.push(`${prog.spinSpeed} giri`);
       const progSpec = parts.length ? `${prog.name} (${parts.join(', ')})` : prog.name;
       washSpecs.push({ label: 'Programma', value: progSpec });

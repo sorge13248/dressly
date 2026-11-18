@@ -27,6 +27,11 @@ export class ClothesController {
     return this.clothesService.list(user, query);
   }
 
+  @Get('count')
+  getClothesCount(@CurrentUser() user: AuthUser, @Query('status') status?: string) {
+    return this.clothesService.countClothes(user, status);
+  }
+
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
     return this.clothesService.create(user, body);

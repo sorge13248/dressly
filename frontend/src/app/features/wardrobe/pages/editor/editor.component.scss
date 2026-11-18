@@ -266,6 +266,11 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .field-grid.compact {
@@ -277,6 +282,11 @@ h2 {
   grid-template-columns: repeat(4, minmax(140px, 1fr));
   gap: 10px;
   align-items: start;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .field-size input {
@@ -409,6 +419,11 @@ h2 {
   grid-template-columns: minmax(160px, 1.5fr) minmax(220px, 2fr) minmax(140px, 1.2fr);
   gap: 10px;
   align-items: start;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .notes-field {
@@ -421,6 +436,13 @@ label,
   gap: 4px;
   font-size: 0.9rem;
   align-content: start;
+  min-width: 0;
+  max-width: 100%;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 label span,
@@ -439,6 +461,16 @@ textarea {
   padding: 3px 10px;
   background: rgba(255, 255, 255, 0.9);
   font-size: 0.92rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+app-select-dropdown {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 input:focus,
@@ -570,6 +602,8 @@ textarea {
   gap: 10px;
   align-content: start;
   align-self: start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .island-head {

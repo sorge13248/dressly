@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import PDFDocument from 'pdfkit';
-import { DataSource, In, IsNull, Not } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, IsNull, Not } from 'typeorm';
 import { AuthUser } from '../common/auth/auth.types';
 import { generateUniqueTagCode, isValidTagCode, normalizeTagCode } from '../common/utils/tag-code.util';
 import {
@@ -164,6 +164,18 @@ export class ClothesService implements OnModuleInit {
     }
 
     this.logger.log(`Successfully backfilled tag codes for ${unassigned.length} clothes items.`);
+  }
+
+  /**
+   * Counts the total number of clothes records for a user.
+   * Considers only distinct rows on the clothes table, ignoring the cumulative/multiple flag.
+   */
+  async countClothes(user: AuthUser, status?: string): Promise<number> {
+    const where: FindOptionsWhere<Clothes> = { userId: user.id };
+    if (status && status !== 'all') {
+      where.status = status as 'in_wardrobe' | 'in_storage' | 'dismissed';
+    }
+    return this.dataSource.getRepository(Clothes).count({ where });
   }
 
   async list(user: AuthUser, query: Record<string, string | undefined>) {

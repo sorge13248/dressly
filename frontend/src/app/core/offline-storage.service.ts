@@ -6,6 +6,7 @@ import {
   ClothesFilters,
   ClothesItem,
   ClothesSortKey,
+  ClothesStatus,
   IroningClothesItem,
   ReferenceKind,
   SyncConflict,
@@ -160,6 +161,31 @@ export class OfflineStorageService {
         req.onerror = () => resolve(Array.from(this.memoryStore.clothes.values()));
       } catch {
         resolve(Array.from(this.memoryStore.clothes.values()));
+      }
+    });
+  }
+
+  /**
+   * Counts the total number of clothes records in local storage.
+   * Only counts entries on the respective table, ignoring the cumulative/multiple flag.
+   */
+  async countClothes(options?: { status?: ClothesStatus | 'all' }): Promise<number> {
+    if (options?.status && options.status !== 'all') {
+      const all = await this.getAllClothes();
+      return all.filter((item) => (item.status ?? 'in_wardrobe') === options.status).length;
+    }
+    const db = await this.getDB();
+    if (!db) {
+      return this.memoryStore.clothes.size;
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_CLOTHES, 'readonly');
+        const req = tx.objectStore(STORE_CLOTHES).count();
+        req.onsuccess = () => resolve(req.result ?? 0);
+        req.onerror = () => resolve(this.memoryStore.clothes.size);
+      } catch {
+        resolve(this.memoryStore.clothes.size);
       }
     });
   }

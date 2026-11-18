@@ -75,6 +75,7 @@ Throughout the clothing wizard editor (`/wardrobe/new` and `/wardrobe/:id/edit`)
 - **In-Panel Selection Cancellation**: Users who open the dropdown can cancel their selection by clicking the currently highlighted option to toggle it off, or by selecting the dedicated `"Nessun brand"`, `"Nessun fit"`, `"Nessun tipo"`, or `"Nessuna posizione"` entry in the list.
 - **Keyboard Deselection**: Pressing `Backspace` or `Delete` while the trigger is focused instantly resets the field to empty.
 - **Form State Compatibility**: Deselecting sets the form model value to `''`, which is automatically normalized to `null` in the API persistence payload (`brand_id || null`, `fit_id || null`, `type_id || null`, `location_id || null`).
+- **Responsive Width Containment**: Dropdown triggers strictly respect the boundaries of their parent grid columns and card containers via `min-width: 0`, `max-width: 100%`, and `overflow: hidden`. Long text labels (e.g., descriptive washing program presets like `"Colorati (30°, 1000 giri)"`) truncate with ellipsis without breaking parent card boundaries, providing the full label on mouse hover via the native `title` tooltip.
 
 ### 1.8. Washing Machine Programs, Detergents & Tri-State Color Bleed
 - **Washing Programs Domain**: The `washing-programs` reference domain configures washing machine presets with name, temperature (validated 0-95°C), and spin speed (`centrifuga`, numeric $\ge 0$ rpm). In the wizard editor, selecting a preset automatically hides and clears the manual free temperature input.
@@ -115,6 +116,9 @@ Garments can be classified into two operational types:
    - Adding to washing increments the queue quantity up to the total item `quantity`.
    - Removing from washing decrements the queue quantity.
    - The query parameter `?all=true` allows moving or clearing the entire stack at once.
+3. **Inventory Counting Rule (`countClothes()`)**:
+   - When calculating the total garment count across the wardrobe catalog (in both backend `ClothesService.countClothes()` and frontend `OfflineStorageService.countClothes()`), each garment record represents strictly **1 entry on the clothes table**.
+   - Cumulative items with the multiple flag enabled (`isCumulative: true`) are intentionally counted as single entries, without multiplying or summing their quantity. This ensures consistent inventory counts between the main wardrobe view and domain export statistics.
 
 ### 2.2. Laundry Counters & Navigation Badges
 The endpoint `GET /api/clothes/laundry-counts` provides real-time counts used by the Angular top navigation bar to display live notification badges:
@@ -124,6 +128,31 @@ The endpoint `GET /api/clothes/laundry-counts` provides real-time counts used by
   "ironing": 2
 }
 ```
+
+### 2.3. Washing Queue Grouping: Program-Detergent Duets & Standalone Temperatures
+The washing management interface (`/wardrobe/washing`, `WashingPageComponent`) organizes garments queued for laundering according to real-world laundry workflows:
+
+1. **Special Care Cards (Pre-Wash Attention)**:
+   - **Manca informazione (⚠️)**: Garments with machine wash enabled that lack both a washing program preset and a manual temperature. Renders a direct "Imposta lavaggio →" shortcut opening the garment editor directly on Step 4 (Care).
+   - **Lavaggio a mano (🖐️)**: Garments tagged with `washType: 'hand_wash_only'` requiring delicate hand laundering.
+   - **Non lavare (🚫)**: Garments tagged with `washType: 'do_not_wash'` requiring dry cleaning or special care.
+
+2. **Primary Grouping: Program-Detergent Duets (`(washingProgram, detergent)`)**:
+   - Machine-wash garments associated with a washing machine program from the reference domain are grouped primarily by the distinct combination of **Washing Machine Program** and **Detergent**.
+   - Each card represents an actionable laundry cycle (e.g., *Cotone 40° • Polvere per bianchi*, *Delicati 30° • Senza detersivo*).
+   - Card headers display cycle metadata: temperature badge (or cold wash badge), program title, paired detergent badge (`🫧`), spin speed (`🌀`), and item count badge (`count-badge--program`).
+   - Groups are ordered primarily by program temperature ascending (cold wash first, then ascending Celsius), alphabetically by program name, and then by detergent name.
+
+3. **Secondary Grouping: Standalone Washing Temperatures ("Temperature disabbinate")**:
+   - Positioned strictly after the program-detergent duets.
+   - Encompasses garments configured with a free manual temperature (`temperature`) that are not linked to a washing program preset from the reference domains.
+   - Grouped by temperature (e.g., *Lavaggio a freddo (0°C)*, *Temperatura 30°C*, *Temperatura 40°C*).
+   - Card headers display the temperature pill, descriptive subtitle, and item count badge.
+
+Both grouping sections feature responsive clothing grids and individual garment action buttons:
+- **Lavato**: Decrements cumulative quantities or removes individual items from the washing queue.
+- **Lava tutti**: Clears the entire quantity stack for cumulative items.
+- **Lavato e da stirare**: Atomically removes the garment from the washing queue and queues it into the ironing queue.
 
 ---
 

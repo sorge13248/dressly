@@ -46,9 +46,24 @@ export class BackupRestoreModalComponent implements OnInit {
     this.loadingStats.set(true);
     try {
       const data = await firstValueFrom(this.api.getBackupStats());
+      if (this.storage && typeof this.storage.countClothes === 'function') {
+        data.clothesCount = await this.storage.countClothes();
+      }
       this.stats.set(data);
     } catch {
-      this.toast.error('Impossibile caricare le statistiche del backup');
+      if (this.storage && typeof this.storage.countClothes === 'function') {
+        const clothesCount = await this.storage.countClothes();
+        const outfits = typeof this.storage.getAllOutfits === 'function' ? await this.storage.getAllOutfits() : [];
+        this.stats.set({
+          clothesCount,
+          outfitsCount: outfits.length,
+          referenceDataCount: 0,
+          attachmentsCount: 0,
+          totalFileSizeBytes: 0,
+        });
+      } else {
+        this.toast.error('Impossibile caricare le statistiche del backup');
+      }
     } finally {
       this.loadingStats.set(false);
     }

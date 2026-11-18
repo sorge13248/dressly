@@ -466,7 +466,7 @@ export class WardrobeWizardPageComponent implements OnInit, OnDestroy {
     { id: '', label: 'Nessun programma' },
     ...this.referenceStore.washingPrograms().map((p) => {
       const specs: string[] = [];
-      if (p.temperature) specs.push(`${p.temperature}°`);
+      if (p.temperature != null) specs.push(`${p.temperature}°`);
       if (p.spinSpeed != null) specs.push(`${p.spinSpeed} giri`);
       const suffix = specs.length ? ` (${specs.join(', ')})` : '';
       return { id: p.id, label: `${p.name}${suffix}` };

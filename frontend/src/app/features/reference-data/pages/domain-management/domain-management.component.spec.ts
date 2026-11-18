@@ -67,4 +67,91 @@ describe('DomainManagementPageComponent', () => {
     expect(updateSpy).toHaveBeenCalledWith('fits', '2', { sortOrder: 0 });
     expect(updateSpy).toHaveBeenCalledWith('fits', '1', { sortOrder: 1 });
   });
+
+  it('should format washing program specs correctly including cold wash 0°', () => {
+    const fixture = TestBed.createComponent(DomainManagementPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.select('washing-programs');
+
+    const regular = comp.getWashingProgramSpecs({
+      id: 'wp1',
+      name: 'Cotone',
+      temperature: 40,
+      spinSpeed: 1200,
+    } as any);
+    expect(regular).toBe('40° · 1200 giri');
+
+    const cold = comp.getWashingProgramSpecs({
+      id: 'wp2',
+      name: 'Lana Freddo',
+      temperature: 0,
+      spinSpeed: 600,
+    } as any);
+    expect(cold).toBe('0° · 600 giri');
+
+    const noSpin = comp.getWashingProgramSpecs({
+      id: 'wp3',
+      name: 'Seta',
+      temperature: 30,
+      spinSpeed: null,
+    } as any);
+    expect(noSpin).toBe('30°');
+  });
+
+  it('should return detergent description correctly', () => {
+    const fixture = TestBed.createComponent(DomainManagementPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.select('detergents');
+
+    const desc = comp.getDetergentDescription({
+      id: 'd1',
+      name: 'Perlana',
+      description: 'Per capi delicati e lana',
+    } as any);
+    expect(desc).toBe('Per capi delicati e lana');
+
+    comp.select('colors');
+    expect(comp.getDetergentDescription({ id: 'd1', name: 'Perlana', description: 'abc' } as any)).toBeNull();
+  });
+
+  it('should build payload with numeric temperature and spinSpeed for washing-programs and description for detergents', () => {
+    const fixture = TestBed.createComponent(DomainManagementPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.select('washing-programs');
+    const wpPayload = (comp as any).buildPayload({
+      name: 'Eco 40',
+      sortOrder: '1',
+      extra: '',
+      temperature: '40',
+      spinSpeed: '1000',
+    });
+    expect(wpPayload.name).toBe('Eco 40');
+    expect(wpPayload.sortOrder).toBe(1);
+    expect(wpPayload.temperature).toBe(40);
+    expect(wpPayload.spinSpeed).toBe(1000);
+
+    // Cold wash with 0
+    const coldPayload = (comp as any).buildPayload({
+      name: 'Cold',
+      sortOrder: '2',
+      extra: '',
+      temperature: '0',
+      spinSpeed: '0',
+    });
+    expect(coldPayload.temperature).toBe(0);
+    expect(coldPayload.spinSpeed).toBe(0);
+
+    comp.select('detergents');
+    const detPayload = (comp as any).buildPayload({
+      name: 'Sapone Marsiglia',
+      sortOrder: '1',
+      extra: '',
+      description: '   Ipoallergenico per neonati   ',
+    });
+    expect(detPayload.name).toBe('Sapone Marsiglia');
+    expect(detPayload.description).toBe('Ipoallergenico per neonati');
+  });
 });

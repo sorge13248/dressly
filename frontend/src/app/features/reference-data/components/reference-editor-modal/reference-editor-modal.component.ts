@@ -87,14 +87,22 @@ export class ReferenceEditorModalComponent {
       return;
     }
 
+    const rawName = String(this.modalForm.name().value() ?? '').trim();
+    const rawSortOrder = String(this.modalForm.sortOrder().value() ?? '').trim();
+    const rawExtra = String(this.modalForm.extra().value() ?? '').trim();
+    const rawRoomId = this.modalForm.roomId().value() ? String(this.modalForm.roomId().value()).trim() : null;
+    const rawTemp = this.data.isWashingProgram ? String(this.modalForm.temperature().value() ?? '').trim() : null;
+    const rawSpin = this.data.isWashingProgram ? String(this.modalForm.spinSpeed().value() ?? '').trim() : null;
+    const rawDesc = this.data.isDetergent ? String(this.modalForm.description().value() ?? '').trim() : null;
+
     this.dialogRef.close({
-      name: this.modalForm.name().value().trim(),
-      sortOrder: this.modalForm.sortOrder().value().trim(),
-      extra: this.modalForm.extra().value().trim(),
-      roomId: this.modalForm.roomId().value() ? this.modalForm.roomId().value().trim() : null,
-      temperature: this.data.isWashingProgram ? this.modalForm.temperature().value().trim() || null : null,
-      spinSpeed: this.data.isWashingProgram ? this.modalForm.spinSpeed().value().trim() || null : null,
-      description: this.data.isDetergent ? this.modalForm.description().value().trim() || null : null,
+      name: rawName,
+      sortOrder: rawSortOrder,
+      extra: rawExtra,
+      roomId: rawRoomId || null,
+      temperature: rawTemp !== null && rawTemp !== '' ? rawTemp : null,
+      spinSpeed: rawSpin !== null && rawSpin !== '' ? rawSpin : null,
+      description: rawDesc !== null && rawDesc !== '' ? rawDesc : null,
     });
   }
 

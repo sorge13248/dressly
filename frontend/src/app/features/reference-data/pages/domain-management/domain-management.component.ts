@@ -312,7 +312,7 @@ export class DomainManagementPageComponent {
     }
     const prog = row as WashingProgramItem;
     const parts: string[] = [];
-    if (prog.temperature) {
+    if (prog.temperature != null) {
       parts.push(`${prog.temperature}°`);
     }
     if (prog.spinSpeed != null) {
@@ -360,7 +360,10 @@ export class DomainManagementPageComponent {
               ? String(row?.hexCode ?? '#5a9de8')
               : String(row?.hexCode ?? row?.logoUrl ?? row?.icon ?? ''),
           roomId: (row as LocationItem)?.roomId ?? '',
-          temperature: isWashingProgram ? (row as WashingProgramItem)?.temperature ?? '' : '',
+          temperature:
+            isWashingProgram && (row as WashingProgramItem)?.temperature != null
+              ? String((row as WashingProgramItem).temperature)
+              : '',
           spinSpeed:
             isWashingProgram && (row as WashingProgramItem)?.spinSpeed != null
               ? String((row as WashingProgramItem).spinSpeed)
@@ -408,12 +411,13 @@ export class DomainManagementPageComponent {
     if (['seasons', 'temperatures', 'use-cases'].includes(this.selectedKind())) payload['icon'] = result.extra || null;
     if (this.selectedKind() === 'locations') payload['roomId'] = result.roomId || null;
     if (this.selectedKind() === 'washing-programs') {
-      payload['temperature'] = result.temperature || null;
+      payload['temperature'] =
+        result.temperature != null && result.temperature !== '' ? Number(result.temperature) : null;
       payload['spinSpeed'] =
         result.spinSpeed != null && result.spinSpeed !== '' ? Number(result.spinSpeed) : null;
     }
     if (this.selectedKind() === 'detergents') {
-      payload['description'] = result.description || null;
+      payload['description'] = result.description ? result.description.trim() : null;
     }
 
     return payload;

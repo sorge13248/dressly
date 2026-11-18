@@ -6,6 +6,7 @@
     [class.invalid]="invalid()"
     [class.has-clear]="clearable() && hasSelectedValue()"
     [attr.aria-expanded]="open()"
+    [attr.title]="hasSelectedValue() ? selectedLabel() : null"
     (click)="togglePanel()"
     (keydown)="onTriggerKeydown($event)"
     cdkOverlayOrigin
@@ -13,7 +14,11 @@
     @if (label()) {
       <span class="trigger-label">{{ label() }}</span>
     }
-    <span class="trigger-value" [class.is-placeholder]="!hasSelectedValue()">{{ selectedLabel() }}</span>
+    <span
+      class="trigger-value"
+      [class.is-placeholder]="!hasSelectedValue()"
+      [attr.title]="hasSelectedValue() ? selectedLabel() : null"
+    >{{ selectedLabel() }}</span>
     <span class="trigger-arrow">▾</span>
   </button>
 

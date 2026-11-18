@@ -281,112 +281,221 @@
           </section>
         }
 
-        <!-- 4. Gruppi Dinamici per Temperatura -->
-        @for (group of temperatureGroups(); track trackByTemp($index, group)) {
-          <section class="washing-card card-temp" [attr.aria-labelledby]="'card-temp-' + group.temperature + '-heading'">
-            <header class="card-head">
-              <div class="head-title">
-                <span class="temp-pill">{{ group.label }}</span>
-                <div>
-                  <h2 [id]="'card-temp-' + group.temperature + '-heading'">{{ group.title }}</h2>
-                  <p class="head-subtitle">{{ group.subtitle }}</p>
-                </div>
-              </div>
-              <span class="count-badge">
-                {{ group.items.length }} {{ group.items.length === 1 ? 'capo' : 'capi' }}
-              </span>
-            </header>
-
-            <div class="clothes-grid">
-              @for (item of group.items; track trackById($index, item)) {
-                <div class="cloth-card cloth-card--interactive" [attr.data-washing-id]="item.id">
-                  <a
-                    class="cloth-link-area"
-                    [routerLink]="['/wardrobe', item.id]"
-                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
-                    title="Clicca per visualizzare il capo"
-                  >
-                    <div class="cloth-thumb">
-                      @if (getAttachmentUrl(item); as photoUrl) {
-                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
-                      } @else {
-                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
-                      }
-                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
-                        <span
-                          class="quantity-pill"
-                          [title]="'Quantità in lavatrice: ' + item.washingQuantity"
-                          [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
-                        >
-                          {{ item.washingQuantity }}
-                        </span>
+        <!-- 4. Duette Programma - Detersivo (Priorità Primaria) -->
+        @for (group of programDetergentGroups(); track trackByProgramDetergent($index, group)) {
+          <section class="washing-card card-program-detergent" [attr.aria-labelledby]="'card-pd-' + group.key + '-heading'">
+              <header class="card-head">
+                <div class="head-title">
+                  @if (group.temperatureLabel) {
+                    <span class="temp-pill">{{ group.temperatureLabel }}</span>
+                  } @else {
+                    <span class="program-pill" aria-hidden="true">🧺</span>
+                  }
+                  <div>
+                    <h2 [id]="'card-pd-' + group.key + '-heading'">{{ group.program.name }}</h2>
+                    <div class="head-duet-meta">
+                      <span class="duet-detergent" [title]="group.detergent ? 'Detersivo abbinato' : 'Nessun detersivo specificato'">
+                        🫧 {{ group.detergent ? group.detergent.name : 'Senza detersivo' }}
+                      </span>
+                      @if (group.spinSpeedLabel) {
+                        <span class="duet-spin" [title]="'Centrifuga: ' + group.spinSpeedLabel">🌀 {{ group.spinSpeedLabel }}</span>
                       }
                     </div>
-                    <div class="cloth-body">
-                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
-                      <div class="chips-row">
-                        @if (item.washingInstruction?.washingProgram; as prog) {
-                          <span class="chip-info chip-prog" [title]="'Programma lavatrice: ' + prog.name">{{ prog.name }}</span>
+                  </div>
+                </div>
+                <span class="count-badge count-badge--program">
+                  {{ group.items.length }} {{ group.items.length === 1 ? 'capo' : 'capi' }}
+                </span>
+              </header>
+
+              <div class="clothes-grid">
+                @for (item of group.items; track trackById($index, item)) {
+                  <div class="cloth-card cloth-card--interactive" [attr.data-washing-id]="item.id">
+                    <a
+                      class="cloth-link-area"
+                      [routerLink]="['/wardrobe', item.id]"
+                      [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                      title="Clicca per visualizzare il capo"
+                    >
+                      <div class="cloth-thumb">
+                        @if (getAttachmentUrl(item); as photoUrl) {
+                          <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                        } @else {
+                          <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
                         }
-                        @if (item.washingInstruction?.detergent; as det) {
-                          <span class="chip-info chip-det" [title]="'Detersivo: ' + det.name">{{ det.name }}</span>
-                        }
-                        @if (hasColorLossRisk(item)) {
-                          <span class="chip-warn" title="Attenzione: questo capo rischia di perdere colore">⚠️ Perde colore</span>
-                        }
-                        @if (item.washingInstruction?.reverseWashing) {
-                          <span class="chip-info" title="Lava al rovescio">Al rovescio</span>
-                        }
-                        @if (item.washingInstruction?.useColorCatcher) {
-                          <span class="chip-info" title="Usa foglietto cattura-colore">Cattura-colore</span>
-                        }
-                        @if (item.washingInstruction?.washSeparately) {
-                          <span class="chip-info" title="Lava separatamente">Separato</span>
+                        @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
+                          <span
+                            class="quantity-pill"
+                            [title]="'Quantità in lavatrice: ' + item.washingQuantity"
+                            [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
+                          >
+                            {{ item.washingQuantity }}
+                          </span>
                         }
                       </div>
-                    </div>
-                  </a>
+                      <div class="cloth-body">
+                        <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                        <div class="chips-row">
+                          @if (hasColorLossRisk(item)) {
+                            <span class="chip-warn" title="Attenzione: questo capo rischia di perdere colore">⚠️ Perde colore</span>
+                          }
+                          @if (item.washingInstruction?.reverseWashing) {
+                            <span class="chip-info" title="Lava al rovescio">Al rovescio</span>
+                          }
+                          @if (item.washingInstruction?.useColorCatcher) {
+                            <span class="chip-info" title="Usa foglietto cattura-colore">Cattura-colore</span>
+                          }
+                          @if (item.washingInstruction?.washSeparately) {
+                            <span class="chip-info" title="Lava separatamente">Separato</span>
+                          }
+                        </div>
+                      </div>
+                    </a>
 
-                  <div class="cloth-actions">
-                    <button
-                      type="button"
-                      class="cloth-action-btn"
-                      (click)="onWashed(item, $event)"
-                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Segna 1 capo come lavato' : 'Segna come lavato e rimuovi dalla lavatrice'"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Lavato (1)' : 'Lavato' }}</span>
-                    </button>
-                    @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                    <div class="cloth-actions">
                       <button
                         type="button"
-                        class="cloth-action-btn action-all"
-                        (click)="onWashedAll(item, $event)"
-                        [title]="'Segna tutti i ' + item.washingQuantity + ' capi come lavati'"
+                        class="cloth-action-btn"
+                        (click)="onWashed(item, $event)"
+                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Segna 1 capo come lavato' : 'Segna come lavato e rimuovi dalla lavatrice'"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        <span>Lava tutti ({{ item.washingQuantity }})</span>
+                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Lavato (1)' : 'Lavato' }}</span>
                       </button>
-                    }
-                    <button
-                      type="button"
-                      class="cloth-action-btn action-iron"
-                      (click)="onWashedAndIron(item, $event)"
-                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
-                    >
-                      <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
-                    </button>
+                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                        <button
+                          type="button"
+                          class="cloth-action-btn action-all"
+                          (click)="onWashedAll(item, $event)"
+                          [title]="'Segna tutti i ' + item.washingQuantity + ' capi come lavati'"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Lava tutti ({{ item.washingQuantity }})</span>
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-iron"
+                        (click)="onWashedAndIron(item, $event)"
+                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
+                      >
+                        <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
+                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+        <!-- 5. Temperature Disabbinate (Priorità Secondaria) -->
+        @for (group of standaloneTemperatureGroups(); track trackByTemp($index, group)) {
+          <section class="washing-card card-temp card-temp--standalone" [attr.aria-labelledby]="'card-temp-' + group.temperature + '-heading'">
+              <header class="card-head">
+                <div class="head-title">
+                  <span class="temp-pill">{{ group.label }}</span>
+                  <div>
+                    <h2 [id]="'card-temp-' + group.temperature + '-heading'">{{ group.title }}</h2>
+                    <p class="head-subtitle">{{ group.subtitle }}</p>
                   </div>
                 </div>
-              }
-            </div>
-          </section>
-        }
+                <span class="count-badge">
+                  {{ group.items.length }} {{ group.items.length === 1 ? 'capo' : 'capi' }}
+                </span>
+              </header>
+
+              <div class="clothes-grid">
+                @for (item of group.items; track trackById($index, item)) {
+                  <div class="cloth-card cloth-card--interactive" [attr.data-washing-id]="item.id">
+                    <a
+                      class="cloth-link-area"
+                      [routerLink]="['/wardrobe', item.id]"
+                      [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                      title="Clicca per visualizzare il capo"
+                    >
+                      <div class="cloth-thumb">
+                        @if (getAttachmentUrl(item); as photoUrl) {
+                          <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                        } @else {
+                          <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                        }
+                        @if (item.isCumulative && (item.washingQuantity ?? 1) > 0) {
+                          <span
+                            class="quantity-pill"
+                            [title]="'Quantità in lavatrice: ' + item.washingQuantity"
+                            [attr.aria-label]="'Quantità in lavatrice: ' + item.washingQuantity"
+                          >
+                            {{ item.washingQuantity }}
+                          </span>
+                        }
+                      </div>
+                      <div class="cloth-body">
+                        <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                        <div class="chips-row">
+                          @if (item.washingInstruction?.detergent; as det) {
+                            <span class="chip-info chip-det" [title]="'Detersivo: ' + det.name">{{ det.name }}</span>
+                          }
+                          @if (hasColorLossRisk(item)) {
+                            <span class="chip-warn" title="Attenzione: questo capo rischia di perdere colore">⚠️ Perde colore</span>
+                          }
+                          @if (item.washingInstruction?.reverseWashing) {
+                            <span class="chip-info" title="Lava al rovescio">Al rovescio</span>
+                          }
+                          @if (item.washingInstruction?.useColorCatcher) {
+                            <span class="chip-info" title="Usa foglietto cattura-colore">Cattura-colore</span>
+                          }
+                          @if (item.washingInstruction?.washSeparately) {
+                            <span class="chip-info" title="Lava separatamente">Separato</span>
+                          }
+                        </div>
+                      </div>
+                    </a>
+
+                    <div class="cloth-actions">
+                      <button
+                        type="button"
+                        class="cloth-action-btn"
+                        (click)="onWashed(item, $event)"
+                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Segna 1 capo come lavato' : 'Segna come lavato e rimuovi dalla lavatrice'"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Lavato (1)' : 'Lavato' }}</span>
+                      </button>
+                      @if (item.isCumulative && (item.washingQuantity ?? 1) > 1) {
+                        <button
+                          type="button"
+                          class="cloth-action-btn action-all"
+                          (click)="onWashedAll(item, $event)"
+                          [title]="'Segna tutti i ' + item.washingQuantity + ' capi come lavati'"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-icon">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Lava tutti ({{ item.washingQuantity }})</span>
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-iron"
+                        (click)="onWashedAndIron(item, $event)"
+                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
+                      >
+                        <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
+                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          }
       </div>
     }
   </main>

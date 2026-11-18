@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
@@ -6,6 +7,7 @@ import { Dialog } from '@angular/cdk/dialog';
 import { OfflineStorageService } from '../../../../core/offline-storage.service';
 import { SyncService } from '../../../../core/sync.service';
 import { LaundryService } from '../../../../core/laundry.service';
+import { ReferenceStoreService } from '../../../../core/reference-store.service';
 import { WashingClothesItem } from '../../../../core/models';
 import { WashingPageComponent } from './washing.component';
 
@@ -104,6 +106,104 @@ describe('WashingPageComponent', () => {
       },
       primaryAttachment: null,
     },
+    {
+      id: 'cloth-prog-det1',
+      name: 'Camicia Cotone',
+      brand: null,
+      type: { id: 't6', name: 'Camicia' },
+      colors: [],
+      washingInstruction: {
+        washType: 'washer_ok',
+        temperature: null,
+        bleachType: 'no_bleach',
+        stretch: false,
+        reverseWashing: true,
+        closedZips: false,
+        similarColors: false,
+        washSeparately: false,
+        useColorCatcher: false,
+        colorLossRisk: false,
+        colorLossTestTemperature: null,
+        washingProgramId: 'wp-cotone40',
+        washingProgram: {
+          id: 'wp-cotone40',
+          name: 'Cotone 40°',
+          temperature: 40,
+          spinSpeed: 1000,
+        },
+        detergentId: 'det-bianchi',
+        detergent: {
+          id: 'det-bianchi',
+          name: 'Polvere bianchi',
+          description: 'Per capi bianchi',
+        },
+      },
+      primaryAttachment: null,
+    },
+    {
+      id: 'cloth-prog-det2',
+      name: 'Lenzuola Cotone',
+      brand: null,
+      type: { id: 't7', name: 'Lenzuola' },
+      colors: [],
+      washingInstruction: {
+        washType: 'washer_ok',
+        temperature: null,
+        bleachType: 'no_bleach',
+        stretch: false,
+        reverseWashing: false,
+        closedZips: false,
+        similarColors: false,
+        washSeparately: false,
+        useColorCatcher: false,
+        colorLossRisk: false,
+        colorLossTestTemperature: null,
+        washingProgramId: 'wp-cotone40',
+        washingProgram: {
+          id: 'wp-cotone40',
+          name: 'Cotone 40°',
+          temperature: 40,
+          spinSpeed: 1000,
+        },
+        detergentId: 'det-bianchi',
+        detergent: {
+          id: 'det-bianchi',
+          name: 'Polvere bianchi',
+          description: 'Per capi bianchi',
+        },
+      },
+      primaryAttachment: null,
+    },
+    {
+      id: 'cloth-prog-nodet',
+      name: 'Jeans Denim',
+      brand: null,
+      type: { id: 't8', name: 'Jeans' },
+      colors: [],
+      washingInstruction: {
+        washType: 'washer_ok',
+        temperature: null,
+        bleachType: 'no_bleach',
+        stretch: false,
+        reverseWashing: true,
+        closedZips: true,
+        similarColors: true,
+        washSeparately: false,
+        useColorCatcher: true,
+        colorLossRisk: false,
+        colorLossTestTemperature: null,
+        washingProgramId: 'wp-sintetici',
+        washingProgram: {
+          id: 'wp-sintetici',
+          name: 'Sintetici 30°',
+          temperature: 30,
+          spinSpeed: 800,
+        },
+        detergentId: null,
+        detergent: null,
+      },
+      primaryAttachment: null,
+    },
   ];
 
   let mockStorageService: {
@@ -147,6 +247,18 @@ describe('WashingPageComponent', () => {
             animateFlyToNav: vi.fn().mockResolvedValue(undefined),
           },
         },
+        {
+          provide: ReferenceStoreService,
+          useValue: {
+            washingPrograms: signal([
+              { id: 'wp-cotone40', name: 'Cotone 40°', temperature: 40, spinSpeed: 1000 },
+              { id: 'wp-sintetici', name: 'Sintetici 30°', temperature: 30, spinSpeed: 800 },
+            ]),
+            detergents: signal([
+              { id: 'det-bianchi', name: 'Polvere bianchi', description: 'Per capi bianchi' },
+            ]),
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -156,12 +268,12 @@ describe('WashingPageComponent', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should classify items into dynamic temperature groups and special groups', () => {
+  it('should classify items into program-detergent groups, standalone temperature groups, and special groups', async () => {
     const fixture = TestBed.createComponent(WashingPageComponent);
     const comp = fixture.componentInstance;
 
-    comp.items.set(fakeClothes);
-    comp.loading.set(false);
+    await comp.load();
+    fixture.detectChanges();
 
     expect(comp.missingInfoItems().length).toBe(1);
     expect(comp.missingInfoItems()[0].id).toBe('cloth-missing');
@@ -172,7 +284,26 @@ describe('WashingPageComponent', () => {
     expect(comp.doNotWashItems().length).toBe(1);
     expect(comp.doNotWashItems()[0].id).toBe('cloth-donotwash');
 
-    const tempGroups = comp.temperatureGroups();
+    // Program-Detergent Groups (Primary priority)
+    const pdGroups = comp.programDetergentGroups();
+    expect(pdGroups.length).toBe(2);
+
+    // Group 1: Sintetici 30° (no detergent)
+    expect(pdGroups[0].program.name).toBe('Sintetici 30°');
+    expect(pdGroups[0].detergent).toBeNull();
+    expect(pdGroups[0].title).toBe('Sintetici 30° • Senza detersivo');
+    expect(pdGroups[0].items.length).toBe(1);
+    expect(pdGroups[0].items[0].id).toBe('cloth-prog-nodet');
+
+    // Group 2: Cotone 40° + Polvere bianchi (two items grouped together)
+    expect(pdGroups[1].program.name).toBe('Cotone 40°');
+    expect(pdGroups[1].detergent?.name).toBe('Polvere bianchi');
+    expect(pdGroups[1].title).toBe('Cotone 40° • Polvere bianchi');
+    expect(pdGroups[1].items.length).toBe(2);
+    expect(pdGroups[1].items.map((i) => i.id)).toEqual(['cloth-prog-det1', 'cloth-prog-det2']);
+
+    // Standalone Temperature Groups (Secondary priority)
+    const tempGroups = comp.standaloneTemperatureGroups();
     expect(tempGroups.length).toBe(2);
     expect(tempGroups[0].temperature).toBe(30);
     expect(tempGroups[0].items.length).toBe(1);
@@ -181,6 +312,17 @@ describe('WashingPageComponent', () => {
     expect(tempGroups[1].temperature).toBe(60);
     expect(tempGroups[1].items.length).toBe(1);
     expect(tempGroups[1].items[0].id).toBe('cloth-temp60');
+
+    expect(comp.programDetergentItemCount()).toBe(3);
+    expect(comp.standaloneTemperatureItemCount()).toBe(2);
+
+    // DOM rendering verification
+    const el = fixture.nativeElement as HTMLElement;
+    const pdCards = el.querySelectorAll('.card-program-detergent');
+    expect(pdCards.length).toBe(2);
+
+    const tempCards = el.querySelectorAll('.card-temp--standalone');
+    expect(tempCards.length).toBe(2);
   });
 
   it('should handle onWashed and remove item from list', async () => {

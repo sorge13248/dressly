@@ -179,4 +179,18 @@ describe('SelectDropdownComponent', () => {
     const panel = document.querySelector('.panel');
     expect(panel).not.toBeNull();
   });
+
+  it('should set title attribute on trigger and trigger-value when a value is selected to support truncated text', () => {
+    host.options.set([
+      { id: 'prog-1', label: 'Colorati (30°, 1000 giri)' },
+    ]);
+    host.selectedId.set('prog-1');
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement;
+    const triggerValue = fixture.nativeElement.querySelector('.trigger-value') as HTMLElement;
+
+    expect(trigger.getAttribute('title')).toBe('Colorati (30°, 1000 giri)');
+    expect(triggerValue.getAttribute('title')).toBe('Colorati (30°, 1000 giri)');
+  });
 });

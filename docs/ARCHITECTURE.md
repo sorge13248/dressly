@@ -108,6 +108,7 @@ sequenceDiagram
 ### 4.2. Wardrobe & Laundry Domain
 - **Clothing Catalog**: Master inventory tracking items by brand, category, fit, material, colors, seasons, temperatures, tags, purchase details, and care instructions.
 - **Unique Tag Code System**: 3-character marker-friendly identifier (e.g. `K7P`, `9XB`) generated from a 30-character unambiguous charset (`23456789ABCDEFGHJKMNPQRSTVWXYZ`) allowing physical tagging of physical clothes.
+- **Centralized Clothes Counting**: Standardized calculation across both backend (`ClothesService.countClothes()`) and client-side IndexedDB (`OfflineStorageService.countClothes()`). Strictly counts distinct records on the clothes table, deliberately ignoring the cumulative/multiple item flag so that 1 garment entry always equals 1 count across both the wardrobe main view and domain export statistics.
 - **Laundry State Engine**: Interactive queues for Washing and Ironing. Supports both individual clothing pieces and cumulative items with multi-quantity tracking.
 - See [WARDROBE_FEATURES.md](./WARDROBE_FEATURES.md) for full mechanics.
 

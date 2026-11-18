@@ -189,7 +189,7 @@ describe('OfflineStorageService', () => {
           sortOrder: 1,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          temperature: '40',
+          temperature: 40,
           spinSpeed: 1000,
         } as any,
       ]);
@@ -218,6 +218,65 @@ describe('OfflineStorageService', () => {
       expect(all['brands']).toBeDefined();
       expect(all['rooms']).toBeDefined();
       expect(all['locations']).toBeDefined();
+    });
+  });
+
+  describe('countClothes', () => {
+    it('should count only distinct entries on clothes table, ignoring cumulative/multiple quantity', async () => {
+      await service.clearClothes();
+
+      const item1 = {
+        id: 'cloth-single-1',
+        userId: 'user-1',
+        name: 'Camicia Bianca',
+        status: 'in_wardrobe',
+        isCumulative: false,
+        quantity: 1,
+        attachments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as unknown as ClothesItem;
+      const item2 = {
+        id: 'cloth-cumulative-2',
+        userId: 'user-1',
+        name: 'Calzini Neri Multipli',
+        status: 'in_wardrobe',
+        isCumulative: true,
+        quantity: 10, // Multiple items owned, but only 1 entry in the table
+        attachments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as unknown as ClothesItem;
+      const item3 = {
+        id: 'cloth-stored-3',
+        userId: 'user-1',
+        name: 'Cappotto Invernale',
+        status: 'in_storage',
+        isCumulative: false,
+        quantity: 1,
+        attachments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as unknown as ClothesItem;
+
+      await service.saveClothes([item1, item2, item3]);
+
+      // Total count across table: exactly 3 entries, not 12
+      const totalCount = await service.countClothes();
+      expect(totalCount).toBe(3);
+
+      const allCount = await service.countClothes({ status: 'all' });
+      expect(allCount).toBe(3);
+
+      // Status-filtered counts
+      const inWardrobeCount = await service.countClothes({ status: 'in_wardrobe' });
+      expect(inWardrobeCount).toBe(2);
+
+      const inStorageCount = await service.countClothes({ status: 'in_storage' });
+      expect(inStorageCount).toBe(1);
+
+      const dismissedCount = await service.countClothes({ status: 'dismissed' });
+      expect(dismissedCount).toBe(0);
     });
   });
 });
