@@ -15,6 +15,17 @@ import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { WardrobePhotoLightboxModalComponent } from '../../components/photo-lightbox-modal/photo-lightbox-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
+import {
+  CARE_LABELS,
+  canIron,
+  canWash,
+  getIroningLabel,
+  getIroningStatus,
+  getIroningTooltip,
+  getWashingLabel,
+  getWashingStatus,
+  getWashingTooltip,
+} from '../../../../shared/utils/care.utils';
 
 interface CareSpec {
   label: string;
@@ -62,6 +73,15 @@ export class WardrobeDetailPageComponent implements OnInit {
   readonly exportingPdf = signal(false);
   readonly error = signal<string | null>(null);
   readonly item = signal<ClothesItem | null>(null);
+  readonly canWash = canWash;
+  readonly canIron = canIron;
+  readonly getWashingStatus = getWashingStatus;
+  readonly getIroningStatus = getIroningStatus;
+  readonly getWashingLabel = getWashingLabel;
+  readonly getIroningLabel = getIroningLabel;
+  readonly getWashingTooltip = getWashingTooltip;
+  readonly getIroningTooltip = getIroningTooltip;
+  readonly CARE_LABELS = CARE_LABELS;
   private initialLoaded = false;
 
   constructor() {
@@ -364,7 +384,7 @@ export class WardrobeDetailPageComponent implements OnInit {
 
   async toggleWashing() {
     const current = this.item();
-    if (!current?.id) return;
+    if (!current?.id || !this.canWash(current)) return;
 
     const isCumulative = Boolean(current.isCumulative);
     const maxQty = current.quantity && current.quantity > 0 ? current.quantity : 1;
@@ -421,7 +441,7 @@ export class WardrobeDetailPageComponent implements OnInit {
 
   async toggleIroning() {
     const current = this.item();
-    if (!current?.id) return;
+    if (!current?.id || !this.canIron(current)) return;
 
     const isCumulative = Boolean(current.isCumulative);
     const maxQty = current.quantity && current.quantity > 0 ? current.quantity : 1;

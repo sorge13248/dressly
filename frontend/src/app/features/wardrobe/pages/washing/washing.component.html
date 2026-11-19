@@ -88,15 +88,26 @@
                         <span>Lava tutti ({{ item.washingQuantity }})</span>
                       </button>
                     }
-                    <button
-                      type="button"
-                      class="cloth-action-btn action-iron"
-                      (click)="onWashedAndIron(item, $event)"
-                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
-                    >
-                      <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
-                    </button>
+                    @if (canIron(item)) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-iron"
+                        (click)="onWashedAndIron(item, $event)"
+                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
+                      >
+                        <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
+                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
+                      </button>
+                    } @else {
+                      <span
+                        class="cloth-iron-label"
+                        [class.cloth-iron-label--danger]="getIroningStatus(item) === 'cannot_iron'"
+                        [class.cloth-iron-label--warning]="getIroningStatus(item) === 'missing_info'"
+                        [title]="getIroningStatus(item) === 'cannot_iron' ? 'Questo capo non può essere stirato' : 'Informazioni di stiratura non presenti o incomplete'"
+                      >
+                        {{ getIroningLabel(item) }}
+                      </span>
+                    }
                   </div>
                 </div>
               }
@@ -184,15 +195,26 @@
                         <span>Lava tutti ({{ item.washingQuantity }})</span>
                       </button>
                     }
-                    <button
-                      type="button"
-                      class="cloth-action-btn action-iron"
-                      (click)="onWashedAndIron(item, $event)"
-                      [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
-                    >
-                      <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                      <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
-                    </button>
+                    @if (canIron(item)) {
+                      <button
+                        type="button"
+                        class="cloth-action-btn action-iron"
+                        (click)="onWashedAndIron(item, $event)"
+                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
+                      >
+                        <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
+                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
+                      </button>
+                    } @else {
+                      <span
+                        class="cloth-iron-label"
+                        [class.cloth-iron-label--danger]="getIroningStatus(item) === 'cannot_iron'"
+                        [class.cloth-iron-label--warning]="getIroningStatus(item) === 'missing_info'"
+                        [title]="getIroningStatus(item) === 'cannot_iron' ? 'Questo capo non può essere stirato' : 'Informazioni di stiratura non presenti o incomplete'"
+                      >
+                        {{ getIroningLabel(item) }}
+                      </span>
+                    }
                   </div>
                 </div>
               }
@@ -377,15 +399,26 @@
                           <span>Lava tutti ({{ item.washingQuantity }})</span>
                         </button>
                       }
-                      <button
-                        type="button"
-                        class="cloth-action-btn action-iron"
-                        (click)="onWashedAndIron(item, $event)"
-                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
-                      >
-                        <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
-                      </button>
+                      @if (canIron(item)) {
+                        <button
+                          type="button"
+                          class="cloth-action-btn action-iron"
+                          (click)="onWashedAndIron(item, $event)"
+                          [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
+                        >
+                          <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
+                          <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
+                        </button>
+                      } @else {
+                        <span
+                          class="cloth-iron-label"
+                          [class.cloth-iron-label--danger]="getIroningStatus(item) === 'cannot_iron'"
+                          [class.cloth-iron-label--warning]="getIroningStatus(item) === 'missing_info'"
+                          [title]="getIroningStatus(item) === 'cannot_iron' ? 'Questo capo non può essere stirato' : 'Informazioni di stiratura non presenti o incomplete'"
+                        >
+                          {{ getIroningLabel(item) }}
+                        </span>
+                      }
                     </div>
                   </div>
                 }
@@ -481,15 +514,26 @@
                           <span>Lava tutti ({{ item.washingQuantity }})</span>
                         </button>
                       }
-                      <button
-                        type="button"
-                        class="cloth-action-btn action-iron"
-                        (click)="onWashedAndIron(item, $event)"
-                        [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
-                      >
-                        <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
-                        <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
-                      </button>
+                      @if (canIron(item)) {
+                        <button
+                          type="button"
+                          class="cloth-action-btn action-iron"
+                          (click)="onWashedAndIron(item, $event)"
+                          [title]="item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Sposta 1 capo nella stiratura' : 'Segna come lavato e aggiungi ai capi da stirare'"
+                        >
+                          <app-ironing-icon class="mini-icon" [size]="14" [strokeWidth]="2" />
+                          <span>{{ item.isCumulative && (item.washingQuantity ?? 1) > 1 ? 'Stira (1)' : 'Lavato e da stirare' }}</span>
+                        </button>
+                      } @else {
+                        <span
+                          class="cloth-iron-label"
+                          [class.cloth-iron-label--danger]="getIroningStatus(item) === 'cannot_iron'"
+                          [class.cloth-iron-label--warning]="getIroningStatus(item) === 'missing_info'"
+                          [title]="getIroningStatus(item) === 'cannot_iron' ? 'Questo capo non può essere stirato' : 'Informazioni di stiratura non presenti o incomplete'"
+                        >
+                          {{ getIroningLabel(item) }}
+                        </span>
+                      }
                     </div>
                   </div>
                 }

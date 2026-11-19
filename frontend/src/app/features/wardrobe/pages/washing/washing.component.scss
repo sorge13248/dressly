@@ -570,6 +570,31 @@
   }
 }
 
+.cloth-iron-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  width: 100%;
+
+  &--danger {
+    color: #b91c1c;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  &--warning {
+    color: #a44800;
+    background: rgba(225, 135, 25, 0.12);
+    border: 1px solid rgba(225, 135, 25, 0.3);
+  }
+}
+
 @media (max-width: 640px) {
   .floating-dock {
     bottom: 12px;

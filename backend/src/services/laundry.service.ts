@@ -39,6 +39,7 @@ export class LaundryService {
       .leftJoinAndSelect('clothes.washingInstruction', 'washingInstruction')
       .leftJoinAndSelect('washingInstruction.washingProgram', 'washingProgram')
       .leftJoinAndSelect('washingInstruction.detergent', 'detergent')
+      .leftJoinAndSelect('clothes.ironingInstruction', 'ironingInstruction')
       .leftJoinAndSelect('clothes.attachments', 'attachments')
       .where('clothes.userId = :userId', { userId: user.id })
       .andWhere('clothes.id IN (:...ids)', { ids });
@@ -103,6 +104,14 @@ export class LaundryService {
                       description: item.washingInstruction.detergent.description,
                     }
                   : null,
+              }
+            : null,
+          ironingInstruction: item.ironingInstruction
+            ? {
+                id: item.ironingInstruction.id,
+                temperature: item.ironingInstruction.temperature,
+                ironType: item.ironingInstruction.ironType,
+                ironInsideOut: item.ironingInstruction.ironInsideOut,
               }
             : null,
           primaryAttachment: primaryAttachment

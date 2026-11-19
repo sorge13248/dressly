@@ -325,6 +325,8 @@ describe('WardrobePageComponent', () => {
       notes: null,
       isInWashing: false,
       isInIroning: false,
+      washingInstruction: { washType: 'washer_ok' },
+      ironingInstruction: { ironType: 'yes' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as ClothesItem;
@@ -371,6 +373,8 @@ describe('WardrobePageComponent', () => {
       notes: null,
       isInWashing: true,
       isInIroning: false,
+      washingInstruction: { washType: 'washer_ok' },
+      ironingInstruction: { ironType: 'yes' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as ClothesItem;
@@ -408,6 +412,8 @@ describe('WardrobePageComponent', () => {
       notes: null,
       isInWashing: false,
       isInIroning: false,
+      washingInstruction: { washType: 'washer_ok' },
+      ironingInstruction: { ironType: 'yes' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as ClothesItem;
@@ -435,6 +441,25 @@ describe('WardrobePageComponent', () => {
 
     expect(queueSpy).toHaveBeenCalledWith('ironing', 'item-iron-1', 'delete');
     expect(component.items()[0].isInIroning).toBe(false);
+  });
+
+  it('should not toggle washing or ironing if item is un-washable or un-ironable', async () => {
+    const fixture = TestBed.createComponent(WardrobePageComponent);
+    const component = fixture.componentInstance;
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
+
+    const restrictedItem = {
+      id: 'item-restricted',
+      washingInstruction: { washType: 'do_not_wash' },
+      ironingInstruction: { ironType: 'no' },
+    } as ClothesItem;
+
+    const clickEvent = new MouseEvent('click');
+    await component.toggleWashing(restrictedItem, clickEvent);
+    await component.toggleIroning(restrictedItem, clickEvent);
+
+    expect(queueSpy).not.toHaveBeenCalled();
   });
 
   it('should open outfit select modal when clicking outfit quick action button', async () => {

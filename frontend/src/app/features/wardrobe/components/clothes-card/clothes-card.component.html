@@ -237,7 +237,7 @@
       <p class="notes">{{ item().notes }}</p>
     }
 
-    @if (showActions()) {
+    @if (showActions() && (showOutfit() || canWash(item()) || canIron(item()))) {
       <div class="card-quick-actions" (click)="$event.stopPropagation()">
         @if (showOutfit()) {
           <button
@@ -251,28 +251,32 @@
             <app-outfit-icon class="quick-icon" [size]="18" />
           </button>
         }
-        <button
-          type="button"
-          class="quick-action-btn"
-          [class.active-washing]="item().isInWashing"
-          [disabled]="actionPending()"
-          (click)="onToggleWashing($event)"
-          [title]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
-          [attr.aria-label]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
-        >
-          <app-washing-icon class="quick-icon" [size]="18" />
-        </button>
-        <button
-          type="button"
-          class="quick-action-btn"
-          [class.active-ironing]="item().isInIroning"
-          [disabled]="actionPending()"
-          (click)="onToggleIroning($event)"
-          [title]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
-          [attr.aria-label]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
-        >
-          <app-ironing-icon class="quick-icon" [size]="18" />
-        </button>
+        @if (canWash(item())) {
+          <button
+            type="button"
+            class="quick-action-btn"
+            [class.active-washing]="item().isInWashing"
+            [disabled]="actionPending()"
+            (click)="onToggleWashing($event)"
+            [title]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
+            [attr.aria-label]="item().isCumulative ? 'Aggiungi alla lavatrice' : (item().isInWashing ? 'Togli dalla lavatrice' : 'Metti a lavare')"
+          >
+            <app-washing-icon class="quick-icon" [size]="18" />
+          </button>
+        }
+        @if (canIron(item())) {
+          <button
+            type="button"
+            class="quick-action-btn"
+            [class.active-ironing]="item().isInIroning"
+            [disabled]="actionPending()"
+            (click)="onToggleIroning($event)"
+            [title]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
+            [attr.aria-label]="item().isCumulative ? 'Aggiungi alla stiratura' : (item().isInIroning ? 'Togli da stirare' : 'Metti a stirare')"
+          >
+            <app-ironing-icon class="quick-icon" [size]="18" />
+          </button>
+        }
       </div>
     }
   </div>

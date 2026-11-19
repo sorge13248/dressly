@@ -129,6 +129,8 @@ export class ClothesService implements OnModuleInit {
       .leftJoinAndSelect('clothes.attachments', 'attachments')
       .leftJoinAndSelect('clothes.location', 'location')
       .leftJoinAndSelect('location.room', 'room')
+      .leftJoinAndSelect('clothes.washingInstruction', 'washingInstruction')
+      .leftJoinAndSelect('clothes.ironingInstruction', 'ironingInstruction')
       .where('clothes.userId = :userId', { userId: user.id })
       .distinct(true);
 

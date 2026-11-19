@@ -5,6 +5,7 @@ import { AttachmentItem, ClothesItem } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { getPrimaryAttachment as resolvePrimaryAttachment } from '../../../../shared/utils/attachment.utils';
 import { WashingIconComponent, IroningIconComponent, OutfitIconComponent } from '../../../../shared/components/icons';
+import { canIron, canWash } from '../../../../shared/utils/care.utils';
 
 @Component({
   selector: 'app-clothes-card',
@@ -14,6 +15,8 @@ import { WashingIconComponent, IroningIconComponent, OutfitIconComponent } from 
   styleUrl: './clothes-card.component.scss',
 })
 export class ClothesCardComponent {
+  readonly canWash = canWash;
+  readonly canIron = canIron;
   readonly item = input.required<ClothesItem>();
   readonly selectable = input<boolean>(false);
   readonly selected = input<boolean>(false);

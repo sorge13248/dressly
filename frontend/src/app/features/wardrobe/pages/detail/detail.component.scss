@@ -361,6 +361,33 @@ h1 {
     flex-shrink: 0;
   }
 
+  .dock-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+
+    &--danger {
+      color: #991b1b;
+      background: rgba(254, 226, 226, 0.95);
+      border: 1px solid #fca5a5;
+    }
+
+    &--warning {
+      color: #92400e;
+      background: rgba(254, 243, 199, 0.95);
+      border: 1px solid #fcd34d;
+    }
+  }
+
   .dock-btn-wash.active-washing {
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(224, 242, 254, 0.4) 100%),
@@ -735,17 +762,40 @@ dd {
     bottom: 12px;
     padding: 6px 10px;
     gap: 6px;
+    width: auto;
     max-width: calc(100% - 16px);
-    overflow-x: auto;
-    scrollbar-width: none;
+    justify-content: center;
+    overflow-x: hidden;
 
-    &::-webkit-scrollbar {
-      display: none;
+    .dock-pill {
+      display: none !important;
+    }
+
+    .dock-separator {
+      display: none !important;
     }
 
     .dock-btn {
-      padding: 0 12px;
-      font-size: 0.84rem;
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      max-width: 38px !important;
+      padding: 0 !important;
+      border-radius: 50% !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+
+      span:not(.btn-spinner) {
+        display: none !important;
+      }
+
+      .dock-btn-icon {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+      }
     }
   }
 
