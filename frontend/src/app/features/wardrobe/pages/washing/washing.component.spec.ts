@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -82,6 +83,11 @@ describe('WashingPageComponent', () => {
         useColorCatcher: true,
         colorLossRisk: false,
         colorLossTestTemperature: null,
+      },
+      ironingInstruction: {
+        ironType: 'yes',
+        ironInsideOut: false,
+        temperature: '2',
       },
       primaryAttachment: null,
     },
@@ -348,6 +354,73 @@ describe('WashingPageComponent', () => {
     expect(mockSyncService.queueLaundryChange).toHaveBeenCalledWith('washing', 'cloth-temp30', 'delete');
     expect(mockSyncService.queueLaundryChange).toHaveBeenCalledWith('ironing', 'cloth-temp30', 'create');
     expect(comp.items().some((i) => i.id === 'cloth-temp30')).toBe(false);
+  });
+
+  it('should not perform onWashedAndIron if item cannot be ironed or has missing info', async () => {
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+
+    const unironableItem: WashingClothesItem = {
+      ...fakeClothes[3],
+      id: 'cloth-no-iron',
+      ironingInstruction: {
+        ironType: 'no',
+        ironInsideOut: false,
+        temperature: null,
+      },
+    };
+    comp.items.set([unironableItem]);
+    await comp.onWashedAndIron(unironableItem);
+
+    expect(mockStorageService.moveWashingToIroning).not.toHaveBeenCalledWith('cloth-no-iron');
+  });
+
+  it('should render danger label when item cannot be ironed', () => {
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+    vi.spyOn(comp, 'load').mockImplementation(async () => {});
+
+    const unironableItem: WashingClothesItem = {
+      ...fakeClothes[3],
+      id: 'cloth-no-iron',
+      ironingInstruction: {
+        ironType: 'no',
+        ironInsideOut: false,
+        temperature: null,
+      },
+    };
+    comp.items.set([unironableItem]);
+    comp.loading.set(false);
+    fixture.detectChanges();
+
+    const dangerLabel = fixture.nativeElement.querySelector('.cloth-iron-label--danger');
+    expect(dangerLabel).toBeTruthy();
+    expect(dangerLabel.textContent).toContain('Il capo non va stirato');
+
+    const ironBtn = fixture.nativeElement.querySelector('.action-iron');
+    expect(ironBtn).toBeNull();
+  });
+
+  it('should render warning label when item has missing ironing info', () => {
+    const fixture = TestBed.createComponent(WashingPageComponent);
+    const comp = fixture.componentInstance;
+    vi.spyOn(comp, 'load').mockImplementation(async () => {});
+
+    const missingInfoItem: WashingClothesItem = {
+      ...fakeClothes[3],
+      id: 'cloth-missing-iron',
+      ironingInstruction: null,
+    };
+    comp.items.set([missingInfoItem]);
+    comp.loading.set(false);
+    fixture.detectChanges();
+
+    const warningLabel = fixture.nativeElement.querySelector('.cloth-iron-label--warning');
+    expect(warningLabel).toBeTruthy();
+    expect(warningLabel.textContent).toContain('Informazioni stiraggio mancanti');
+
+    const ironBtn = fixture.nativeElement.querySelector('.action-iron');
+    expect(ironBtn).toBeNull();
   });
 
   it('should navigate to /wardrobe when returnToWardrobe is called', () => {

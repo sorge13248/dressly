@@ -13,6 +13,12 @@ describe('ClothesCardComponent', () => {
     notes: 'In pura lana',
     isInWashing: false,
     isInIroning: false,
+    washingInstruction: {
+      washType: 'washer_ok',
+    },
+    ironingInstruction: {
+      ironType: 'yes',
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -101,6 +107,51 @@ describe('ClothesCardComponent', () => {
     buttons.forEach((btn: HTMLButtonElement) => {
       expect(btn.disabled).toBe(true);
     });
+  });
+
+  it('should not render washing button if item cannot be washed', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    const unwashedItem: ClothesItem = {
+      ...fakeItem,
+      washingInstruction: { washType: 'do_not_wash' },
+    };
+    fixture.componentRef.setInput('item', unwashedItem);
+    fixture.componentRef.setInput('showOutfit', false);
+    fixture.detectChanges();
+
+    const buttons = fixture.nativeElement.querySelectorAll('.quick-action-btn');
+    expect(buttons.length).toBe(1);
+    expect(buttons[0].querySelector('app-ironing-icon')).toBeTruthy();
+  });
+
+  it('should not render ironing button if item cannot be ironed', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    const unironableItem: ClothesItem = {
+      ...fakeItem,
+      ironingInstruction: { ironType: 'no' },
+    };
+    fixture.componentRef.setInput('item', unironableItem);
+    fixture.componentRef.setInput('showOutfit', false);
+    fixture.detectChanges();
+
+    const buttons = fixture.nativeElement.querySelectorAll('.quick-action-btn');
+    expect(buttons.length).toBe(1);
+    expect(buttons[0].querySelector('app-washing-icon')).toBeTruthy();
+  });
+
+  it('should not render quick action bar if no actions are available', () => {
+    const fixture = TestBed.createComponent(ClothesCardComponent);
+    const restrictedItem: ClothesItem = {
+      ...fakeItem,
+      washingInstruction: { washType: 'do_not_wash' },
+      ironingInstruction: { ironType: 'no' },
+    };
+    fixture.componentRef.setInput('item', restrictedItem);
+    fixture.componentRef.setInput('showOutfit', false);
+    fixture.detectChanges();
+
+    const actions = fixture.nativeElement.querySelector('.card-quick-actions');
+    expect(actions).toBeNull();
   });
 
   it('should render quantity badge for cumulative item in washing or ironing', () => {

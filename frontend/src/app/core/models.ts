@@ -360,6 +360,7 @@ export interface WashingClothesItem {
       description: string | null;
     } | null;
   } | null;
+  ironingInstruction?: IroningInstructionItem | null;
   primaryAttachment: {
     id: string;
     fileName: string;

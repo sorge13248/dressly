@@ -187,7 +187,7 @@ Lists all wardrobe items with support for rich filtering, pagination, and multi-
     - `availability`: Clean and available garments first, followed by ironing and washing queues.
   - `page` (number, default: 1): Page number.
   - `per_page` (number, default: 50, max: 100): Items per page.
-- **Response `200 OK`**: Object `{ items: Clothes[], total: number, page: number, perPage: number }`.
+- **Response `200 OK`**: Object `{ items: Clothes[], total: number, page: number, perPage: number }`. Returned `Clothes` entities include full relations: brand, fit, clothing type, colors, materials, seasons, temperatures, use cases, tags, attachments, location (with room), `washingInstruction`, and `ironingInstruction`.
 
 ### `GET /api/clothes/count`
 Retrieves the total count of distinct clothes entries for the authenticated user, considering strictly the entries on the clothes table (items with the cumulative/multiple flag enabled count as 1 entry, without summing their quantity).
@@ -323,7 +323,27 @@ Returns current counts of clothes in washing and ironing queues.
 
 ### `GET /api/clothes/washing`
 Lists all items currently in the washing queue.
-- **Response `200 OK`**: Array of items with quantity and clothing details.
+- **Response `200 OK`**: Array of items with quantity, clothing details, `washingInstruction`, and `ironingInstruction` (used for care-aware status evaluation and conditional action rendering).
+  ```json
+  [
+    {
+      "clothesId": "uuid-1",
+      "quantity": 1,
+      "name": "Camicia Oxford Celeste",
+      "code": "M2T",
+      "isCumulative": false,
+      "washingInstruction": {
+        "washType": "washer_ok",
+        "temperature": 40
+      },
+      "ironingInstruction": {
+        "ironType": "iron_ok",
+        "temperature": "medium",
+        "steaming": true
+      }
+    }
+  ]
+  ```
 
 ### `POST /api/clothes/washing`
 Adds one or more clothes to the washing queue.

@@ -152,7 +152,31 @@ The washing management interface (`/wardrobe/washing`, `WashingPageComponent`) o
 Both grouping sections feature responsive clothing grids and individual garment action buttons:
 - **Lavato**: Decrements cumulative quantities or removes individual items from the washing queue.
 - **Lava tutti**: Clears the entire quantity stack for cumulative items.
-- **Lavato e da stirare**: Atomically removes the garment from the washing queue and queues it into the ironing queue.
+- **Lavato e da stirare**: Atomically removes the garment from the washing queue and queues it into the ironing queue. Rendered only when the garment can be ironed (`canIron(item)`). When ironing is disallowed or not configured, the action button is replaced by an inline status label:
+  - **Red label (`.cloth-iron-label--danger`)**: *"Il capo non va stirato"* if `ironType === 'no'`.
+  - **Orange label (`.cloth-iron-label--warning`)**: *"Informazioni stiraggio mancanti"* if ironing instructions are missing.
+
+### 2.4. Care-Aware Action Visibility Across Views
+Dressly enforces fabric care rules across the user interface to prevent improper laundering or ironing:
+- **Wardrobe Cards (`ClothesCardComponent` on `/wardrobe`)**:
+  - The quick wash action button ("Metti a lavare") is rendered only if `canWash(item)` is true (`washingInstruction` is present and `washType !== 'do_not_wash'`).
+  - The quick iron action button ("Metti a stirare") is rendered only if `canIron(item)` is true (`ironingInstruction` is present and `ironType !== 'no'`).
+  - If neither action is permissible and outfit creation is hidden, the quick action container is omitted.
+- **Garment Detail Dock (`DetailComponent` on `/wardrobe/:id`)**:
+  - In the bottom floating dock (`detail-dock`), when an action is unavailable, dedicated status pills (`.dock-pill`) take the place of the respective action button on desktop viewports:
+    - **Washing status pill**:
+      - Red pill (`.dock-pill--danger`): *"Il capo non va lavato"* if `washType === 'do_not_wash'`.
+      - Orange pill (`.dock-pill--warning`): *"Informazioni lavaggio mancanti"* if washing instructions are absent.
+    - **Ironing status pill**:
+      - Red pill (`.dock-pill--danger`): *"Il capo non va stirato"* if `ironType === 'no'`.
+      - Orange pill (`.dock-pill--warning`): *"Informazioni stiraggio mancanti"* if ironing instructions are absent.
+  - **Mobile Responsive Dock Layout (`<= 640px`)**:
+    - The floating dock compresses into a compact, centered toolbar preventing horizontal scrolling.
+    - Action buttons (`.dock-btn`) display in a circular form factor (38×38 px) showing strictly their icons while text labels (`span`) are hidden.
+    - Warning/error status pills (`.dock-pill`) and dock separators are completely hidden on mobile viewports to preserve clean spacing without horizontal overflow.
+    - Assistive technology support is preserved via explicit `aria-label` attributes on every action button alongside native `title` tooltips.
+- **Washing Page (`WashingPageComponent` on `/wardrobe/washing`)**:
+  - Across all 4 washing queue sections (Missing info, Hand wash, Do not wash, Program/Detergent duets, Standalone temperatures), the "Lavato e da stirare" button is conditionally replaced by the status labels as described above.
 
 ---
 

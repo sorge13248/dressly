@@ -264,6 +264,7 @@ describe('WardrobeDetailPageComponent', () => {
       name: 'Vestito',
       size: null,
       notes: null,
+      washingInstruction: { washType: 'washer_ok' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isInWashing: false,
@@ -292,6 +293,7 @@ describe('WardrobeDetailPageComponent', () => {
       name: 'Pantaloni',
       size: null,
       notes: null,
+      ironingInstruction: { ironType: 'yes' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isInIroning: false,
@@ -356,6 +358,8 @@ describe('WardrobeDetailPageComponent', () => {
       name: 'Magliette Bianche',
       size: 'L',
       notes: null,
+      washingInstruction: { washType: 'washer_ok' },
+      ironingInstruction: { ironType: 'yes' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isCumulative: true,
@@ -436,6 +440,8 @@ describe('WardrobeDetailPageComponent', () => {
       name: 'Giacca Invernale',
       size: 'L',
       notes: null,
+      washingInstruction: { washType: 'washer_ok' },
+      ironingInstruction: { ironType: 'yes' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -448,6 +454,119 @@ describe('WardrobeDetailPageComponent', () => {
     expect(dock.querySelector('.dock-btn-duplicate')).toBeTruthy();
     expect(dock.querySelector('.dock-btn-edit')).toBeTruthy();
     expect(dock.querySelector('.dock-btn-delete')).toBeTruthy();
+  });
+
+  it('should render danger dock-pills when item is un-washable or un-ironable', () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.loading.set(false);
+    comp.error.set(null);
+    comp.item.set({
+      id: 'cloth-dock-pill-test',
+      userId: 'user-1',
+      name: 'Giacca Pelle',
+      size: 'L',
+      notes: null,
+      washingInstruction: { washType: 'do_not_wash' },
+      ironingInstruction: { ironType: 'no' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    fixture.detectChanges();
+
+    const dock = fixture.nativeElement.querySelector('.detail-dock.floating-dock');
+    expect(dock).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-wash')).toBeNull();
+    expect(dock.querySelector('.dock-btn-iron')).toBeNull();
+
+    const dangerPills = dock.querySelectorAll('.dock-pill--danger');
+    expect(dangerPills.length).toBe(2);
+    expect(dangerPills[0].textContent).toContain('Il capo non va lavato');
+    expect(dangerPills[1].textContent).toContain('Il capo non va stirato');
+  });
+
+  it('should render warning dock-pills when item has missing wash/iron info', () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.loading.set(false);
+    comp.error.set(null);
+    comp.item.set({
+      id: 'cloth-dock-missing-test',
+      userId: 'user-1',
+      name: 'Sciarpa',
+      size: null,
+      notes: null,
+      washingInstruction: null,
+      ironingInstruction: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    fixture.detectChanges();
+
+    const dock = fixture.nativeElement.querySelector('.detail-dock.floating-dock');
+    expect(dock).toBeTruthy();
+    expect(dock.querySelector('.dock-btn-wash')).toBeNull();
+    expect(dock.querySelector('.dock-btn-iron')).toBeNull();
+
+    const warningPills = dock.querySelectorAll('.dock-pill--warning');
+    expect(warningPills.length).toBe(2);
+    expect(warningPills[0].textContent).toContain('Informazioni lavaggio mancanti');
+    expect(warningPills[1].textContent).toContain('Informazioni stiraggio mancanti');
+  });
+
+  it('should set descriptive aria-label on all dock buttons', () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+
+    comp.loading.set(false);
+    comp.error.set(null);
+    comp.item.set({
+      id: 'cloth-dock-aria-test',
+      userId: 'user-1',
+      name: 'Maglione',
+      size: 'M',
+      notes: null,
+      isCumulative: false,
+      washingInstruction: { washType: 'washer_ok' },
+      ironingInstruction: { ironType: 'yes' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    fixture.detectChanges();
+
+    const dock = fixture.nativeElement.querySelector('.detail-dock.floating-dock');
+    expect(dock.querySelector('.dock-btn-wash')?.getAttribute('aria-label')).toBe('Metti a lavare');
+    expect(dock.querySelector('.dock-btn-iron')?.getAttribute('aria-label')).toBe('Metti a stirare');
+    expect(dock.querySelector('.dock-btn-pdf')?.getAttribute('aria-label')).toBe('Esporta PDF');
+    expect(dock.querySelector('.dock-btn-duplicate')?.getAttribute('aria-label')).toBe('Duplica');
+    expect(dock.querySelector('.dock-btn-edit')?.getAttribute('aria-label')).toBe('Modifica');
+    expect(dock.querySelector('.dock-btn-delete')?.getAttribute('aria-label')).toBe('Elimina');
+  });
+
+  it('should not perform toggleWashing or toggleIroning when un-washable or un-ironable', async () => {
+    const fixture = TestBed.createComponent(WardrobeDetailPageComponent);
+    const comp = fixture.componentInstance;
+    const syncService = TestBed.inject(SyncService);
+    const queueSpy = vi.spyOn(syncService, 'queueLaundryChange');
+
+    comp.item.set({
+      id: 'cloth-restricted-guard',
+      userId: 'user-1',
+      name: 'Pelliccia',
+      size: null,
+      notes: null,
+      washingInstruction: { washType: 'do_not_wash' },
+      ironingInstruction: { ironType: 'no' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    await comp.toggleWashing();
+    await comp.toggleIroning();
+
+    expect(queueSpy).not.toHaveBeenCalled();
   });
 
   it('should duplicate cloth successfully, save to storage, show toast and navigate', async () => {

@@ -329,54 +329,78 @@
     <!-- Floating Dock Action Island: ancorata in basso al centro, stile Aero glass -->
     <aside class="detail-dock floating-dock" role="region" aria-label="Azioni del capo">
       <!-- Lavatrice -->
-      <button
-        type="button"
-        appButton
-        variant="ghost"
-        size="md"
-        class="dock-btn dock-btn-wash"
-        [class.active-washing]="isInWashing()"
-        (click)="toggleWashing()"
-        [title]="current.isCumulative ? 'Aggiungi alla lavatrice' : (isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare')"
-      >
-        <app-washing-icon [size]="16" class="dock-btn-icon" />
-        <span>
-          @if (current.isCumulative) {
-            @if (washingQuantity() >= (current.quantity || 1)) {
-              In lavatrice ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+      @if (canWash(current)) {
+        <button
+          type="button"
+          appButton
+          variant="ghost"
+          size="md"
+          class="dock-btn dock-btn-wash"
+          [class.active-washing]="isInWashing()"
+          (click)="toggleWashing()"
+          [title]="current.isCumulative ? 'Aggiungi alla lavatrice' : (isInWashing() ? 'Togli dalla lavatrice' : 'Metti a lavare')"
+          [attr.aria-label]="current.isCumulative ? (washingQuantity() >= (current.quantity || 1) ? 'In lavatrice' : 'Metti a lavare') : (isInWashing() ? 'In lavatrice' : 'Metti a lavare')"
+        >
+          <app-washing-icon [size]="16" class="dock-btn-icon" />
+          <span>
+            @if (current.isCumulative) {
+              @if (washingQuantity() >= (current.quantity || 1)) {
+                In lavatrice ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+              } @else {
+                Metti a lavare ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+              }
             } @else {
-              Metti a lavare ({{ washingQuantity() }}/{{ current.quantity || 1 }})
+              {{ isInWashing() ? 'In lavatrice' : 'Metti a lavare' }}
             }
-          } @else {
-            {{ isInWashing() ? 'In lavatrice' : 'Metti a lavare' }}
-          }
+          </span>
+        </button>
+      } @else {
+        <span
+          class="dock-pill"
+          [class.dock-pill--danger]="getWashingStatus(current) === 'cannot_wash'"
+          [class.dock-pill--warning]="getWashingStatus(current) === 'missing_info'"
+          [title]="getWashingTooltip(current)"
+        >
+          {{ getWashingLabel(current) }}
         </span>
-      </button>
+      }
 
       <!-- Stiratura -->
-      <button
-        type="button"
-        appButton
-        variant="ghost"
-        size="md"
-        class="dock-btn dock-btn-iron"
-        [class.active-ironing]="isInIroning()"
-        (click)="toggleIroning()"
-        [title]="current.isCumulative ? 'Aggiungi alla stiratura' : (isInIroning() ? 'Togli da stirare' : 'Metti a stirare')"
-      >
-        <app-ironing-icon [size]="16" class="dock-btn-icon" />
-        <span>
-          @if (current.isCumulative) {
-            @if (ironingQuantity() >= (current.quantity || 1)) {
-              Da stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+      @if (canIron(current)) {
+        <button
+          type="button"
+          appButton
+          variant="ghost"
+          size="md"
+          class="dock-btn dock-btn-iron"
+          [class.active-ironing]="isInIroning()"
+          (click)="toggleIroning()"
+          [title]="current.isCumulative ? 'Aggiungi alla stiratura' : (isInIroning() ? 'Togli da stirare' : 'Metti a stirare')"
+          [attr.aria-label]="current.isCumulative ? (ironingQuantity() >= (current.quantity || 1) ? 'Da stirare' : 'Metti a stirare') : (isInIroning() ? 'Da stirare' : 'Metti a stirare')"
+        >
+          <app-ironing-icon [size]="16" class="dock-btn-icon" />
+          <span>
+            @if (current.isCumulative) {
+              @if (ironingQuantity() >= (current.quantity || 1)) {
+                Da stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+              } @else {
+                Metti a stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+              }
             } @else {
-              Metti a stirare ({{ ironingQuantity() }}/{{ current.quantity || 1 }})
+              {{ isInIroning() ? 'Da stirare' : 'Metti a stirare' }}
             }
-          } @else {
-            {{ isInIroning() ? 'Da stirare' : 'Metti a stirare' }}
-          }
+          </span>
+        </button>
+      } @else {
+        <span
+          class="dock-pill"
+          [class.dock-pill--danger]="getIroningStatus(current) === 'cannot_iron'"
+          [class.dock-pill--warning]="getIroningStatus(current) === 'missing_info'"
+          [title]="getIroningTooltip(current)"
+        >
+          {{ getIroningLabel(current) }}
         </span>
-      </button>
+      }
 
       <span class="dock-separator" aria-hidden="true"></span>
 
@@ -391,6 +415,7 @@
         [loading]="exportingPdf()"
         (click)="exportPdf()"
         title="Esporta scheda capo in PDF"
+        aria-label="Esporta PDF"
       >
         <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
@@ -412,6 +437,7 @@
         [loading]="duplicating()"
         (click)="duplicate()"
         title="Duplica interamente questo capo e le sue foto"
+        aria-label="Duplica"
       >
         <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="8" y="8" width="9" height="9" rx="2" />
@@ -429,6 +455,7 @@
         class="dock-btn dock-btn-edit"
         (click)="edit()"
         title="Modifica capo"
+        aria-label="Modifica"
       >
         <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M11 4H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
@@ -448,6 +475,7 @@
         class="dock-btn dock-btn-delete"
         (click)="remove()"
         title="Elimina capo"
+        aria-label="Elimina"
       >
         <svg class="dock-btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="3 6 5 6 17 6" />

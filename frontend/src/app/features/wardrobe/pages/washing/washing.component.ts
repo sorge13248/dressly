@@ -12,6 +12,7 @@ import { WashingClothesItem } from '../../../../core/models';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 import { IroningIconComponent } from '../../../../shared/components/icons';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state';
+import { CARE_LABELS, canIron, getIroningLabel, getIroningStatus } from '../../../../shared/utils/care.utils';
 
 export interface WashingProgramDetergentGroup {
   key: string;
@@ -191,6 +192,10 @@ export class WashingPageComponent implements OnInit {
   );
 
   readonly totalCount = computed(() => this.items().length);
+  readonly getIroningStatus = getIroningStatus;
+  readonly canIron = canIron;
+  readonly getIroningLabel = getIroningLabel;
+  readonly CARE_LABELS = CARE_LABELS;
   private initialLoaded = false;
 
   constructor() {
@@ -279,6 +284,10 @@ export class WashingPageComponent implements OnInit {
   async onWashedAndIron(item: WashingClothesItem, event?: Event) {
     event?.preventDefault();
     event?.stopPropagation();
+
+    if (!this.canIron(item)) {
+      return;
+    }
 
     const targetEl = (event?.currentTarget as HTMLElement) || document.querySelector<HTMLElement>(`[data-washing-id="${item.id}"]`);
     void this.laundryService.animateFlyToNav(targetEl, 'ironing', 'add');

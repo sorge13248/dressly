@@ -14,6 +14,7 @@ import { WardrobeSelectionService } from '../../services/wardrobe-selection.serv
 import { AttachmentItem, CLOTHES_SORT_OPTIONS, ClothesFilters, ClothesItem, ClothesSortKey, ClothesStatus, OutfitDetailResponse } from '../../../../core/models';
 import { normalizeHexColor } from '../../../../shared/utils/color.utils';
 import { getPrimaryAttachment as resolvePrimaryAttachment } from '../../../../shared/utils/attachment.utils';
+import { canIron, canWash } from '../../../../shared/utils/care.utils';
 import { ButtonComponent } from '../../../../shared/components/button';
 import { WashingIconComponent, IroningIconComponent } from '../../../../shared/components/icons';
 import { OutfitSelectModalComponent } from '../../../outfits/components/outfit-select-modal/outfit-select-modal.component';
@@ -1156,7 +1157,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.isActionPending(item.id)) {
+    if (this.isActionPending(item.id) || !canWash(item)) {
       return;
     }
 
@@ -1212,7 +1213,7 @@ export class WardrobePageComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.isActionPending(item.id)) {
+    if (this.isActionPending(item.id) || !canIron(item)) {
       return;
     }
 
