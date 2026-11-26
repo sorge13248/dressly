@@ -114,7 +114,7 @@ export class OutfitDetailPageComponent implements OnInit {
 
   readonly allClothesInWashing = computed(() => {
     const list = this.outfit()?.clothes ?? [];
-    return list.length > 0 && list.every((c) => c.isInWashing);
+    return list.length > 0 && list.every((c) => !this.canAddMoreToLaundry(c, 'washing'));
   });
 
   readonly clothesInIroningCount = computed(() => {
@@ -123,8 +123,22 @@ export class OutfitDetailPageComponent implements OnInit {
 
   readonly allClothesInIroning = computed(() => {
     const list = this.outfit()?.clothes ?? [];
-    return list.length > 0 && list.every((c) => c.isInIroning);
+    return list.length > 0 && list.every((c) => !this.canAddMoreToLaundry(c, 'ironing'));
   });
+
+  private getMaxQuantity(item: ClothesItem): number {
+    return item.quantity && item.quantity > 0 ? item.quantity : 1;
+  }
+
+  private canAddMoreToLaundry(item: ClothesItem, kind: 'washing' | 'ironing'): boolean {
+    if (item.isCumulative) {
+      const maxQty = this.getMaxQuantity(item);
+      const washingQty = item.washingQuantity ?? (item.isInWashing ? 1 : 0);
+      const ironingQty = item.ironingQuantity ?? (item.isInIroning ? 1 : 0);
+      return washingQty + ironingQty < maxQty;
+    }
+    return kind === 'washing' ? !item.isInWashing : !item.isInIroning;
+  }
 
   ngOnInit() {
     void this.loadOutfit();
@@ -161,18 +175,30 @@ export class OutfitDetailPageComponent implements OnInit {
         let fullClothes: ClothesItem[] = [];
         const allClothes = await this.storage.getAllClothes();
         const laundry = await this.storage.getLaundry();
-        const washingSet = new Set(laundry.washing);
-        const ironingSet = new Set(laundry.ironing);
+        const washingCounts = new Map<string, number>();
+        for (const wid of laundry.washing) {
+          washingCounts.set(wid, (washingCounts.get(wid) ?? 0) + 1);
+        }
+        const ironingCounts = new Map<string, number>();
+        for (const iid of laundry.ironing) {
+          ironingCounts.set(iid, (ironingCounts.get(iid) ?? 0) + 1);
+        }
 
         if (Array.isArray(cached.clothes)) {
           const cachedIds = new Set(cached.clothes.map((c) => c.id));
           fullClothes = allClothes
             .filter((c) => cachedIds.has(c.id))
-            .map((c) => ({
-              ...c,
-              isInWashing: washingSet.has(c.id),
-              isInIroning: ironingSet.has(c.id),
-            }));
+            .map((c) => {
+              const washingQty = washingCounts.get(c.id) ?? 0;
+              const ironingQty = ironingCounts.get(c.id) ?? 0;
+              return {
+                ...c,
+                isInWashing: washingQty > 0,
+                isInIroning: ironingQty > 0,
+                washingQuantity: washingQty,
+                ironingQuantity: ironingQty,
+              };
+            });
         }
 
         const resolvedOutfit: OutfitDetailResponse = {
@@ -473,62 +499,102 @@ export class OutfitDetailPageComponent implements OnInit {
   }
 
   async toggleWashing(item: ClothesItem, event: Event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const action = item.isInWashing ? 'remove' : 'add';
-    void this.laundryService.animateFlyToNav(event.currentTarget as HTMLElement, 'washing', action);
-
-    const nextState = !item.isInWashing;
-    this.outfit.update((o) => {
-      if (!o) return null;
-      return {
-        ...o,
-        clothes: o.clothes.map((c) => (c.id === item.id ? { ...c, isInWashing: nextState } : c)),
-      };
-    });
-
-    if (this.storage) {
-      const cached = await this.storage.getLaundry();
-      const updatedList = nextState
-        ? [...new Set([...cached.washing, item.id])]
-        : cached.washing.filter((id) => id !== item.id);
-      await this.storage.saveLaundry({ ...cached, washing: updatedList });
-
-      const curr = this.outfit();
-      if (curr) {
-        await this.storage.saveOutfit(curr);
-      }
-    }
-    if (this.syncService) {
-      await this.syncService.queueLaundryChange('washing', item.id, nextState ? 'create' : 'delete');
-    }
-    void this.laundryService.refreshCounts('washing', action);
-    this.toast.success(nextState ? 'Capo aggiunto alla lavatrice' : 'Capo rimosso dalla lavatrice');
+    await this.toggleItemLaundry(item, 'washing', event);
   }
 
   async toggleIroning(item: ClothesItem, event: Event) {
+    await this.toggleItemLaundry(item, 'ironing', event);
+  }
+
+  private async toggleItemLaundry(item: ClothesItem, kind: 'washing' | 'ironing', event: Event) {
     event.preventDefault();
     event.stopPropagation();
 
-    const action = item.isInIroning ? 'remove' : 'add';
-    void this.laundryService.animateFlyToNav(event.currentTarget as HTMLElement, 'ironing', action);
+    const isWashing = kind === 'washing';
+    const label = isWashing ? 'lavatrice' : 'stiratura';
+    const triggerEl = event.currentTarget as HTMLElement;
 
-    const nextState = !item.isInIroning;
+    if (item.isCumulative) {
+      const maxQty = this.getMaxQuantity(item);
+      if (!this.canAddMoreToLaundry(item, kind)) {
+        this.toast.info(`Tutti i capi disponibili (${maxQty}) sono già in lavatrice o da stirare`);
+        return;
+      }
+
+      void this.laundryService.animateFlyToNav(triggerEl, kind, 'add');
+      const currentQty = isWashing
+        ? (item.washingQuantity ?? (item.isInWashing ? 1 : 0))
+        : (item.ironingQuantity ?? (item.isInIroning ? 1 : 0));
+      const nextQty = currentQty + 1;
+
+      this.outfit.update((o) => {
+        if (!o) return null;
+        return {
+          ...o,
+          clothes: o.clothes.map((c) =>
+            c.id === item.id
+              ? isWashing
+                ? { ...c, isInWashing: true, washingQuantity: nextQty }
+                : { ...c, isInIroning: true, ironingQuantity: nextQty }
+              : c,
+          ),
+        };
+      });
+
+      if (this.storage) {
+        if (isWashing && this.storage.addToWashing) {
+          await this.storage.addToWashing([item.id]);
+        } else if (!isWashing && this.storage.addToIroning) {
+          await this.storage.addToIroning([item.id]);
+        } else {
+          const cached = await this.storage.getLaundry();
+          await this.storage.saveLaundry(
+            isWashing
+              ? { ...cached, washing: [...cached.washing, item.id] }
+              : { ...cached, ironing: [...cached.ironing, item.id] },
+          );
+        }
+        const curr = this.outfit();
+        if (curr) {
+          await this.storage.saveOutfit(curr);
+        }
+      }
+      if (this.syncService) {
+        await this.syncService.queueLaundryChange(kind, item.id, 'create');
+      }
+      void this.laundryService.refreshCounts(kind, 'add');
+      this.toast.success(`Capo aggiunto alla ${label} (${nextQty}/${maxQty})`);
+      return;
+    }
+
+    const currentlyActive = isWashing ? item.isInWashing : item.isInIroning;
+    const action = currentlyActive ? 'remove' : 'add';
+    void this.laundryService.animateFlyToNav(triggerEl, kind, action);
+
+    const nextState = !currentlyActive;
     this.outfit.update((o) => {
       if (!o) return null;
       return {
         ...o,
-        clothes: o.clothes.map((c) => (c.id === item.id ? { ...c, isInIroning: nextState } : c)),
+        clothes: o.clothes.map((c) =>
+          c.id === item.id
+            ? isWashing
+              ? { ...c, isInWashing: nextState, washingQuantity: nextState ? 1 : 0 }
+              : { ...c, isInIroning: nextState, ironingQuantity: nextState ? 1 : 0 }
+            : c,
+        ),
       };
     });
 
     if (this.storage) {
       const cached = await this.storage.getLaundry();
+      const currentList = isWashing ? cached.washing : cached.ironing;
       const updatedList = nextState
-        ? [...new Set([...cached.ironing, item.id])]
-        : cached.ironing.filter((id) => id !== item.id);
-      await this.storage.saveLaundry({ ...cached, ironing: updatedList });
+        ? [...new Set([...currentList, item.id])]
+        : currentList.filter((id) => id !== item.id);
+      await this.storage.saveLaundry(
+        isWashing ? { ...cached, washing: updatedList } : { ...cached, ironing: updatedList },
+      );
 
       const curr = this.outfit();
       if (curr) {
@@ -536,89 +602,21 @@ export class OutfitDetailPageComponent implements OnInit {
       }
     }
     if (this.syncService) {
-      await this.syncService.queueLaundryChange('ironing', item.id, nextState ? 'create' : 'delete');
+      await this.syncService.queueLaundryChange(kind, item.id, nextState ? 'create' : 'delete');
     }
-    void this.laundryService.refreshCounts('ironing', action);
-    this.toast.success(nextState ? 'Capo aggiunto alla stiratura' : 'Capo rimosso dalla stiratura');
+    void this.laundryService.refreshCounts(kind, action);
+    this.toast.success(nextState ? `Capo aggiunto alla ${label}` : `Capo rimosso dalla ${label}`);
   }
 
   async toggleAllWashing(event: Event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const currOutfit = this.outfit();
-    const clothes = currOutfit?.clothes ?? [];
-    if (clothes.length === 0 || this.batchActionBusy()) {
-      return;
-    }
-
-    const allInWashing = clothes.every((c) => c.isInWashing);
-    const nextState = !allInWashing;
-    const action: 'add' | 'remove' = nextState ? 'add' : 'remove';
-
-    const changedClothes = nextState
-      ? clothes.filter((c) => !c.isInWashing)
-      : clothes.filter((c) => c.isInWashing);
-    const targetItems = changedClothes.length > 0 ? changedClothes : clothes;
-
-    const triggerBtn = event.currentTarget as HTMLElement;
-    this.animateBatchFlyToNav(targetItems, 'washing', action, triggerBtn);
-
-    this.outfit.update((o) => {
-      if (!o) return null;
-      return {
-        ...o,
-        clothes: o.clothes.map((c) => ({ ...c, isInWashing: nextState })),
-      };
-    });
-
-    this.batchActionBusy.set(true);
-
-    try {
-      if (this.storage) {
-        const cached = await this.storage.getLaundry();
-        let updatedWashing = cached.washing ? [...cached.washing] : [];
-        if (nextState) {
-          const idsToAdd = clothes.map((c) => c.id);
-          updatedWashing = [...new Set([...updatedWashing, ...idsToAdd])];
-        } else {
-          const idsToRemove = new Set(clothes.map((c) => c.id));
-          updatedWashing = updatedWashing.filter((id) => !idsToRemove.has(id));
-        }
-        await this.storage.saveLaundry({ ...cached, washing: updatedWashing });
-
-        const updatedOutfit = this.outfit();
-        if (updatedOutfit) {
-          await this.storage.saveOutfit(updatedOutfit);
-        }
-      }
-
-      if (this.syncService) {
-        const ids = targetItems.map((c) => c.id);
-        if (this.syncService.queueLaundryChanges) {
-          await this.syncService.queueLaundryChanges('washing', ids, nextState ? 'create' : 'delete');
-        } else {
-          for (const item of targetItems) {
-            await this.syncService.queueLaundryChange('washing', item.id, nextState ? 'create' : 'delete');
-          }
-        }
-      }
-
-      void this.laundryService.refreshCounts('washing', action);
-
-      this.toast.success(
-        nextState
-          ? `Tutti i capi (${clothes.length}) messi a lavare`
-          : `Tutti i capi rimossi dalla lavatrice`,
-      );
-    } catch {
-      this.toast.error('Errore durante l\'aggiornamento dello stato lavatrice');
-    } finally {
-      this.batchActionBusy.set(false);
-    }
+    await this.toggleAllLaundry('washing', event);
   }
 
   async toggleAllIroning(event: Event) {
+    await this.toggleAllLaundry('ironing', event);
+  }
+
+  private async toggleAllLaundry(kind: 'washing' | 'ironing', event: Event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -628,23 +626,111 @@ export class OutfitDetailPageComponent implements OnInit {
       return;
     }
 
-    const allInIroning = clothes.every((c) => c.isInIroning);
-    const nextState = !allInIroning;
-    const action: 'add' | 'remove' = nextState ? 'add' : 'remove';
-
-    const changedClothes = nextState
-      ? clothes.filter((c) => !c.isInIroning)
-      : clothes.filter((c) => c.isInIroning);
-    const targetItems = changedClothes.length > 0 ? changedClothes : clothes;
-
+    const isWashing = kind === 'washing';
+    const label = isWashing ? 'lavatrice' : 'stiratura';
+    const addVerb = isWashing ? 'messi a lavare' : 'messi a stirare';
+    const itemsToAdd = clothes.filter((c) => this.canAddMoreToLaundry(c, kind));
+    const isAdding = itemsToAdd.length > 0;
+    const action: 'add' | 'remove' = isAdding ? 'add' : 'remove';
     const triggerBtn = event.currentTarget as HTMLElement;
-    this.animateBatchFlyToNav(targetItems, 'ironing', action, triggerBtn);
+
+    if (isAdding) {
+      const addIdSet = new Set(itemsToAdd.map((c) => c.id));
+      const addIds = itemsToAdd.map((c) => c.id);
+      this.animateBatchFlyToNav(itemsToAdd, kind, 'add', triggerBtn);
+
+      this.outfit.update((o) => {
+        if (!o) return null;
+        return {
+          ...o,
+          clothes: o.clothes.map((c) => {
+            if (!addIdSet.has(c.id)) return c;
+            if (isWashing) {
+              const nextQty = c.isCumulative
+                ? (c.washingQuantity ?? (c.isInWashing ? 1 : 0)) + 1
+                : 1;
+              return { ...c, isInWashing: true, washingQuantity: nextQty };
+            }
+            const nextQty = c.isCumulative
+              ? (c.ironingQuantity ?? (c.isInIroning ? 1 : 0)) + 1
+              : 1;
+            return { ...c, isInIroning: true, ironingQuantity: nextQty };
+          }),
+        };
+      });
+
+      this.batchActionBusy.set(true);
+      try {
+        if (this.storage) {
+          if (isWashing && this.storage.addToWashing) {
+            await this.storage.addToWashing(addIds);
+          } else if (!isWashing && this.storage.addToIroning) {
+            await this.storage.addToIroning(addIds);
+          } else {
+            const cached = await this.storage.getLaundry();
+            const currentList = isWashing ? cached.washing : cached.ironing;
+            await this.storage.saveLaundry(
+              isWashing
+                ? { ...cached, washing: [...currentList, ...addIds] }
+                : { ...cached, ironing: [...currentList, ...addIds] },
+            );
+          }
+
+          const updatedOutfit = this.outfit();
+          if (updatedOutfit) {
+            await this.storage.saveOutfit(updatedOutfit);
+          }
+        }
+
+        if (this.syncService) {
+          if (this.syncService.queueLaundryChanges) {
+            await this.syncService.queueLaundryChanges(kind, addIds, 'create');
+          } else {
+            for (const id of addIds) {
+              await this.syncService.queueLaundryChange(kind, id, 'create');
+            }
+          }
+        }
+
+        const updatedClothes = this.outfit()?.clothes ?? clothes;
+        const allActive = updatedClothes.every((c) => (isWashing ? c.isInWashing : c.isInIroning));
+        void this.laundryService.refreshCounts(kind, action);
+        this.toast.success(
+          itemsToAdd.length === clothes.length || allActive
+            ? `Tutti i capi (${clothes.length}) ${addVerb}`
+            : `${itemsToAdd.length} ${itemsToAdd.length === 1 ? 'capo aggiunto' : 'capi aggiunti'} alla ${label}`,
+        );
+      } catch {
+        this.toast.error(`Errore durante l'aggiornamento dello stato ${label}`);
+      } finally {
+        this.batchActionBusy.set(false);
+      }
+      return;
+    }
+
+    const itemsToRemove = clothes.filter((c) => (isWashing ? c.isInWashing : c.isInIroning));
+    const targetItems = itemsToRemove.length > 0 ? itemsToRemove : clothes;
+    const removeIdsWithMultiplicity: string[] = [];
+    for (const c of targetItems) {
+      const qty = c.isCumulative
+        ? Math.max(1, (isWashing ? c.washingQuantity : c.ironingQuantity) ?? 1)
+        : 1;
+      for (let i = 0; i < qty; i++) {
+        removeIdsWithMultiplicity.push(c.id);
+      }
+    }
+
+    this.animateBatchFlyToNav(targetItems, kind, 'remove', triggerBtn);
 
     this.outfit.update((o) => {
       if (!o) return null;
       return {
         ...o,
-        clothes: o.clothes.map((c) => ({ ...c, isInIroning: nextState })),
+        clothes: o.clothes.map((c) =>
+          isWashing
+            ? { ...c, isInWashing: false, washingQuantity: 0 }
+            : { ...c, isInIroning: false, ironingQuantity: 0 },
+        ),
       };
     });
 
@@ -653,15 +739,12 @@ export class OutfitDetailPageComponent implements OnInit {
     try {
       if (this.storage) {
         const cached = await this.storage.getLaundry();
-        let updatedIroning = cached.ironing ? [...cached.ironing] : [];
-        if (nextState) {
-          const idsToAdd = clothes.map((c) => c.id);
-          updatedIroning = [...new Set([...updatedIroning, ...idsToAdd])];
-        } else {
-          const idsToRemove = new Set(clothes.map((c) => c.id));
-          updatedIroning = updatedIroning.filter((id) => !idsToRemove.has(id));
-        }
-        await this.storage.saveLaundry({ ...cached, ironing: updatedIroning });
+        const idsToRemove = new Set(clothes.map((c) => c.id));
+        const currentList = isWashing ? cached.washing : cached.ironing;
+        const updatedList = currentList.filter((id) => !idsToRemove.has(id));
+        await this.storage.saveLaundry(
+          isWashing ? { ...cached, washing: updatedList } : { ...cached, ironing: updatedList },
+        );
 
         const updatedOutfit = this.outfit();
         if (updatedOutfit) {
@@ -670,25 +753,19 @@ export class OutfitDetailPageComponent implements OnInit {
       }
 
       if (this.syncService) {
-        const ids = targetItems.map((c) => c.id);
         if (this.syncService.queueLaundryChanges) {
-          await this.syncService.queueLaundryChanges('ironing', ids, nextState ? 'create' : 'delete');
+          await this.syncService.queueLaundryChanges(kind, removeIdsWithMultiplicity, 'delete');
         } else {
-          for (const item of targetItems) {
-            await this.syncService.queueLaundryChange('ironing', item.id, nextState ? 'create' : 'delete');
+          for (const id of removeIdsWithMultiplicity) {
+            await this.syncService.queueLaundryChange(kind, id, 'delete');
           }
         }
       }
 
-      void this.laundryService.refreshCounts('ironing', action);
-
-      this.toast.success(
-        nextState
-          ? `Tutti i capi (${clothes.length}) messi a stirare`
-          : `Tutti i capi rimossi dalla stiratura`,
-      );
+      void this.laundryService.refreshCounts(kind, 'remove');
+      this.toast.success(`Tutti i capi rimossi dalla ${label}`);
     } catch {
-      this.toast.error('Errore durante l\'aggiornamento dello stato stiratura');
+      this.toast.error(`Errore durante l'aggiornamento dello stato ${label}`);
     } finally {
       this.batchActionBusy.set(false);
     }

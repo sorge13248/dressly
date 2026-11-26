@@ -185,29 +185,23 @@ export class OutfitsService {
     }
 
     const itemIds = (outfit.clothes ?? []).map((c) => c.id);
-    const washingIds =
+    const washingItems =
       itemIds.length > 0
-        ? new Set(
-            (
-              await this.dataSource.getRepository(WashingItem).find({
-                where: { userId: user.id, clothesId: In(itemIds) },
-                select: { clothesId: true },
-              })
-            ).map((w) => w.clothesId),
-          )
-        : new Set<string>();
+        ? await this.dataSource.getRepository(WashingItem).find({
+            where: { userId: user.id, clothesId: In(itemIds) },
+            select: { clothesId: true, quantity: true },
+          })
+        : [];
+    const washingMap = new Map(washingItems.map((w) => [w.clothesId, w.quantity]));
 
-    const ironingIds =
+    const ironingItems =
       itemIds.length > 0
-        ? new Set(
-            (
-              await this.dataSource.getRepository(IroningItem).find({
-                where: { userId: user.id, clothesId: In(itemIds) },
-                select: { clothesId: true },
-              })
-            ).map((i) => i.clothesId),
-          )
-        : new Set<string>();
+        ? await this.dataSource.getRepository(IroningItem).find({
+            where: { userId: user.id, clothesId: In(itemIds) },
+            select: { clothesId: true, quantity: true },
+          })
+        : [];
+    const ironingMap = new Map(ironingItems.map((i) => [i.clothesId, i.quantity]));
 
     for (const item of outfit.clothes ?? []) {
       if (item.attachments) {
@@ -233,12 +227,17 @@ export class OutfitsService {
           c.attachments?.[0] ??
           null;
 
+        const washingQuantity = washingMap.get(c.id) ?? 0;
+        const ironingQuantity = ironingMap.get(c.id) ?? 0;
+
         return {
           ...c,
           fullTitle: c.fullTitle,
           primaryAttachment,
-          isInWashing: washingIds.has(c.id),
-          isInIroning: ironingIds.has(c.id),
+          isInWashing: washingQuantity > 0,
+          isInIroning: ironingQuantity > 0,
+          washingQuantity,
+          ironingQuantity,
         };
       }),
     };

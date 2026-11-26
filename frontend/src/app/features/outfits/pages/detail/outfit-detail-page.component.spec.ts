@@ -426,4 +426,103 @@ describe('OutfitDetailPageComponent', () => {
     expect(washBtns[0].textContent).toContain('A lavare');
     expect(ironBtns[0].textContent).toContain('A stirare');
   });
+
+  it('should increment cumulative clothes up to max quantity before removing in toggleAllWashing and toggleAllIroning', async () => {
+    const clickEvent = new MouseEvent('click');
+    const cumulativeCloth = {
+      ...mockOutfitDetail.clothes[0],
+      id: 'c-cumul',
+      name: 'Calzini',
+      isCumulative: true,
+      quantity: 3,
+      isInWashing: false,
+      isInIroning: false,
+      washingQuantity: 0,
+      ironingQuantity: 0,
+    };
+    const singleCloth = {
+      ...mockOutfitDetail.clothes[1],
+      id: 'c-single',
+      isCumulative: false,
+      quantity: 1,
+      isInWashing: false,
+      isInIroning: false,
+      washingQuantity: 0,
+      ironingQuantity: 0,
+    };
+
+    component.outfit.set({
+      ...mockOutfitDetail,
+      clothesCount: 2,
+      clothes: [cumulativeCloth, singleCloth],
+    });
+
+    // 1st click: adds 1 cumulative and 1 single
+    await component.toggleAllWashing(clickEvent);
+    expect(component.outfit()?.clothes[0].washingQuantity).toBe(1);
+    expect(component.outfit()?.clothes[1].isInWashing).toBe(true);
+    expect(component.allClothesInWashing()).toBe(false);
+
+    // 2nd click: adds 2nd cumulative, single stays at 1
+    await component.toggleAllWashing(clickEvent);
+    expect(component.outfit()?.clothes[0].washingQuantity).toBe(2);
+    expect(component.allClothesInWashing()).toBe(false);
+
+    // 3rd click: adds 3rd (max) cumulative -> now all at max
+    await component.toggleAllWashing(clickEvent);
+    expect(component.outfit()?.clothes[0].washingQuantity).toBe(3);
+    expect(component.allClothesInWashing()).toBe(true);
+
+    // 4th click: all at max -> removes all from washing
+    await component.toggleAllWashing(clickEvent);
+    expect(component.outfit()?.clothes[0].isInWashing).toBe(false);
+    expect(component.outfit()?.clothes[0].washingQuantity).toBe(0);
+    expect(component.outfit()?.clothes[1].isInWashing).toBe(false);
+    expect(component.allClothesInWashing()).toBe(false);
+
+    // Ironing: increment cumulative up to 3 before removing
+    await component.toggleAllIroning(clickEvent);
+    await component.toggleAllIroning(clickEvent);
+    expect(component.outfit()?.clothes[0].ironingQuantity).toBe(2);
+    expect(component.allClothesInIroning()).toBe(false);
+
+    await component.toggleAllIroning(clickEvent);
+    expect(component.outfit()?.clothes[0].ironingQuantity).toBe(3);
+    expect(component.allClothesInIroning()).toBe(true);
+
+    await component.toggleAllIroning(clickEvent);
+    expect(component.outfit()?.clothes[0].isInIroning).toBe(false);
+    expect(component.outfit()?.clothes[0].ironingQuantity).toBe(0);
+  });
+
+  it('should increment cumulative cloth up to max quantity in toggleWashing and toggleIroning', async () => {
+    const clickEvent = new MouseEvent('click');
+    const cumulativeCloth = {
+      ...mockOutfitDetail.clothes[0],
+      id: 'c-cumul-single-btn',
+      isCumulative: true,
+      quantity: 2,
+      isInWashing: false,
+      isInIroning: false,
+      washingQuantity: 0,
+      ironingQuantity: 0,
+    };
+
+    component.outfit.set({
+      ...mockOutfitDetail,
+      clothesCount: 1,
+      clothes: [cumulativeCloth],
+    });
+
+    await component.toggleWashing(component.outfit()!.clothes[0], clickEvent);
+    expect(component.outfit()?.clothes[0].washingQuantity).toBe(1);
+
+    await component.toggleIroning(component.outfit()!.clothes[0], clickEvent);
+    expect(component.outfit()?.clothes[0].ironingQuantity).toBe(1);
+
+    // Now washing(1) + ironing(1) == max(2), further add is blocked
+    await component.toggleWashing(component.outfit()!.clothes[0], clickEvent);
+    expect(component.outfit()?.clothes[0].washingQuantity).toBe(1);
+    expect(mockToast.info).toHaveBeenCalledWith('Tutti i capi disponibili (2) sono già in lavatrice o da stirare');
+  });
 });
