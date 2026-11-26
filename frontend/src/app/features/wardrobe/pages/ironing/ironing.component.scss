@@ -227,7 +227,7 @@
 
 .clothes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -244,11 +244,8 @@
   text-decoration: none;
 
   &--interactive {
-    cursor: pointer;
-
     &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 18px rgba(15, 45, 90, 0.16);
+      box-shadow: 0 6px 16px rgba(15, 45, 90, 0.14);
       border-color: rgba(30, 109, 207, 0.5);
 
       .cloth-name {
@@ -258,12 +255,11 @@
   }
 
   &--link {
-    cursor: pointer;
     border-color: rgba(225, 135, 25, 0.35);
 
     &:hover {
       border-color: #d96f00;
-      box-shadow: 0 8px 20px rgba(180, 80, 10, 0.18);
+      box-shadow: 0 6px 18px rgba(180, 80, 10, 0.16);
 
       .cloth-name {
         color: #b85200;
@@ -272,8 +268,16 @@
   }
 }
 
+.cloth-link-area {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+  flex: 1;
+}
+
 .cloth-thumb {
-  height: 125px;
+  height: 120px;
   background:
     radial-gradient(circle at top left, rgba(30, 109, 207, 0.12), transparent 40%),
     linear-gradient(135deg, #eaf2fb, #dbe9f8);
@@ -288,7 +292,7 @@
     height: 24px;
     padding: 0 6px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #ea580c, #c2410c);
+    background: linear-gradient(135deg, #0284c7, #0369a1);
     color: #ffffff;
     font-size: 0.75rem;
     font-weight: 700;
@@ -306,33 +310,41 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 220ms ease;
   }
 }
 
+.cloth-card:hover .cloth-thumb img {
+  transform: scale(1.04);
+}
+
 .thumb-fallback {
+  width: 100%;
   height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  font-size: 0.88rem;
-  color: #235da2;
+  padding: 8px;
+  font-size: 0.78rem;
   font-weight: 600;
+  color: #3b6088;
 }
 
 .cloth-body {
-  padding: 10px 12px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
 }
 
 .cloth-name {
+  font-size: 0.84rem;
   font-weight: 600;
-  font-size: 0.88rem;
-  color: #17385e;
+  color: #1e3a5f;
   line-height: 1.25;
+  transition: color 140ms ease;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -341,29 +353,30 @@
 }
 
 .action-cta {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #b85200;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  margin-top: auto;
+  margin-top: 4px;
 }
 
 .chip-inside-out {
   align-self: flex-start;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
   color: #135299;
-  background: rgba(30, 109, 207, 0.1);
+  background: rgba(30, 109, 207, 0.09);
   border: 1px solid rgba(30, 109, 207, 0.2);
   border-radius: 3px;
-  padding: 1px 6px;
-  margin-top: auto;
+  padding: 1px 5px;
+  margin-top: 4px;
 }
 
 .cloth-actions {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 5px;
   padding: 6px 8px;
   background: rgba(240, 246, 255, 0.7);
   border-top: 1px solid rgba(100, 140, 215, 0.15);
@@ -374,17 +387,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
   border: 1px solid rgba(100, 140, 210, 0.35);
   background: #fff;
   cursor: pointer;
   transition: all 120ms ease;
   color: #1e40af;
-  flex: 1;
+  width: 100%;
 
   &:hover {
     background: #dbeafe;
@@ -392,18 +405,19 @@
   }
 
   &.action-all {
-    color: #9a3412;
-    border-color: rgba(234, 88, 12, 0.4);
+    color: #065f46;
+    border-color: rgba(16, 185, 129, 0.4);
 
     &:hover {
-      background: #ffedd5;
-      border-color: #ea580c;
+      background: #d1fae5;
+      border-color: #10b981;
     }
   }
 
   .mini-icon {
     width: 13px;
     height: 13px;
+    flex-shrink: 0;
   }
 }
 
@@ -419,7 +433,7 @@
   }
 
   .clothes-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 

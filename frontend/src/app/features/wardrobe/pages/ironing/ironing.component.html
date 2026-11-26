@@ -33,34 +33,35 @@
 
             <div class="clothes-grid">
               @for (item of missingInfoItems(); track trackById($index, item)) {
-                <a
-                  class="cloth-card cloth-card--link"
-                  [attr.data-ironing-id]="item.id"
-                  [routerLink]="['/wardrobe', item.id, 'edit']"
-                  [queryParams]="{ step: 4, callbackUrl: currentUrl() }"
-                  [attr.aria-label]="'Imposta stiratura per ' + getPreferredLabel(item)"
-                  title="Clicca per impostare la stiratura nella scheda Cura"
-                >
-                  <div class="cloth-thumb">
-                    @if (getAttachmentUrl(item); as photoUrl) {
-                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
-                    } @else {
-                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
-                    }
-                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
-                      <span
-                        class="quantity-pill"
-                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
-                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
-                      >
-                        {{ item.ironingQuantity }}
-                      </span>
-                    }
-                  </div>
-                  <div class="cloth-body">
-                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
-                    <span class="action-cta">Imposta stiratura →</span>
-                  </div>
+                <div class="cloth-card cloth-card--link" [attr.data-ironing-id]="item.id">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id, 'edit']"
+                    [queryParams]="{ step: 4, callbackUrl: currentUrl() }"
+                    [attr.aria-label]="'Imposta stiratura per ' + getPreferredLabel(item)"
+                    title="Clicca per impostare la stiratura nella scheda Cura"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                      @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                          [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                        >
+                          {{ item.ironingQuantity }}
+                        </span>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      <span class="action-cta">Imposta stiratura →</span>
+                    </div>
+                  </a>
                   <div class="cloth-actions">
                     <button
                       type="button"
@@ -87,7 +88,7 @@
                       </button>
                     }
                   </div>
-                </a>
+                </div>
               }
             </div>
           </section>
@@ -113,35 +114,36 @@
           } @else {
             <div class="clothes-grid">
               @for (item of oneDotItems(); track trackById($index, item)) {
-                <a
-                  class="cloth-card cloth-card--interactive"
-                  [attr.data-ironing-id]="item.id"
-                  [routerLink]="['/wardrobe', item.id]"
-                  [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
-                  title="Clicca per visualizzare il capo"
-                >
-                  <div class="cloth-thumb">
-                    @if (getAttachmentUrl(item); as photoUrl) {
-                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
-                    } @else {
-                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
-                    }
-                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
-                      <span
-                        class="quantity-pill"
-                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
-                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
-                      >
-                        {{ item.ironingQuantity }}
-                      </span>
-                    }
-                  </div>
-                  <div class="cloth-body">
-                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
-                    @if (item.ironingInstruction?.ironInsideOut) {
-                      <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
-                    }
-                  </div>
+                <div class="cloth-card cloth-card--interactive" [attr.data-ironing-id]="item.id">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id]"
+                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                    title="Clicca per visualizzare il capo"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                      @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                          [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                        >
+                          {{ item.ironingQuantity }}
+                        </span>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      @if (item.ironingInstruction?.ironInsideOut) {
+                        <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
+                      }
+                    </div>
+                  </a>
                   <div class="cloth-actions">
                     <button
                       type="button"
@@ -168,7 +170,7 @@
                       </button>
                     }
                   </div>
-                </a>
+                </div>
               }
             </div>
           }
@@ -194,35 +196,36 @@
           } @else {
             <div class="clothes-grid">
               @for (item of twoDotsItems(); track trackById($index, item)) {
-                <a
-                  class="cloth-card cloth-card--interactive"
-                  [attr.data-ironing-id]="item.id"
-                  [routerLink]="['/wardrobe', item.id]"
-                  [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
-                  title="Clicca per visualizzare il capo"
-                >
-                  <div class="cloth-thumb">
-                    @if (getAttachmentUrl(item); as photoUrl) {
-                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
-                    } @else {
-                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
-                    }
-                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
-                      <span
-                        class="quantity-pill"
-                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
-                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
-                      >
-                        {{ item.ironingQuantity }}
-                      </span>
-                    }
-                  </div>
-                  <div class="cloth-body">
-                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
-                    @if (item.ironingInstruction?.ironInsideOut) {
-                      <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
-                    }
-                  </div>
+                <div class="cloth-card cloth-card--interactive" [attr.data-ironing-id]="item.id">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id]"
+                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                    title="Clicca per visualizzare il capo"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                      @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                          [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                        >
+                          {{ item.ironingQuantity }}
+                        </span>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      @if (item.ironingInstruction?.ironInsideOut) {
+                        <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
+                      }
+                    </div>
+                  </a>
                   <div class="cloth-actions">
                     <button
                       type="button"
@@ -249,7 +252,7 @@
                       </button>
                     }
                   </div>
-                </a>
+                </div>
               }
             </div>
           }
@@ -275,35 +278,36 @@
           } @else {
             <div class="clothes-grid">
               @for (item of threeDotsItems(); track trackById($index, item)) {
-                <a
-                  class="cloth-card cloth-card--interactive"
-                  [attr.data-ironing-id]="item.id"
-                  [routerLink]="['/wardrobe', item.id]"
-                  [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
-                  title="Clicca per visualizzare il capo"
-                >
-                  <div class="cloth-thumb">
-                    @if (getAttachmentUrl(item); as photoUrl) {
-                      <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
-                    } @else {
-                      <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
-                    }
-                    @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
-                      <span
-                        class="quantity-pill"
-                        [title]="'Quantità da stirare: ' + item.ironingQuantity"
-                        [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
-                      >
-                        {{ item.ironingQuantity }}
-                      </span>
-                    }
-                  </div>
-                  <div class="cloth-body">
-                    <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
-                    @if (item.ironingInstruction?.ironInsideOut) {
-                      <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
-                    }
-                  </div>
+                <div class="cloth-card cloth-card--interactive" [attr.data-ironing-id]="item.id">
+                  <a
+                    class="cloth-link-area"
+                    [routerLink]="['/wardrobe', item.id]"
+                    [attr.aria-label]="'Visualizza ' + getPreferredLabel(item)"
+                    title="Clicca per visualizzare il capo"
+                  >
+                    <div class="cloth-thumb">
+                      @if (getAttachmentUrl(item); as photoUrl) {
+                        <img [src]="photoUrl" [alt]="getPreferredLabel(item)" loading="lazy" />
+                      } @else {
+                        <div class="thumb-fallback">{{ getPreferredLabel(item) }}</div>
+                      }
+                      @if (item.isCumulative && (item.ironingQuantity ?? 1) > 0) {
+                        <span
+                          class="quantity-pill"
+                          [title]="'Quantità da stirare: ' + item.ironingQuantity"
+                          [attr.aria-label]="'Quantità da stirare: ' + item.ironingQuantity"
+                        >
+                          {{ item.ironingQuantity }}
+                        </span>
+                      }
+                    </div>
+                    <div class="cloth-body">
+                      <span class="cloth-name">{{ getPreferredLabel(item) }}</span>
+                      @if (item.ironingInstruction?.ironInsideOut) {
+                        <span class="chip-inside-out" title="Stira al rovescio">Al rovescio</span>
+                      }
+                    </div>
+                  </a>
                   <div class="cloth-actions">
                     <button
                       type="button"
@@ -330,7 +334,7 @@
                       </button>
                     }
                   </div>
-                </a>
+                </div>
               }
             </div>
           }

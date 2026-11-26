@@ -166,7 +166,7 @@ describe('IroningPageComponent', () => {
     expect(warningCard.textContent).toContain('Manca informazione');
 
     // Link in warning card should point to edit with step 4
-    const editLink = warningCard.querySelector('a.cloth-card--link') as HTMLAnchorElement;
+    const editLink = warningCard.querySelector('.cloth-card--link a.cloth-link-area') as HTMLAnchorElement;
     expect(editLink).not.toBeNull();
     expect(editLink.getAttribute('href')).toContain('/wardrobe/cloth-missing/edit');
 
@@ -178,7 +178,7 @@ describe('IroningPageComponent', () => {
     expect(layout.classList.contains('grid-2x2')).toBe(true);
 
     // Clothes in dot card should link directly to detail page
-    const detailLink = dotCards[0].querySelector('a.cloth-card--interactive') as HTMLAnchorElement;
+    const detailLink = dotCards[0].querySelector('.cloth-card--interactive a.cloth-link-area') as HTMLAnchorElement;
     expect(detailLink).not.toBeNull();
     expect(detailLink.getAttribute('href')).toContain('/wardrobe/cloth-dot1');
   });
